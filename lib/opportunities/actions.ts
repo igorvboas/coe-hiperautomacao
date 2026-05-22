@@ -122,6 +122,18 @@ export async function deleteOpportunity(
 
 // =============================================================================
 // createOpportunity — insere nova oportunidade após validação Zod
+// -----------------------------------------------------------------------------
+// Mass Assignment defense layers (Phase 7.5, HARDEN-B-01):
+//   1. `opportunityInputSchema.strict()` rejeita tenant_id, created_by,
+//      seq_id, id, created_at, updated_at no input (parse falha com
+//      `unrecognized_keys`).
+//   2. `.insert({...})` abaixo enumera campos explicitamente — sem
+//      spread cego de `data`/`input`. tenant_id e created_by vêm do
+//      `auth.uid()` lookup (server-derived).
+//   3. RLS `WITH CHECK (tenant_id = current_tenant_id())` em opportunities
+//      bloqueia em DB caso algo escape.
+//   4. Trigger `trg_opportunities_seq_id` sobrescreve `seq_id` sempre,
+//      ignorando qualquer valor que viesse do cliente.
 // =============================================================================
 export type CreateOpportunityResult =
   | { ok: true; id: string }
@@ -201,6 +213,18 @@ export async function createOpportunity(
 
 // =============================================================================
 // updateOpportunity — atualiza campos da oportunidade (NÃO inclui status)
+// -----------------------------------------------------------------------------
+// Mass Assignment defense layers (Phase 7.5, HARDEN-B-01):
+//   1. `opportunityInputSchema.strict()` rejeita tenant_id, created_by,
+//      seq_id, id, created_at, updated_at no input (parse falha com
+//      `unrecognized_keys`).
+//   2. `.update({...})` abaixo NÃO inclui tenant_id, created_by, seq_id,
+//      id — campos imutáveis pelo cliente. Enumeração explícita
+//      (sem spread cego).
+//   3. `.eq('id', id).eq('tenant_id', profile.tenant_id)` escopa o
+//      update ao tenant do usuário autenticado — defesa em profundidade
+//      sobre o RLS (USING + WITH CHECK).
+//   4. RLS bloqueia em DB caso o eq escape (defesa final).
 // =============================================================================
 export type UpdateOpportunityResult =
   | { ok: true }
@@ -222,6 +246,19 @@ export async function updateOpportunity(
 
   const data = parsed.data;
   const supabase = await createClient();
+
+  // Server-derived tenant scope — defesa em profundidade sobre o RLS.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sessão expirada.' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single();
+  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
 
   const { error } = await supabase
     .from('opportunities')
@@ -250,7 +287,8 @@ export async function updateOpportunity(
       formulario_extras:
         data.source === 'formulario' ? data.formulario_extras ?? null : null,
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('tenant_id', profile.tenant_id);
 
   if (error) {
     return { ok: false, error: `Erro ao atualizar: ${error.message}` };
