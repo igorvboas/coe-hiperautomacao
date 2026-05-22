@@ -9,7 +9,7 @@ next_phases: ["7.5", "8"]
 progress:
   total_phases: 9
   completed_phases: 7
-  percent: 80
+  percent: 83
 ---
 
 # Project State
@@ -23,13 +23,13 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 1 + Wave 2 + Wave 4 completos.
-Plan: 4 of 6
-Status: Wave 0 + Wave 1 + Wave 2 + Wave 4 done — Plan 02 (Wave 1 — atomicidade `seq_id`) completo em modo write-only (migration arquivo + handoff manual + teste com skip-when-no-db); Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `.env.test` + Supabase running para rodar; Plan 06 (Wave 5 — formulário público hardened) desbloqueado pelo Plan 05 (CSP libera Turnstile).
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 02 em **write-only mode** (usuário usa Supabase Cloud — sem `supabase db push`): 3 commits (f964c69 migration 0006 tenant_sequences + next_seq_id atômico + trigger always-override, d11a110 HANDOFF.md com copy-paste para Dashboard SQL Editor + 4 queries de verificação + rollback, d635d22 atomicity.test.ts cobrindo HARDEN-C-01/02/03 com describe.skipIf + lazy-init). 2 deviations Rule 1/3 (type error tenant_sequences ausente em database.types → helper untyped; describe.skipIf bug em corpo do describe → lazy init). typecheck clean. test exit 0 (18 mass-assignment pass + 3 atomicity skipped). Total ~8min.
+Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 1 + Wave 2 + Wave 3 + Wave 4 completos.
+Plan: 5 of 6
+Status: Plans 01 (Wave 0), 02 (Wave 1), 03 (Wave 2), 04 (Wave 3), 05 (Wave 4) done — somente Plan 06 (Wave 5 — formulário público hardened) pendente. Plan 04 (Wave 3 — RLS tenant-isolation) completo em **write-only mode**: 12 specs HARDEN-A-01..05 em skip mode aguardando `.env.test` apontar para Supabase Cloud de teste. Plan 06 desbloqueado pelo Plan 05 (CSP libera Turnstile).
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 04 em **write-only mode** (Supabase Cloud, sem .env.test ainda): 1 commit (e3b9736 tenant-isolation.test.ts 399 linhas com 4 grupos × 12 specs HARDEN-A-01..05 + sanity + schema integration; padrão describe.skipIf + lazy-init de serviceRoleClient em beforeAll mirroring Plan 02). 1 deviation Rule 2 (auto-add spec HARDEN-A-05d INSERT em opportunity_phases com tenant_id forjado por simetria de cobertura 4 verbos × 3 tabelas). typecheck clean. npm run test:security exit 0 (18 mass-assignment pass + 3 atomicity skipped + 12 tenant-isolation skipped). Total ~3min.
 
-Progress: [████████░░] 80%
-<!-- Phase 7.5: 4/6 plans completos (01, 02, 03, 05) — Plan 04 e 06 pendentes -->
+Progress: [████████░░] 83%
+<!-- Phase 7.5: 5/6 plans completos (01, 02, 03, 04, 05) — Plan 06 pendente -->
 
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -53,19 +53,19 @@ Progress: [████████░░] 80%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 6.5min
-- Total execution time: ~26min
+- Total plans completed: 5
+- Average duration: 5.8min
+- Total execution time: ~29min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7.5 | 4 | 26min | 6.5min |
+| 7.5 | 5 | 29min | 5.8min |
 
 **Recent Trend:**
-- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min)
-- Trend: ↗ leve aumento em Plan 02 (write-only mode adicionou handoff doc + skipIf lazy-init debug). Ainda dentro do envelope ~5-8min — densidade dos artifacts de Wave 0/research segue pagando.
+- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min), 07.5-04 (3min)
+- Trend: ↘ Plan 04 mais rápido (3min) — reuso integral do padrão describe.skipIf + lazy-init do Plan 02; zero infraestrutura nova, só specs sobre helpers existentes do Wave 0. Pattern density continua pagando dividendos.
 
 *Updated after each plan completion*
 
@@ -89,10 +89,12 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Atomicidade `seq_id` por tenant (Plan 07.5-02)**: aux table `tenant_sequences(tenant_id uuid pk, last_seq int)` com RLS enabled + ZERO policies (acesso só via service_role / SECURITY DEFINER). Função `next_seq_id(p_tenant_id uuid)` usa `INSERT ... ON CONFLICT DO UPDATE ... RETURNING last_seq` — row-lock transacional, sem gaps em rollback (diferente de `CREATE SEQUENCE` cujo `nextval` não rollback). Trigger `trg_opportunities_seq_id` SEMPRE sobrescreve `new.seq_id := next_seq_id(...)` (sem `if null`) — defesa contra forge de seq_id pelo cliente (threat T-07.5-C-02).
 - **Write-only mode para Supabase Cloud (Plan 07.5-02)**: projeto roda em Cloud (hosted), não local Docker. Migration 0006 é arquivo + handoff doc copy-paste-ready para Supabase Dashboard SQL Editor (NÃO `supabase db push`). Apply manual via Dashboard mantém controle visual e evita exigência de `SUPABASE_ACCESS_TOKEN` em sessão não-TTY. Padrão para próximas migrations enquanto projeto não tiver CI.
 - **Vitest skip-when-no-db pattern (Plan 07.5-02)**: `describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)` + lazy-init de `serviceRoleClient()` dentro de `beforeAll` (corpo do describe roda mesmo em skip mode, só pula os `it`s). Permite `npm run test` exit 0 sem `.env.test` populado — específicos de integração entram em modo skipped, unit tests rodam normal.
+- **RLS tenant-isolation suite (Plan 07.5-04)**: 12 specs em 4 grupos cobrindo HARDEN-A-01..05. SELECT/UPDATE/DELETE cross-tenant retornam `data: []` (RLS USING filtra silenciosamente). INSERT com `tenant_id` forjado retorna erro (RLS WITH CHECK levanta 42501). Cobertura simétrica em `opportunities` (4 verbos), `opportunity_phases` (4 verbos — HARDEN-A-05d adicionado por simetria), `profiles` (SELECT — `profiles_update_self` é id=auth.uid(), não tenant-based, fora do escopo Bloco A). Grupo 4 cross-check: `opportunityInputSchema.strict()` rejeita `tenant_id` no payload — defesa em profundidade Zod antes do RLS. Padrão skipIf + lazy-init reusado integralmente do Plan 02.
 
 ### Pending Todos
 
 - **Aplicar `supabase/migrations/0006_seq_id_atomic.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 02 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-02-MIGRATION-HANDOFF.md`). Após apply, rodar `npm run gen:types` para regenerar `lib/database.types.ts`. Sem isso, o teste `tests/security/atomicity.test.ts` permanece em skip mode quando `.env.test` apontar para o projeto Cloud.
+- **Popular `.env.test` apontando para projeto Supabase Cloud DE TESTE** (Phase 7.5 Plan 04 activation — instruções em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-04-SUMMARY.md` §"Apply Manually"). Ativa 15 integration specs (3 atomicity + 12 tenant-isolation) em modo green. Sem isso, suite roda em skip mode (válido para CI sem Docker, mas não verifica RLS de fato). REQUER: aplicar todas migrations 0001..0006 no projeto Cloud de teste antes (não usar produção).
 - Definir nome final do projeto (`fgcoop-coe`? `coe-platform`? `psw-coe`?) antes da Fase 2 (bootstrap do app)
 - Levantar a marca / paleta do cliente piloto (FGCoop usa azul `#1a3c6e` + verde `#00a878` no mockup — manter como tema inicial?)
 - Decidir provedor de e-mail/magic link (Supabase nativo basta para MVP)
@@ -107,5 +109,5 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-05-22
-Stopped at: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`) completo em **write-only mode**. 3 task commits (f964c69 migration 0006 tenant_sequences + next_seq_id + trigger always-override, d11a110 HANDOFF.md para apply manual no Dashboard SQL Editor, d635d22 atomicity.test.ts cobrindo HARDEN-C-01/02/03 com describe.skipIf + lazy-init). Migration arquivo + handoff doc prontos; apply manual no Supabase Cloud Dashboard pendente (tracked em Pending Todos). Teste em skip mode até `.env.test` ser populado. typecheck clean, npm run test exit 0 (18 mass-assignment pass + 3 atomicity skipped). 2 deviations (Rule 1 + Rule 3) ambas resolvidas inline. Próximo: Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `.env.test` + Supabase running) ou Plan 07.5-06 (Wave 5 — formulário público hardened, desbloqueado pela CSP do Plan 05).
-Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-04-PLAN.md (se existir; senão `/gsd-plan-phase 7.5` para Plan 04)
+Stopped at: Plan 07.5-04 (Wave 3 — RLS tenant-isolation) completo em **write-only mode**. 1 task commit (e3b9736 tenant-isolation.test.ts 399 linhas — 4 grupos × 12 specs HARDEN-A-01..05 cobrindo opportunities/opportunity_phases/profiles com SELECT/UPDATE/DELETE/INSERT cross-tenant + sanity checks + schema integration). Padrão describe.skipIf(!HAS_DB) + lazy-init de serviceRoleClient em beforeAll reusado integralmente do Plan 02. 1 deviation Rule 2 (auto-add HARDEN-A-05d INSERT em opportunity_phases por simetria 4 verbos × 3 tabelas). typecheck clean. npm run test:security exit 0 (18 mass-assignment pass + 3 atomicity skipped + 12 tenant-isolation skipped). Total ~3min. Próximo: Plan 07.5-06 (Wave 5 — formulário público hardened, último plan da Phase 7.5; depende de migration 0007 + Turnstile + BotID + logging public_form_submissions).
+Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-06-PLAN.md (se existir; senão `/gsd-plan-phase 7.5` para Plan 06)
