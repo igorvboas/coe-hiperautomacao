@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import {
   createPublicOpportunity,
   type PublicSubmitInput,
@@ -138,15 +139,21 @@ function initialState(): FormState {
 
 type Props = {
   tenant: PublicTenant;
+  siteKey: string;
 };
 
-export function PublicForm({ tenant }: Props) {
+export function PublicForm({ tenant, siteKey }: Props) {
   const [data, setData] = useState<FormState>(initialState());
   const [stepIdx, setStepIdx] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Phase 7.5 Bloco D — Turnstile invisível. Token gerado por challenge,
+  // passado como 3º param ao Server Action. Single-use → reset após submit.
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const currentStep = STEPS[stepIdx];
   const isFirst = stepIdx === 0;
@@ -193,6 +200,14 @@ export function PublicForm({ tenant }: Props) {
     if (!validateCurrent()) return;
     setSubmitError(null);
 
+    // Phase 7.5 Bloco D — exige token Turnstile. Sem token, dispara o challenge
+    // invisível e pede pro usuário tentar de novo (challenge resolve em <1s).
+    if (!turnstileToken) {
+      turnstileRef.current?.execute();
+      setSubmitError('Aguarde a verificação anti-bot e tente novamente.');
+      return;
+    }
+
     const input: PublicSubmitInput = {
       solicitante: data.solicitante.trim(),
       email: data.email.trim(),
@@ -220,7 +235,16 @@ export function PublicForm({ tenant }: Props) {
     };
 
     startTransition(async () => {
-      const result = await createPublicOpportunity(tenant.slug, input);
+      const result = await createPublicOpportunity(
+        tenant.slug,
+        input,
+        turnstileToken,
+      );
+      // Token é single-use — Cloudflare retorna `timeout-or-duplicate` se reusado.
+      // Sempre resetar após resposta, mesmo em erro.
+      turnstileRef.current?.reset();
+      setTurnstileToken('');
+
       if (!result.ok) {
         setSubmitError(result.error);
         return;
@@ -720,6 +744,18 @@ export function PublicForm({ tenant }: Props) {
               </div>
             </div>
           )}
+
+          {/* Phase 7.5 Bloco D — Turnstile invisível. Renderiza sempre (não só
+              no último step) para que o challenge possa rodar em background
+              enquanto o usuário avança pelo wizard. Sem UI visível com size=invisible. */}
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={siteKey}
+            onSuccess={(token) => setTurnstileToken(token)}
+            onError={() => setTurnstileToken('')}
+            onExpire={() => setTurnstileToken('')}
+            options={{ size: 'invisible', appearance: 'interaction-only' }}
+          />
 
           {submitError && (
             <div className="mt-4 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

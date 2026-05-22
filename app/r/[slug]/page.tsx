@@ -15,5 +15,14 @@ export default async function PublicFormPage({
   const tenant = await fetchPublicTenantBySlug(slug);
   if (!tenant) notFound();
 
-  return <PublicForm tenant={tenant} />;
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  if (!siteKey) {
+    // Em prod, env DEVE estar setada. Sem chave, formulário não consegue gerar
+    // token Turnstile — melhor falhar visível do que renderizar form quebrado.
+    throw new Error(
+      'NEXT_PUBLIC_TURNSTILE_SITE_KEY ausente — configurar no Vercel env.',
+    );
+  }
+
+  return <PublicForm tenant={tenant} siteKey={siteKey} />;
 }
