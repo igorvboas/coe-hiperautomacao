@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* Paleta CoE Hiperautomação — derivada do mockup fgcoop-coe-v2.html */
+@theme {
+  /* primárias */
+  --color-pri: #1a3c6e;
+  --color-pril: #2a5298;
+  --color-acc: #00a878;
+
+  /* superfícies */
+  --color-bg: #f0f4f8;
+  --color-wh: #ffffff;
+  --color-bdr: #dde3ec;
+
+  /* texto */
+  --color-txt: #1e2a3a;
+  --color-mut: #64748b;
+
+  /* badges de ferramenta */
+  --color-rpa: #7c3aed;
+  --color-n8n: #ea580c;
+  --color-both: #0891b2;
+
+  /* badges de prioridade */
+  --color-grn: #22c55e;
+  --color-yel: #f59e0b;
+  --color-red: #ef4444;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-txt);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+}
+
+/* Evita zoom automático no iOS quando o input tem font-size < 16px */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

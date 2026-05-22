@@ -1,0 +1,40 @@
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import {
+  fetchOpportunityById,
+  fetchPhasesForOpportunity,
+} from '@/lib/opportunities/queries';
+import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
+
+/**
+ * Fullscreen fallback: aberto via URL direta ou refresh em /opportunities/[id].
+ * O modal sobre a lista é servido pelo intercepting route em @modal/.
+ */
+export default async function OpportunityDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const opportunity = await fetchOpportunityById(id);
+  if (!opportunity) notFound();
+  const phases = await fetchPhasesForOpportunity(id);
+
+  return (
+    <div className="px-6 py-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-3">
+          <Link
+            href="/opportunities"
+            className="text-[11px] font-semibold text-pri hover:text-pril inline-flex items-center gap-1"
+          >
+            ← Voltar para a lista
+          </Link>
+        </div>
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <OpportunityDetail opportunity={opportunity} phases={phases} />
+        </div>
+      </div>
+    </div>
+  );
+}

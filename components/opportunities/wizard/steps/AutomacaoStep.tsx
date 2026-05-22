@@ -1,0 +1,72 @@
+'use client';
+
+import type { WizardFormData } from '../state';
+import { DynamicList } from './DynamicList';
+
+type Props = {
+  data: WizardFormData;
+  onChange: (patch: Partial<WizardFormData>) => void;
+};
+
+const TOOLS = [
+  { value: 'rpa', label: '🤖 RPA', desc: 'Automação de tarefas em sistemas legados/desktop' },
+  { value: 'n8n', label: '⚡ n8n', desc: 'Orquestração API-first, integrações modernas' },
+  { value: 'ambos', label: '🔁 Ambos', desc: 'Mix dos dois conforme a etapa' },
+] as const;
+
+export function AutomacaoStep({ data, onChange }: Props) {
+  return (
+    <div className="px-2 py-2 space-y-5">
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+          Ferramenta Recomendada
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {TOOLS.map((t) => {
+            const active = data.ferramenta === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => onChange({ ferramenta: t.value })}
+                className={
+                  'p-3 text-left rounded-lg border-2 transition-all ' +
+                  (active
+                    ? 'border-pri bg-pri/5'
+                    : 'border-bdr bg-white hover:border-pril')
+                }
+              >
+                <div className="text-[13px] font-bold mb-0.5">{t.label}</div>
+                <div className="text-[10px] text-mut leading-snug">{t.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+          Escopo de Automação Sugerido
+        </div>
+        <DynamicList
+          items={data.escopo_automacao ?? ['']}
+          onChange={(next) => onChange({ escopo_automacao: next })}
+          placeholder="Ex: Geração automática de relatório X"
+          addLabel="+ Adicionar item ao escopo"
+        />
+      </div>
+
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+          Benefícios Esperados
+        </div>
+        <DynamicList
+          items={data.beneficios_esperados ?? ['']}
+          onChange={(next) => onChange({ beneficios_esperados: next })}
+          placeholder="Ex: Redução de 60% no tempo"
+          addLabel="+ Adicionar benefício"
+        />
+      </div>
+    </div>
+  );
+}

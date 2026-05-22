@@ -1,0 +1,55 @@
+'use client';
+
+import { useDroppable } from '@dnd-kit/core';
+import type { Opportunity, OpportunityStatus } from '@/lib/opportunities/types';
+import { KanbanCard } from './Card';
+
+type Props = {
+  status: OpportunityStatus;
+  label: string;
+  icon: string;
+  color: string;
+  opportunities: Opportunity[];
+};
+
+export function KanbanColumn({ status, label, icon, color, opportunities }: Props) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `col-${status}`,
+    data: { status },
+  });
+
+  return (
+    <div className="bg-slate-50 border border-bdr rounded-xl w-[220px] flex-shrink-0 flex flex-col overflow-hidden">
+      <div
+        className="px-3 py-2 flex items-center justify-between border-b border-bdr"
+        style={{ background: `${color}15` }}
+      >
+        <div className="text-[11px] font-bold flex items-center gap-1.5">
+          <span>{icon}</span>
+          <span style={{ color }}>{label}</span>
+        </div>
+        <div
+          className="rounded-full px-2 text-[10px] font-bold"
+          style={{ background: color, color: '#fff' }}
+        >
+          {opportunities.length}
+        </div>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={
+          'p-2 flex flex-col gap-2 min-h-[80px] max-h-[72vh] overflow-y-auto flex-1 transition-colors ' +
+          (isOver ? 'bg-blue-100/50' : '')
+        }
+      >
+        {opportunities.length === 0 ? (
+          <div className="text-[10px] text-mut text-center py-4 italic">
+            Nenhuma
+          </div>
+        ) : (
+          opportunities.map((o) => <KanbanCard key={o.id} opportunity={o} />)
+        )}
+      </div>
+    </div>
+  );
+}
