@@ -12,6 +12,33 @@ import type { OpportunityFilters } from './filters';
 export type { OpportunityPhase };
 
 /**
+ * Whitelist de colunas — substitui `select('*')` para evitar vazamento
+ * de colunas adicionadas em migrations futuras (defesa em profundidade,
+ * HARDEN-E-06). Mantém paridade com a view `opportunities_with_score`
+ * (todas as colunas da tabela `opportunities` + `score` + `priority_level`).
+ *
+ * Se uma nova coluna for adicionada à tabela `opportunities`, decidir
+ * EXPLICITAMENTE se ela deve aparecer aqui — se for sensível, não incluir.
+ */
+const OPPORTUNITY_COLUMNS =
+  'id, tenant_id, seq_id, source, ' +
+  'solicitante, email, area, subarea, processo, ' +
+  'frequencia, volume_medio, tempo_execucao, num_pessoas, ' +
+  'ferramenta, escopo_automacao, beneficios_esperados, ' +
+  'esforco, complexidade, tempo, objetivo, ' +
+  'status, responsavel, notas, ' +
+  'persona_extras, formulario_extras, ' +
+  'created_by, created_at, updated_at, ' +
+  'score, priority_level';
+
+/**
+ * Whitelist para `opportunity_phases` — mesma motivação de HARDEN-E-06.
+ */
+const PHASE_COLUMNS =
+  'id, opportunity_id, tenant_id, phase_key, ' +
+  'started_at, finished_at, created_at, updated_at';
+
+/**
  * Busca todas as oportunidades visíveis pro tenant do usuário logado.
  * RLS filtra automaticamente — backend não precisa passar tenant_id.
  *
@@ -21,7 +48,7 @@ export async function fetchOpportunities(
   filters: OpportunityFilters = {}
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
-  let q = supabase.from('opportunities_with_score').select('*');
+  let q = supabase.from('opportunities_with_score').select(OPPORTUNITY_COLUMNS);
 
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);
@@ -67,7 +94,7 @@ export async function fetchOpportunities(
       q = q.order('score', { ascending: false }).order('seq_id', { ascending: true });
   }
 
-  const { data, error } = await q;
+  const { data, error } = await q.returns<Opportunity[]>();
 
   if (error) {
     throw new Error(`Erro ao buscar oportunidades: ${error.message}`);
@@ -105,9 +132,10 @@ export async function fetchOpportunityById(
 
   const { data, error } = await supabase
     .from('opportunities_with_score')
-    .select('*')
+    .select(OPPORTUNITY_COLUMNS)
     .eq('id', id)
-    .maybeSingle();
+    .maybeSingle()
+    .returns<Opportunity>();
 
   if (error) {
     throw new Error(`Erro ao buscar oportunidade: ${error.message}`);
@@ -127,9 +155,10 @@ export async function fetchPhasesForOpportunity(
 
   const { data, error } = await supabase
     .from('opportunity_phases')
-    .select('*')
+    .select(PHASE_COLUMNS)
     .eq('opportunity_id', opportunityId)
-    .order('started_at', { ascending: true });
+    .order('started_at', { ascending: true })
+    .returns<OpportunityPhase[]>();
 
   if (error) {
     throw new Error(`Erro ao buscar fases: ${error.message}`);
