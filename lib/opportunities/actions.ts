@@ -1,9 +1,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers as nextHeaders } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { OpportunityStatus } from './types';
 import { opportunityInputSchema } from './schema';
+import { verifyTurnstileToken } from '@/lib/security/turnstile';
+import { getClientIp } from '@/lib/security/client-ip';
+import { hashIp } from '@/lib/security/hash-ip';
+import { isBotRequest } from '@/lib/security/botid-guard';
+import {
+  logPublicFormAttempt,
+  updatePublicFormAttempt,
+} from '@/lib/public-form/log';
 
 export type UpdateStatusResult = { ok: true } | { ok: false; error: string };
 
@@ -63,12 +72,76 @@ export type CreatePublicResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
+/**
+ * Submit do formulário público anônimo. Defesa em camadas (Phase 7.5 Bloco D):
+ *
+ *   1. Hash IP (defesa privacy) — throws sem IP_HASH_SALT → pt-BR genérico
+ *   2. Log pending em public_form_submissions (best-effort, não bloqueia)
+ *   3. BotID edge classifier (no-op em local dev; ativo em Vercel)
+ *   4. Turnstile siteverify (token single-use)
+ *   5. RPC create_public_opportunity (length/array/jsonb limits enforced no DB)
+ *   6. Atualiza log com status final (success | invalid | captcha_failed)
+ *
+ * NUNCA retorna `error.message` raw — mensagens pt-BR genéricas (T-07.5-D-06).
+ * `error.message` real só vai para `public_form_submissions.error_message` (auditoria).
+ */
 export async function createPublicOpportunity(
   tenantSlug: string,
-  input: PublicSubmitInput
+  input: PublicSubmitInput,
+  turnstileToken: string,
 ): Promise<CreatePublicResult> {
-  const supabase = await createClient();
+  // 1. IP + user-agent
+  const ip = await getClientIp();
+  const ua = (await nextHeaders()).get('user-agent') ?? null;
 
+  // 2. Hash IP — defensivo se salt ausente
+  let ipHash: string;
+  try {
+    ipHash = hashIp(ip);
+  } catch {
+    return {
+      ok: false,
+      error: 'Erro de configuração do servidor. Tente novamente mais tarde.',
+    };
+  }
+
+  // 3. Log pending — best-effort, não bloqueia se falhar
+  const logId = await logPublicFormAttempt({
+    slug: tenantSlug,
+    ipHash,
+    userAgent: ua,
+  });
+
+  // 4. BotID — defesa edge-side (no-op em local dev; ativo em Vercel)
+  const isBot = await isBotRequest();
+  if (isBot) {
+    await updatePublicFormAttempt(logId, 'captcha_failed', 'botid:flagged');
+    return { ok: false, error: 'Acesso negado.' };
+  }
+
+  // 5. Turnstile — defesa client-challenge
+  if (!turnstileToken || turnstileToken.length === 0) {
+    await updatePublicFormAttempt(logId, 'captcha_failed', 'no-token');
+    return {
+      ok: false,
+      error: 'Verificação anti-bot ausente. Recarregue a página e tente novamente.',
+    };
+  }
+  const captcha = await verifyTurnstileToken(turnstileToken, ip);
+  if (!captcha.ok) {
+    await updatePublicFormAttempt(
+      logId,
+      'captcha_failed',
+      captcha.errorCodes.join(','),
+    );
+    return {
+      ok: false,
+      error: 'Verificação anti-bot falhou. Recarregue a página e tente novamente.',
+    };
+  }
+
+  // 6. RPC — length/array/jsonb limits enforced no DB (migration 0007)
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc('create_public_opportunity', {
     p_tenant_slug: tenantSlug,
     p_solicitante: input.solicitante,
@@ -94,10 +167,21 @@ export async function createPublicOpportunity(
     p_formulario_extras: (input.formulario_extras ?? {}) as never,
   });
 
-  if (error) {
-    return { ok: false, error: error.message };
+  // 7. Erro: log mensagem REAL no DB, mensagem GENÉRICA ao cliente (Falha Segura)
+  if (error || !data) {
+    await updatePublicFormAttempt(
+      logId,
+      'invalid',
+      error?.message ?? 'unknown',
+    );
+    return {
+      ok: false,
+      error: 'Não foi possível registrar sua solicitação. Tente novamente em alguns minutos.',
+    };
   }
 
+  // 8. Sucesso
+  await updatePublicFormAttempt(logId, 'success');
   return { ok: true, id: data as unknown as string };
 }
 
