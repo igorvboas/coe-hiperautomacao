@@ -9,7 +9,7 @@ next_phases: ["7.5", "8"]
 progress:
   total_phases: 9
   completed_phases: 7
-  percent: 78
+  percent: 80
 ---
 
 # Project State
@@ -23,12 +23,12 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Wave 0 (infra de testes) completo.
-Plan: 1 of 6
-Status: Wave 0 done — Plan 02 (Wave 1 — atomicidade do `seq_id`) pronto para execução
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 01 (Wave 0): vitest 3.2.4 + scripts shell + seed idempotente. 4 tasks committed atomically (059cddd, a6e0c09, 20cc25a, 4fdfeac). Deviation: `.gitignore` ajustado para permitir commit do template `.env.test.example` (Rule 3 - Blocking).
+Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 2 completos.
+Plan: 2 of 6
+Status: Wave 0 + Wave 2 done — Plan 02 (Wave 1 — atomicidade `seq_id`) pronto; Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `supabase start` + `.env.test` para rodar.
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 03 (Wave 2 — Zod `.strict()` + Mass Assignment audit): 4 commits (a91e924 globalSetup unit-only fix [Rule 3], aa953a4 RED test, ae6bf0d GREEN schema, e42b486 actions audit + tenant scope [Rule 2]). 18/18 specs HARD-B-01..04 verdes. Typecheck clean. Total ~5min.
 
-Progress: [███████░░░] 78%
+Progress: [████████░░] 80%
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
 
@@ -51,19 +51,19 @@ Progress: [███████░░░] 78%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 8min
-- Total execution time: ~8min
+- Total plans completed: 2
+- Average duration: 6.5min
+- Total execution time: ~13min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7.5 | 1 | 8min | 8min |
+| 7.5 | 2 | 13min | 6.5min |
 
 **Recent Trend:**
-- Last 5 plans: 07.5-01 (8min)
-- Trend: — (1 data point)
+- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min)
+- Trend: ↘ menor (TDD ajuda — RED claro corta debug)
 
 *Updated after each plan completion*
 
@@ -80,6 +80,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Admin panel**: fora do MVP
 - **Test runner (Plan 07.5-01)**: Vitest 3.2.x com `pool='forks'` `singleFork=true` — serializa specs contra mesma instância Supabase (Pitfall 4 do RESEARCH); testes de integração rodam contra Postgres real, NUNCA contra mocks
 - **Tenants de teste (Plan 07.5-01)**: `fgcoop-test` (UUID `11111111-...`) + `acme-test` (UUID `22222222-...`); seed via Supabase Admin API; trigger `handle_new_user` cria profiles automaticamente
+- **globalSetup unit-only mode (Plan 07.5-03)**: `tests/setup/global-setup.ts` detecta `NEXT_PUBLIC_SUPABASE_URL` vazio e pula seed (loga `[vitest globalSetup] modo unit-only`). Permite que specs puros (mass-assignment, futuros unit) rodem sem `supabase start`. URL apontando para produção ainda ABORTA (defesa hard preservada).
+- **Mass Assignment defense por construção (Plan 07.5-03)**: `opportunityInputSchema` é `discriminatedUnion` com `.strict()` em CADA variant — `tenant_id`, `created_by`, `seq_id`, `id`, `created_at`, `updated_at` rejeitados como `unrecognized_keys`. `formularioExtrasSchema` adiciona `.superRefine` 8KB. `updateOpportunity` ganha `.eq('tenant_id', profile.tenant_id)` como defesa em profundidade sobre o RLS.
 
 ### Pending Todos
 
@@ -97,5 +99,5 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-05-22
-Stopped at: Plan 07.5-01 (Wave 0 — infra de testes) completo. 4 task commits + plan metadata commit. Vitest 3.2.4 configurado, seed idempotente de fgcoop-test + acme-test pronto, 2 scripts shell de auditoria criados. Próximo: Plan 07.5-02 (Wave 1 — atomicidade do `seq_id` com migration 0006_seq_id_atomic.sql).
+Stopped at: Plan 07.5-03 (Wave 2 — Zod `.strict()` + Mass Assignment audit) completo. 4 task commits (a91e924, aa953a4, ae6bf0d, e42b486) + SUMMARY + metadata. Schema Zod blindado contra Mass Assignment (HARDEN-B-01..04 verdes — 18/18 specs); `updateOpportunity` ganhou tenant scope explícito; `globalSetup` virou dual-mode (unit-only sem Supabase, integration com Supabase). Próximo: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`) ou Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `supabase start` up).
 Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-02-PLAN.md
