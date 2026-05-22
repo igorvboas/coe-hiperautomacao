@@ -23,12 +23,14 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 2 + Wave 4 completos.
-Plan: 3 of 6
-Status: Wave 0 + Wave 2 + Wave 4 done — Plan 02 (Wave 1 — atomicidade `seq_id`) pronto; Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `supabase start` + `.env.test` para rodar; Plan 06 (Wave 5 — formulário público hardened) desbloqueado pelo Plan 05 (CSP libera Turnstile).
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 05 (Wave 4 — Bloco E: security headers + service-role audit + select('*') whitelist): 2 commits (c760809 proxy.ts 6 headers de segurança após updateSession, 17e2272 queries.ts whitelist OPPORTUNITY_COLUMNS/PHASE_COLUMNS + .returns<T>() [Rule 3 type inference fix]). Smoke test verde — todos os headers presentes em /, /login, /r/[slug] (redirect, 200, 404). audit:secrets exit 0. typecheck clean. Total ~5min.
+Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 1 + Wave 2 + Wave 4 completos.
+Plan: 4 of 6
+Status: Wave 0 + Wave 1 + Wave 2 + Wave 4 done — Plan 02 (Wave 1 — atomicidade `seq_id`) completo em modo write-only (migration arquivo + handoff manual + teste com skip-when-no-db); Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `.env.test` + Supabase running para rodar; Plan 06 (Wave 5 — formulário público hardened) desbloqueado pelo Plan 05 (CSP libera Turnstile).
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 02 em **write-only mode** (usuário usa Supabase Cloud — sem `supabase db push`): 3 commits (f964c69 migration 0006 tenant_sequences + next_seq_id atômico + trigger always-override, d11a110 HANDOFF.md com copy-paste para Dashboard SQL Editor + 4 queries de verificação + rollback, d635d22 atomicity.test.ts cobrindo HARDEN-C-01/02/03 com describe.skipIf + lazy-init). 2 deviations Rule 1/3 (type error tenant_sequences ausente em database.types → helper untyped; describe.skipIf bug em corpo do describe → lazy init). typecheck clean. test exit 0 (18 mass-assignment pass + 3 atomicity skipped). Total ~8min.
 
 Progress: [████████░░] 80%
+<!-- Phase 7.5: 4/6 plans completos (01, 02, 03, 05) — Plan 04 e 06 pendentes -->
+
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
 
@@ -51,19 +53,19 @@ Progress: [████████░░] 80%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 6min
-- Total execution time: ~18min
+- Total plans completed: 4
+- Average duration: 6.5min
+- Total execution time: ~26min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7.5 | 3 | 18min | 6min |
+| 7.5 | 4 | 26min | 6.5min |
 
 **Recent Trend:**
-- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min)
-- Trend: ↘ estabilizando em ~5min (planos sequenciais de hardening — RESEARCH/PATTERNS densos cortam debug)
+- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min)
+- Trend: ↗ leve aumento em Plan 02 (write-only mode adicionou handoff doc + skipIf lazy-init debug). Ainda dentro do envelope ~5-8min — densidade dos artifacts de Wave 0/research segue pagando.
 
 *Updated after each plan completion*
 
@@ -84,9 +86,13 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Mass Assignment defense por construção (Plan 07.5-03)**: `opportunityInputSchema` é `discriminatedUnion` com `.strict()` em CADA variant — `tenant_id`, `created_by`, `seq_id`, `id`, `created_at`, `updated_at` rejeitados como `unrecognized_keys`. `formularioExtrasSchema` adiciona `.superRefine` 8KB. `updateOpportunity` ganha `.eq('tenant_id', profile.tenant_id)` como defesa em profundidade sobre o RLS.
 - **Security headers em proxy.ts (Plan 07.5-05)**: 6 headers (`Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`) anexados ao `NextResponse` retornado por `updateSession` — cobre redirect, 200, 404. CSP permite Turnstile (challenges.cloudflare.com em script/frame/connect) e Supabase REST/Realtime (`*.supabase.co` + `wss://`). `'unsafe-inline'` em script-src é tech debt MVP aceito (CONTEXT.md A6); `'unsafe-eval'` somente em `NODE_ENV=development`. `next.config.ts` fica reservado para Plan 06 (`withBotId`).
 - **Whitelist de colunas em queries.ts (Plan 07.5-05)**: 3 `.select('*')` substituídos por constantes `OPPORTUNITY_COLUMNS` (30 colunas) e `PHASE_COLUMNS` (8 colunas). `.returns<Opportunity[]>()` posicionado AO FINAL da chain (não logo após `.select()`) para preservar `.eq()/.or()/.order()` do builder e a inferência de tipos do Supabase. Migrations futuras com colunas sensíveis exigem decisão explícita de inclusão.
+- **Atomicidade `seq_id` por tenant (Plan 07.5-02)**: aux table `tenant_sequences(tenant_id uuid pk, last_seq int)` com RLS enabled + ZERO policies (acesso só via service_role / SECURITY DEFINER). Função `next_seq_id(p_tenant_id uuid)` usa `INSERT ... ON CONFLICT DO UPDATE ... RETURNING last_seq` — row-lock transacional, sem gaps em rollback (diferente de `CREATE SEQUENCE` cujo `nextval` não rollback). Trigger `trg_opportunities_seq_id` SEMPRE sobrescreve `new.seq_id := next_seq_id(...)` (sem `if null`) — defesa contra forge de seq_id pelo cliente (threat T-07.5-C-02).
+- **Write-only mode para Supabase Cloud (Plan 07.5-02)**: projeto roda em Cloud (hosted), não local Docker. Migration 0006 é arquivo + handoff doc copy-paste-ready para Supabase Dashboard SQL Editor (NÃO `supabase db push`). Apply manual via Dashboard mantém controle visual e evita exigência de `SUPABASE_ACCESS_TOKEN` em sessão não-TTY. Padrão para próximas migrations enquanto projeto não tiver CI.
+- **Vitest skip-when-no-db pattern (Plan 07.5-02)**: `describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)` + lazy-init de `serviceRoleClient()` dentro de `beforeAll` (corpo do describe roda mesmo em skip mode, só pula os `it`s). Permite `npm run test` exit 0 sem `.env.test` populado — específicos de integração entram em modo skipped, unit tests rodam normal.
 
 ### Pending Todos
 
+- **Aplicar `supabase/migrations/0006_seq_id_atomic.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 02 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-02-MIGRATION-HANDOFF.md`). Após apply, rodar `npm run gen:types` para regenerar `lib/database.types.ts`. Sem isso, o teste `tests/security/atomicity.test.ts` permanece em skip mode quando `.env.test` apontar para o projeto Cloud.
 - Definir nome final do projeto (`fgcoop-coe`? `coe-platform`? `psw-coe`?) antes da Fase 2 (bootstrap do app)
 - Levantar a marca / paleta do cliente piloto (FGCoop usa azul `#1a3c6e` + verde `#00a878` no mockup — manter como tema inicial?)
 - Decidir provedor de e-mail/magic link (Supabase nativo basta para MVP)
@@ -101,5 +107,5 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-05-22
-Stopped at: Plan 07.5-05 (Wave 4 — Bloco E: security headers + service-role audit + select('*') whitelist) completo. 2 task commits (c760809 proxy.ts 6 headers, 17e2272 queries.ts whitelist) + SUMMARY + metadata. Toda resposta Next.js carrega CSP/XFO/XCTO/Referrer-Policy/HSTS/Permissions-Policy (smoke test via `bash scripts/security/check-headers.sh` exit 0); CSP libera Turnstile + Supabase REST/Realtime; `select('*')` zerado em queries.ts via constantes whitelist + `.returns<T>()`. audit:secrets exit 0 confirma `SUPABASE_SERVICE_ROLE_KEY` confinado ao server. Próximo: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`), Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `supabase start` up) ou Plan 07.5-06 (Wave 5 — formulário público hardened, desbloqueado pela CSP do Plan 05).
-Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-02-PLAN.md
+Stopped at: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`) completo em **write-only mode**. 3 task commits (f964c69 migration 0006 tenant_sequences + next_seq_id + trigger always-override, d11a110 HANDOFF.md para apply manual no Dashboard SQL Editor, d635d22 atomicity.test.ts cobrindo HARDEN-C-01/02/03 com describe.skipIf + lazy-init). Migration arquivo + handoff doc prontos; apply manual no Supabase Cloud Dashboard pendente (tracked em Pending Todos). Teste em skip mode até `.env.test` ser populado. typecheck clean, npm run test exit 0 (18 mass-assignment pass + 3 atomicity skipped). 2 deviations (Rule 1 + Rule 3) ambas resolvidas inline. Próximo: Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `.env.test` + Supabase running) ou Plan 07.5-06 (Wave 5 — formulário público hardened, desbloqueado pela CSP do Plan 05).
+Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-04-PLAN.md (se existir; senão `/gsd-plan-phase 7.5` para Plan 04)
