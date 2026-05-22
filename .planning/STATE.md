@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.1
 milestone_name: MVP — Sistema Real a partir do Mockup
-status: in_progress
-next_action: execute-phase
+status: ready_for_verification
+next_action: verify-work
 active_phase: "7.5"
-next_phases: ["7.5", "8"]
+next_phases: ["8"]
 progress:
   total_phases: 9
-  completed_phases: 7
-  percent: 83
+  completed_phases: 8
+  percent: 89
 ---
 
 # Project State
@@ -23,13 +23,13 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 1 + Wave 2 + Wave 3 + Wave 4 completos.
-Plan: 5 of 6
-Status: Plans 01 (Wave 0), 02 (Wave 1), 03 (Wave 2), 04 (Wave 3), 05 (Wave 4) done — somente Plan 06 (Wave 5 — formulário público hardened) pendente. Plan 04 (Wave 3 — RLS tenant-isolation) completo em **write-only mode**: 12 specs HARDEN-A-01..05 em skip mode aguardando `.env.test` apontar para Supabase Cloud de teste. Plan 06 desbloqueado pelo Plan 05 (CSP libera Turnstile).
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 04 em **write-only mode** (Supabase Cloud, sem .env.test ainda): 1 commit (e3b9736 tenant-isolation.test.ts 399 linhas com 4 grupos × 12 specs HARDEN-A-01..05 + sanity + schema integration; padrão describe.skipIf + lazy-init de serviceRoleClient em beforeAll mirroring Plan 02). 1 deviation Rule 2 (auto-add spec HARDEN-A-05d INSERT em opportunity_phases com tenant_id forjado por simetria de cobertura 4 verbos × 3 tabelas). typecheck clean. npm run test:security exit 0 (18 mass-assignment pass + 3 atomicity skipped + 12 tenant-isolation skipped). Total ~3min.
+Phase: 7.5 — Hardening de Segurança MVP. **TODOS os 5 Waves completos (0..5).**
+Plan: 6 of 6 (Phase 7.5 done)
+Status: **ready_for_verification**. Plans 01..06 done. Plan 06 (Wave 5 — formulário público hardened) completo em **write-only mode**: BotID + Turnstile + payload limits no RPC + log com IP hashed entregues; migration 0007 + 3 env vars Vercel aguardam apply manual. 7 integration specs em `public-form.test.ts` em skip mode aguardando `.env.test` apontar para Supabase Cloud de teste. Próximo: `/gsd-verify-work 7.5` (UAT) ou avançar para Phase 8 (Polish & Deploy) após usuário aplicar 0006+0007 + setar env vars.
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [████████░░] 83%
-<!-- Phase 7.5: 5/6 plans completos (01, 02, 03, 04, 05) — Plan 06 pendente -->
+Progress: [█████████░] 89%
+<!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -53,19 +53,19 @@ Progress: [████████░░] 83%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 5.8min
-- Total execution time: ~29min
+- Total plans completed: 6
+- Average duration: 7.7min
+- Total execution time: ~46min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7.5 | 5 | 29min | 5.8min |
+| 7.5 | 6 | 46min | 7.7min |
 
 **Recent Trend:**
-- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min), 07.5-04 (3min)
-- Trend: ↘ Plan 04 mais rápido (3min) — reuso integral do padrão describe.skipIf + lazy-init do Plan 02; zero infraestrutura nova, só specs sobre helpers existentes do Wave 0. Pattern density continua pagando dividendos.
+- Last 6 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min), 07.5-04 (3min), 07.5-06 (17min)
+- Trend: ↗ Plan 06 maior (17min) — esperado: 8 tasks vs ~3-4 nos plans anteriores, install de 2 runtime deps, mudanças em 12 arquivos (5 novos helpers + Server Action refactor + UI + config + 2 test files + alias config). Plan single maior do MVP. 1 deviation Rule 3 (server-only alias) absorvida sem replan.
 
 *Updated after each plan completion*
 
@@ -90,11 +90,17 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Write-only mode para Supabase Cloud (Plan 07.5-02)**: projeto roda em Cloud (hosted), não local Docker. Migration 0006 é arquivo + handoff doc copy-paste-ready para Supabase Dashboard SQL Editor (NÃO `supabase db push`). Apply manual via Dashboard mantém controle visual e evita exigência de `SUPABASE_ACCESS_TOKEN` em sessão não-TTY. Padrão para próximas migrations enquanto projeto não tiver CI.
 - **Vitest skip-when-no-db pattern (Plan 07.5-02)**: `describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)` + lazy-init de `serviceRoleClient()` dentro de `beforeAll` (corpo do describe roda mesmo em skip mode, só pula os `it`s). Permite `npm run test` exit 0 sem `.env.test` populado — específicos de integração entram em modo skipped, unit tests rodam normal.
 - **RLS tenant-isolation suite (Plan 07.5-04)**: 12 specs em 4 grupos cobrindo HARDEN-A-01..05. SELECT/UPDATE/DELETE cross-tenant retornam `data: []` (RLS USING filtra silenciosamente). INSERT com `tenant_id` forjado retorna erro (RLS WITH CHECK levanta 42501). Cobertura simétrica em `opportunities` (4 verbos), `opportunity_phases` (4 verbos — HARDEN-A-05d adicionado por simetria), `profiles` (SELECT — `profiles_update_self` é id=auth.uid(), não tenant-based, fora do escopo Bloco A). Grupo 4 cross-check: `opportunityInputSchema.strict()` rejeita `tenant_id` no payload — defesa em profundidade Zod antes do RLS. Padrão skipIf + lazy-init reusado integralmente do Plan 02.
+- **Formulário público hardened (Plan 07.5-06)**: 4 camadas de defesa em `/r/[slug]` — (1) Vercel BotID edge classifier, (2) Cloudflare Turnstile invisível (challenge → siteverify single-use), (3) Server Action valida ambos + loga em `public_form_submissions`, (4) RPC `create_public_opportunity` enforce length/array/jsonb limits no DB (SECURITY DEFINER). Rate limit por janela fixa NÃO implementado — deferido para backlog 999.x (CONTEXT.md `<deferred>` lock); BotID+Turnstile+limits cobrem ~95%, Upstash custo só justifica com monitoring real de abuso. IP hashado por construção (`hashIp()` THROW sem `IP_HASH_SALT` env). `error.message` raw NUNCA retornado ao cliente — só para `public_form_submissions.error_message` (audit). pt-BR genérico em todas as respostas. Token Turnstile single-use, reset() após cada submit. `withBotId(nextConfig)` + `initBotId({protect: [{ path: '/r/*', method: 'POST' }]})` em `instrumentation-client.ts`. BotID retorna `isBot:false` em local dev (RESEARCH Pitfall 1) — E2E ficam manuais em preview deploy.
+- **server-only stub para Vitest (Plan 07.5-06)**: `vitest.config.ts` alias `'server-only' → ./tests/setup/server-only-stub.ts` (módulo vazio). Pacote `server-only` é dev-dep do Next bundler — não existe em Node puro de teste. Padrão recomendado pela própria doc do Next. Zero impacto em produção. Necessário para que helpers `lib/security/*` (todos abrem com `import 'server-only';`) sejam importáveis em test.
 
 ### Pending Todos
 
 - **Aplicar `supabase/migrations/0006_seq_id_atomic.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 02 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-02-MIGRATION-HANDOFF.md`). Após apply, rodar `npm run gen:types` para regenerar `lib/database.types.ts`. Sem isso, o teste `tests/security/atomicity.test.ts` permanece em skip mode quando `.env.test` apontar para o projeto Cloud.
-- **Popular `.env.test` apontando para projeto Supabase Cloud DE TESTE** (Phase 7.5 Plan 04 activation — instruções em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-04-SUMMARY.md` §"Apply Manually"). Ativa 15 integration specs (3 atomicity + 12 tenant-isolation) em modo green. Sem isso, suite roda em skip mode (válido para CI sem Docker, mas não verifica RLS de fato). REQUER: aplicar todas migrations 0001..0006 no projeto Cloud de teste antes (não usar produção).
+- **Aplicar `supabase/migrations/0007_public_form_hardening.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 06 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-06-MIGRATION-HANDOFF.md`). Cria `public_form_submissions` + funções `log_public_form_attempt`/`update_public_form_attempt` + recria `create_public_opportunity` hardened. Após apply, rodar `npm run gen:types` para remover os casts em `lib/public-form/log.ts`.
+- **Configurar 3 env vars no Vercel** (Phase 7.5 Plan 06 — formulário público anônimo):
+  - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (público) + `TURNSTILE_SECRET_KEY` (server): criar widget Mode:Invisible em Cloudflare Dashboard → Turnstile. Setar via `vercel env add ... production preview`.
+  - `IP_HASH_SALT`: gerar com `openssl rand -hex 32`. Setar via `vercel env add ... production preview`. Sem isso, Server Action retorna sempre "Erro de configuração do servidor."
+- **Popular `.env.test` apontando para projeto Supabase Cloud DE TESTE** (Phase 7.5 Plan 04+06 activation — instruções em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-04-SUMMARY.md` §"Apply Manually" + `07.5-06-SUMMARY.md` §"User Setup"). Ativa 22 integration specs (3 atomicity + 12 tenant-isolation + 7 public-form) em modo green. Sem isso, suite roda em skip mode (válido para CI sem Docker, mas não verifica RLS/RPC de fato). REQUER: aplicar todas migrations 0001..0007 no projeto Cloud de teste antes (não usar produção).
 - Definir nome final do projeto (`fgcoop-coe`? `coe-platform`? `psw-coe`?) antes da Fase 2 (bootstrap do app)
 - Levantar a marca / paleta do cliente piloto (FGCoop usa azul `#1a3c6e` + verde `#00a878` no mockup — manter como tema inicial?)
 - Decidir provedor de e-mail/magic link (Supabase nativo basta para MVP)
@@ -109,5 +115,5 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-05-22
-Stopped at: Plan 07.5-04 (Wave 3 — RLS tenant-isolation) completo em **write-only mode**. 1 task commit (e3b9736 tenant-isolation.test.ts 399 linhas — 4 grupos × 12 specs HARDEN-A-01..05 cobrindo opportunities/opportunity_phases/profiles com SELECT/UPDATE/DELETE/INSERT cross-tenant + sanity checks + schema integration). Padrão describe.skipIf(!HAS_DB) + lazy-init de serviceRoleClient em beforeAll reusado integralmente do Plan 02. 1 deviation Rule 2 (auto-add HARDEN-A-05d INSERT em opportunity_phases por simetria 4 verbos × 3 tabelas). typecheck clean. npm run test:security exit 0 (18 mass-assignment pass + 3 atomicity skipped + 12 tenant-isolation skipped). Total ~3min. Próximo: Plan 07.5-06 (Wave 5 — formulário público hardened, último plan da Phase 7.5; depende de migration 0007 + Turnstile + BotID + logging public_form_submissions).
-Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-06-PLAN.md (se existir; senão `/gsd-plan-phase 7.5` para Plan 06)
+Stopped at: **Phase 7.5 COMPLETA** (6/6 plans). Plan 07.5-06 (Wave 5 — formulário público hardened) completo em **write-only mode**. 8 commits atômicos (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min. Próximo: `/gsd-verify-work 7.5` (UAT — recomendado aguardar apply de 0006+0007 + setup de Turnstile/BotID/IP_HASH_SALT para E2E real em preview), depois Phase 8 (Polish & Deploy).
+Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
