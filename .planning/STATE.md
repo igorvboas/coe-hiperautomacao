@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 2 completos.
-Plan: 2 of 6
-Status: Wave 0 + Wave 2 done — Plan 02 (Wave 1 — atomicidade `seq_id`) pronto; Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `supabase start` + `.env.test` para rodar.
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 03 (Wave 2 — Zod `.strict()` + Mass Assignment audit): 4 commits (a91e924 globalSetup unit-only fix [Rule 3], aa953a4 RED test, ae6bf0d GREEN schema, e42b486 actions audit + tenant scope [Rule 2]). 18/18 specs HARD-B-01..04 verdes. Typecheck clean. Total ~5min.
+Phase: 7.5 — Hardening de Segurança MVP. Wave 0 + Wave 2 + Wave 4 completos.
+Plan: 3 of 6
+Status: Wave 0 + Wave 2 + Wave 4 done — Plan 02 (Wave 1 — atomicidade `seq_id`) pronto; Plan 04 (Wave 3 — RLS tenant-isolation) aguarda `supabase start` + `.env.test` para rodar; Plan 06 (Wave 5 — formulário público hardened) desbloqueado pelo Plan 05 (CSP libera Turnstile).
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 05 (Wave 4 — Bloco E: security headers + service-role audit + select('*') whitelist): 2 commits (c760809 proxy.ts 6 headers de segurança após updateSession, 17e2272 queries.ts whitelist OPPORTUNITY_COLUMNS/PHASE_COLUMNS + .returns<T>() [Rule 3 type inference fix]). Smoke test verde — todos os headers presentes em /, /login, /r/[slug] (redirect, 200, 404). audit:secrets exit 0. typecheck clean. Total ~5min.
 
 Progress: [████████░░] 80%
 
@@ -51,19 +51,19 @@ Progress: [████████░░] 80%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 6.5min
-- Total execution time: ~13min
+- Total plans completed: 3
+- Average duration: 6min
+- Total execution time: ~18min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7.5 | 2 | 13min | 6.5min |
+| 7.5 | 3 | 18min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min)
-- Trend: ↘ menor (TDD ajuda — RED claro corta debug)
+- Last 5 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min)
+- Trend: ↘ estabilizando em ~5min (planos sequenciais de hardening — RESEARCH/PATTERNS densos cortam debug)
 
 *Updated after each plan completion*
 
@@ -82,6 +82,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Tenants de teste (Plan 07.5-01)**: `fgcoop-test` (UUID `11111111-...`) + `acme-test` (UUID `22222222-...`); seed via Supabase Admin API; trigger `handle_new_user` cria profiles automaticamente
 - **globalSetup unit-only mode (Plan 07.5-03)**: `tests/setup/global-setup.ts` detecta `NEXT_PUBLIC_SUPABASE_URL` vazio e pula seed (loga `[vitest globalSetup] modo unit-only`). Permite que specs puros (mass-assignment, futuros unit) rodem sem `supabase start`. URL apontando para produção ainda ABORTA (defesa hard preservada).
 - **Mass Assignment defense por construção (Plan 07.5-03)**: `opportunityInputSchema` é `discriminatedUnion` com `.strict()` em CADA variant — `tenant_id`, `created_by`, `seq_id`, `id`, `created_at`, `updated_at` rejeitados como `unrecognized_keys`. `formularioExtrasSchema` adiciona `.superRefine` 8KB. `updateOpportunity` ganha `.eq('tenant_id', profile.tenant_id)` como defesa em profundidade sobre o RLS.
+- **Security headers em proxy.ts (Plan 07.5-05)**: 6 headers (`Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`) anexados ao `NextResponse` retornado por `updateSession` — cobre redirect, 200, 404. CSP permite Turnstile (challenges.cloudflare.com em script/frame/connect) e Supabase REST/Realtime (`*.supabase.co` + `wss://`). `'unsafe-inline'` em script-src é tech debt MVP aceito (CONTEXT.md A6); `'unsafe-eval'` somente em `NODE_ENV=development`. `next.config.ts` fica reservado para Plan 06 (`withBotId`).
+- **Whitelist de colunas em queries.ts (Plan 07.5-05)**: 3 `.select('*')` substituídos por constantes `OPPORTUNITY_COLUMNS` (30 colunas) e `PHASE_COLUMNS` (8 colunas). `.returns<Opportunity[]>()` posicionado AO FINAL da chain (não logo após `.select()`) para preservar `.eq()/.or()/.order()` do builder e a inferência de tipos do Supabase. Migrations futuras com colunas sensíveis exigem decisão explícita de inclusão.
 
 ### Pending Todos
 
@@ -99,5 +101,5 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-05-22
-Stopped at: Plan 07.5-03 (Wave 2 — Zod `.strict()` + Mass Assignment audit) completo. 4 task commits (a91e924, aa953a4, ae6bf0d, e42b486) + SUMMARY + metadata. Schema Zod blindado contra Mass Assignment (HARDEN-B-01..04 verdes — 18/18 specs); `updateOpportunity` ganhou tenant scope explícito; `globalSetup` virou dual-mode (unit-only sem Supabase, integration com Supabase). Próximo: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`) ou Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `supabase start` up).
+Stopped at: Plan 07.5-05 (Wave 4 — Bloco E: security headers + service-role audit + select('*') whitelist) completo. 2 task commits (c760809 proxy.ts 6 headers, 17e2272 queries.ts whitelist) + SUMMARY + metadata. Toda resposta Next.js carrega CSP/XFO/XCTO/Referrer-Policy/HSTS/Permissions-Policy (smoke test via `bash scripts/security/check-headers.sh` exit 0); CSP libera Turnstile + Supabase REST/Realtime; `select('*')` zerado em queries.ts via constantes whitelist + `.returns<T>()`. audit:secrets exit 0 confirma `SUPABASE_SERVICE_ROLE_KEY` confinado ao server. Próximo: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`), Plan 07.5-04 (Wave 3 — RLS tenant-isolation, depende de `supabase start` up) ou Plan 07.5-06 (Wave 5 — formulário público hardened, desbloqueado pela CSP do Plan 05).
 Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-02-PLAN.md
