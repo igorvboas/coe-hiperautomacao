@@ -15,7 +15,7 @@
 | 5 | **Trocar Status + Cards + Kanban** | ✅ Done | Drag-and-drop kanban + dropdown modal + trigger SQL sincronia | 05-01 a 05-03 |
 | 6 | **Wizard CRUD (Criar + Editar + Excluir)** | ✅ Done | Wizard criar/editar + popup confirmação de delete (extra) | 06-01 a 06-03 |
 | 7 | **Filtros, Busca, Sort, KPIs reativos** | ✅ Done | Paridade total com toolbar do mockup + KPI bar reativa | 07-01 a 07-03 |
-| 7.5 | **Hardening de Segurança MVP** | 🔜 Planejado | Testes RLS, Zod centralizado, atomicidade `seq_id`, hardening form público, headers de segurança | **6 plans** (07.5-01 a 07.5-06) |
+| 7.5 | **Hardening de Segurança MVP** | 🏃 Em execução (1/6) | Testes RLS, Zod centralizado, atomicidade `seq_id`, hardening form público, headers de segurança | **6 plans** (07.5-01 a 07.5-06) |
 | 8 | **Polish + Deploy** | ⏸ Aguarda 7.5 | Loading states, error boundaries, responsivo, deploy Vercel | 08-01 a 08-03 |
 
 ## Phase 7.5 — Plans (planejados em 2026-05-21)
@@ -25,7 +25,7 @@
 **Plans:** 6 plans em 6 waves (paralelismo limitado — cada plan tem dependência clara).
 
 Plans:
-- [ ] 07.5-01-PLAN.md — Wave 0: Infraestrutura de testes (Vitest + seed + scripts shell) [HARDEN-INFRA-01..04]
+- [x] 07.5-01-PLAN.md — Wave 0: Infraestrutura de testes (Vitest + seed + scripts shell) [HARDEN-INFRA-01..04] — **DONE 2026-05-22** (8min, 4 commits 059cddd..4fdfeac)
 - [ ] 07.5-02-PLAN.md — Wave 1: Atomicidade `seq_id` (migration 0006 + teste 50 inserts paralelos) [Bloco C, HARDEN-C-01..03]
 - [ ] 07.5-03-PLAN.md — Wave 2: Zod `.strict()` + audit de Mass Assignment em Server Actions [Bloco B, HARDEN-B-01..04]
 - [ ] 07.5-04-PLAN.md — Wave 3: Testes de isolamento de tenant (RLS + IDOR cross-tenant) [Bloco A, HARDEN-A-01..05]
@@ -95,4 +95,4 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - Mobile nativo
 
 ---
-*Última atualização: 2026-05-21 — Phase 7.5 planejada em 6 plans (07.5-01 a 07.5-06). Próximo: `/gsd-execute-phase 7.5`.*
+*Última atualização: 2026-05-22 — Phase 7.5 Plan 01 (Wave 0) executado. Próximo: Plan 07.5-02 (Wave 1 — atomicidade `seq_id`).*

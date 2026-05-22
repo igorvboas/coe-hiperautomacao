@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. Plans criados e verificados (iteração 2/3 do checker — PASSED).
-Plan: 0 of 6
-Status: Ready to execute Phase 7.5
-Last activity: 2026-05-21 — `/gsd-plan-phase 7.5` executado: research + pattern map + 6 PLAN.md em 6 waves + VALIDATION.md preenchido. Decisão locked: rate limit por janela fixa (Upstash) **deferred** para backlog 999.x — MVP usa BotID + Turnstile + payload limits. PHASE.md + CONTEXT.md atualizados com a deferral.
+Phase: 7.5 — Hardening de Segurança MVP. Wave 0 (infra de testes) completo.
+Plan: 1 of 6
+Status: Wave 0 done — Plan 02 (Wave 1 — atomicidade do `seq_id`) pronto para execução
+Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 01 (Wave 0): vitest 3.2.4 + scripts shell + seed idempotente. 4 tasks committed atomically (059cddd, a6e0c09, 20cc25a, 4fdfeac). Deviation: `.gitignore` ajustado para permitir commit do template `.env.test.example` (Rule 3 - Blocking).
 
 Progress: [███████░░░] 78%
 
@@ -51,19 +51,19 @@ Progress: [███████░░░] 78%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0h
+- Total plans completed: 1
+- Average duration: 8min
+- Total execution time: ~8min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| — | — | — | — |
+| 7.5 | 1 | 8min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: — (sem dados)
+- Last 5 plans: 07.5-01 (8min)
+- Trend: — (1 data point)
 
 *Updated after each plan completion*
 
@@ -78,6 +78,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Score**: calculado em runtime, não persistido
 - **Tipos**: `persona` e `formulario` na mesma tabela `opportunities` com discriminator + JSONB para campos exclusivos
 - **Admin panel**: fora do MVP
+- **Test runner (Plan 07.5-01)**: Vitest 3.2.x com `pool='forks'` `singleFork=true` — serializa specs contra mesma instância Supabase (Pitfall 4 do RESEARCH); testes de integração rodam contra Postgres real, NUNCA contra mocks
+- **Tenants de teste (Plan 07.5-01)**: `fgcoop-test` (UUID `11111111-...`) + `acme-test` (UUID `22222222-...`); seed via Supabase Admin API; trigger `handle_new_user` cria profiles automaticamente
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-05-21
-Stopped at: Phase 7.5 (Hardening de Segurança MVP) — plans criados e checker PASSED na iteração 2. 6 PLAN.md em 6 waves cobrindo blocos A-E + Wave 0 de infra. Schema push BLOCKING tasks em Plan 02 (migration 0006) e Plan 06 (migration 0007). Decisão de escopo: rate limit por janela fixa deferred para pós-MVP. Próximo: `/gsd-execute-phase 7.5`.
-Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-01-PLAN.md
+Last session: 2026-05-22
+Stopped at: Plan 07.5-01 (Wave 0 — infra de testes) completo. 4 task commits + plan metadata commit. Vitest 3.2.4 configurado, seed idempotente de fgcoop-test + acme-test pronto, 2 scripts shell de auditoria criados. Próximo: Plan 07.5-02 (Wave 1 — atomicidade do `seq_id` com migration 0006_seq_id_atomic.sql).
+Resume file: .planning/phases/07.5-hardening-seguranca-mvp/07.5-02-PLAN.md
