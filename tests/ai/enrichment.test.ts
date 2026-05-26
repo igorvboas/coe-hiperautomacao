@@ -36,11 +36,15 @@ const constructorState = {
   errorMessage: 'OPENAI_API_KEY missing',
 };
 
+// Shared error classes — referenciadas tanto em vi.mock('openai') (estáticos
+// p/ acesso via OpenAI.LengthFinishReasonError) quanto em vi.mock('openai/error')
+// (named exports para `import { LengthFinishReasonError } from 'openai/error'`).
+class MockAPIError extends Error {
+  status?: number;
+}
+class MockLengthFinishReasonError extends Error {}
+
 vi.mock('openai', () => {
-  class MockAPIError extends Error {
-    status?: number;
-  }
-  class MockLengthFinishReasonError extends Error {}
   class MockOpenAI {
     chat = { completions: { parse: mockParse } };
     constructor() {
@@ -48,11 +52,18 @@ vi.mock('openai', () => {
         throw new Error(constructorState.errorMessage);
       }
     }
+    // Estáticos: mantidos para que tests que acessem OpenAI.LengthFinishReasonError
+    // como property continuem funcionando (defesa em camadas).
     static APIError = MockAPIError;
     static LengthFinishReasonError = MockLengthFinishReasonError;
   }
   return { default: MockOpenAI };
 });
+
+vi.mock('openai/error', () => ({
+  APIError: MockAPIError,
+  LengthFinishReasonError: MockLengthFinishReasonError,
+}));
 
 vi.mock('openai/helpers/zod', () => ({
   zodResponseFormat: vi.fn((schema, name) => ({ _zod: true, _name: name })),
@@ -183,12 +194,18 @@ describe('enrichOpportunity', () => {
   });
 
   it('Pitfall 2 — LengthFinishReasonError → markFailed com prefix "length_finish:"', async () => {
-    const OpenAI = (await import('openai')).default;
-    // Sanity check: confirma que a mock class expõe LengthFinishReasonError
-    expect(OpenAI.LengthFinishReasonError).toBeDefined();
-    const err = new OpenAI.LengthFinishReasonError('output truncated') as unknown as Error;
+    // Carrega a classe via subpath 'openai/error' (mesmo path que enrichment.ts
+    // usa via named import). Cast para `any` evita o type real do SDK ser
+    // consultado — o mock em vi.mock('openai/error') substitui a impl.
+    // Defesa explícita via cast tipado em vez de suppressão TS (W-2 do revisor).
+    const errorMod = (await import('openai/error')) as unknown as {
+      LengthFinishReasonError: new (msg?: string) => Error;
+    };
+    // Sanity check: confirma que a mock class está disponível.
+    expect(errorMod.LengthFinishReasonError).toBeDefined();
+    const err = new errorMod.LengthFinishReasonError('output truncated');
     // Sanity check: instanceof bate (caminho que enrichment.ts usa para classificar)
-    expect(err).toBeInstanceOf(OpenAI.LengthFinishReasonError);
+    expect(err).toBeInstanceOf(errorMod.LengthFinishReasonError);
     mockParse.mockRejectedValueOnce(err);
     const { enrichOpportunity } = await import('@/lib/ai/enrichment');
     await enrichOpportunity(OPP_ID, TENANT_UUID);
