@@ -28,6 +28,7 @@ const OPPORTUNITY_COLUMNS =
   'esforco, complexidade, tempo, objetivo, ' +
   'status, responsavel, notas, observacao, risco, ' +
   'persona_extras, formulario_extras, ' +
+  'ai_enrichment_status, ai_enrichment_error, ai_enriched_at, ' +
   'created_by, created_at, updated_at, ' +
   'score, priority_level';
 
