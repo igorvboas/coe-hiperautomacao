@@ -41,19 +41,22 @@ const STEP_CLASSIFICACAO: StepDef = {
   label: 'Classificação',
   icon: '🏷️',
 };
+// Phase 7.6: step 'automacao' removido do fluxo create — agora é output de IA
+// (lib/ai/enrichment.ts). Componente AutomacaoStep.tsx PRESERVADO; usado em
+// mode='edit' do modal de detalhe (Plan 06).
 const STEPS_COMMON: StepDef[] = [
   { id: 'identificacao', label: 'Identificação', icon: '👤' },
   { id: 'processo', label: 'Processo', icon: '📋' },
-  { id: 'automacao', label: 'Automação', icon: '🤖' },
 ];
+// Phase 7.6: step 'priorizacao' removido. PriorizacaoStep.tsx PRESERVADO
+// (reaproveitado em mode='edit' — Plan 06).
 const STEPS_PERSONA_EXTRA: StepDef[] = [
-  { id: 'priorizacao', label: 'Priorização', icon: '📊' },
   { id: 'contexto', label: 'Contexto', icon: '💬' },
 ];
+// Phase 7.6: step 'priorizacao' removido (mesmo motivo de STEPS_PERSONA_EXTRA).
 const STEPS_FORMULARIO_EXTRA: StepDef[] = [
   { id: 'criterios', label: 'Critérios', icon: '✅' },
   { id: 'beneficios', label: 'Benefícios', icon: '📈' },
-  { id: 'priorizacao', label: 'Priorização', icon: '📊' },
 ];
 
 /**
@@ -162,13 +165,10 @@ export function validateStep(
       errors.email = 'E-mail inválido';
   }
 
-  if (step === 'priorizacao') {
-    if (!data.esforco) errors.esforco = 'Selecione';
-    if (!data.complexidade) errors.complexidade = 'Selecione';
-    if (!data.tempo) errors.tempo = 'Selecione';
-    if (!data.objetivo || data.objetivo < 1 || data.objetivo > 5)
-      errors.objetivo = 'Valor entre 1 e 5';
-  }
+  // Phase 7.6: branch de validação do step de Priorização removido — campos
+  // esforco/complexidade/tempo/objetivo agora são output de IA (não input do
+  // user). Type StepId mantém o literal correspondente para compatibilidade
+  // com WizardShell renderStep() em mode='edit'.
 
   return Object.keys(errors).length === 0 ? { ok: true } : { ok: false, errors };
 }
