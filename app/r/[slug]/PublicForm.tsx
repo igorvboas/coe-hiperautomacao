@@ -7,78 +7,24 @@ import {
   type PublicSubmitInput,
 } from '@/lib/opportunities/actions';
 import type { PublicTenant } from '@/lib/tenants/queries';
-import { DynamicList } from '@/components/opportunities/wizard/steps/DynamicList';
 import {
   TextField,
   TextareaField,
   SelectField,
 } from '@/components/opportunities/wizard/steps/fields';
-import { ScorePreview } from '@/components/opportunities/wizard/ScorePreview';
 
-type StepId =
-  | 'identificacao'
-  | 'processo'
-  | 'automacao'
-  | 'criterios'
-  | 'beneficios'
-  | 'priorizacao';
+// Phase 7.6: steps 'automacao', 'criterios', 'beneficios', 'priorizacao' removidos —
+// esses campos viram OUTPUT da IA (lib/ai/enrichment.ts), não input do user.
+// O formulário público agora pede apenas identificação + processo; defaults
+// dos 9 campos enriquecidos são injetados em createPublicOpportunity (Plan 03)
+// para satisfazer a assinatura da RPC create_public_opportunity (migration 0007).
+type StepId = 'identificacao' | 'processo';
 
 type Step = { id: StepId; label: string; icon: string };
 
 const STEPS: Step[] = [
   { id: 'identificacao', label: 'Identificação', icon: '👤' },
   { id: 'processo', label: 'Processo', icon: '📋' },
-  { id: 'automacao', label: 'Automação', icon: '🤖' },
-  { id: 'criterios', label: 'Critérios', icon: '✅' },
-  { id: 'beneficios', label: 'Benefícios', icon: '📈' },
-  { id: 'priorizacao', label: 'Priorização', icon: '📊' },
-];
-
-type CriterioValor = 'SIM' | 'NAO' | 'PARCIAL';
-type CriterioKey =
-  | 'regras_claras'
-  | 'totalmente_manual'
-  | 'processo_uniforme'
-  | 'digitacao_manual'
-  | 'causa_reclamacoes'
-  | 'padronizacao_docs'
-  | 'validacao_dados'
-  | 'schedulable'
-  | 'tem_documentacao'
-  | 'decisao_humana';
-
-const CRITERIOS: { key: CriterioKey; label: string }[] = [
-  { key: 'regras_claras', label: 'Processo baseado em regras claras' },
-  { key: 'totalmente_manual', label: 'Totalmente Manual' },
-  { key: 'processo_uniforme', label: 'Processo uniforme / mesmo fluxo sempre' },
-  { key: 'digitacao_manual', label: 'Digitação ou movimentação manual de dados' },
-  { key: 'causa_reclamacoes', label: 'Causa reclamações quando falha' },
-  { key: 'padronizacao_docs', label: 'Padronização em documentos (PDFs, formulários)' },
-  { key: 'validacao_dados', label: 'Validação ou conferência de dados simples' },
-  { key: 'schedulable', label: 'Pode ser programado para horários específicos' },
-  { key: 'tem_documentacao', label: 'Possui documentação do processo' },
-  { key: 'decisao_humana', label: 'Necessidade de decisão humana frequente' },
-];
-
-type BeneficioKey =
-  | 'reducao_tempo'
-  | 'eliminacao_erros'
-  | 'produtividade'
-  | 'qualidade_dados'
-  | 'reducao_custos'
-  | 'reducao_retrabalho'
-  | 'compliance'
-  | 'objetivos_estrategicos';
-
-const BENEFICIOS: { key: BeneficioKey; label: string; color: string }[] = [
-  { key: 'reducao_tempo', label: 'Redução de Tempo', color: '#3b82f6' },
-  { key: 'eliminacao_erros', label: 'Eliminação de Erros', color: '#8b5cf6' },
-  { key: 'produtividade', label: 'Aumento de Produtividade', color: '#10b981' },
-  { key: 'qualidade_dados', label: 'Qualidade de Dados', color: '#f59e0b' },
-  { key: 'reducao_custos', label: 'Redução de Custos', color: '#ef4444' },
-  { key: 'reducao_retrabalho', label: 'Redução de Retrabalho', color: '#ec4899' },
-  { key: 'compliance', label: 'Compliance & Regulatório', color: '#06b6d4' },
-  { key: 'objetivos_estrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
 ];
 
 type RequestType =
@@ -112,21 +58,11 @@ type FormState = {
   num_pessoas: string;
   tipo_processo: string;
   sistemas: string;
-  // Automação
-  ferramenta: 'rpa' | 'n8n' | 'ambos' | '';
-  escopo_automacao: string[];
-  beneficios_esperados: string[];
-  observacao: string;
-  risco: string;
-  // Critérios
-  criterios: Partial<Record<CriterioKey, CriterioValor>>;
-  // Benefícios
-  beneficios: Partial<Record<BeneficioKey, number>>;
-  // Priorização
-  esforco: 'baixo' | 'medio' | 'alto';
-  complexidade: 'baixo' | 'medio' | 'alto';
-  tempo: 'pequeno' | 'medio' | 'grande';
-  objetivo: number;
+  // Phase 7.6: campos abaixo removidos do FormState — IA vai gerar via
+  // enrichOpportunity(). Server Action createPublicOpportunity continua
+  // enviando defaults para a RPC (assinatura compatível com migration 0007):
+  //   ferramenta, escopo_automacao, beneficios_esperados, observacao, risco,
+  //   esforco, complexidade, tempo, objetivo, criterios (extras), beneficios (extras)
 };
 
 function initialState(): FormState {
@@ -144,17 +80,6 @@ function initialState(): FormState {
     num_pessoas: '',
     tipo_processo: '',
     sistemas: '',
-    ferramenta: '',
-    escopo_automacao: [''],
-    beneficios_esperados: [''],
-    observacao: '',
-    risco: '',
-    criterios: {},
-    beneficios: {},
-    esforco: 'medio',
-    complexidade: 'medio',
-    tempo: 'medio',
-    objetivo: 3,
   };
 }
 
@@ -200,10 +125,6 @@ export function PublicForm({ tenant, siteKey }: Props) {
       if (!data.processo.trim() || data.processo.trim().length < 3)
         errs.processo = 'Descreva o processo';
     }
-    if (currentStep.id === 'priorizacao') {
-      if (!data.objetivo || data.objetivo < 1 || data.objetivo > 5)
-        errs.objetivo = 'Selecione entre 1 e 5';
-    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -230,6 +151,10 @@ export function PublicForm({ tenant, siteKey }: Props) {
       return;
     }
 
+    // Phase 7.6: payload reduzido — campos enriquecidos pela IA OMITIDOS.
+    // Server Action createPublicOpportunity (Plan 03) injeta defaults antes
+    // de chamar a RPC create_public_opportunity (migration 0007 — 18 params
+    // fixos; assinatura preservada). IA sobrescreve via UPDATE pós-INSERT.
     const input: PublicSubmitInput = {
       request_type: data.request_type,
       solicitante: data.solicitante.trim(),
@@ -241,21 +166,12 @@ export function PublicForm({ tenant, siteKey }: Props) {
       volume_medio: data.volume_medio.trim() || undefined,
       tempo_execucao: data.tempo_execucao.trim() || undefined,
       num_pessoas: data.num_pessoas.trim() || undefined,
-      ferramenta: data.ferramenta || null,
-      escopo_automacao: data.escopo_automacao,
-      beneficios_esperados: data.beneficios_esperados,
-      observacao: data.observacao.trim() || undefined,
-      risco: data.risco.trim() || undefined,
-      esforco: data.esforco,
-      complexidade: data.complexidade,
-      tempo: data.tempo,
-      objetivo: data.objetivo,
+      // objetivo é obrigatório no type — default neutro (IA sobrescreve).
+      objetivo: 3,
       formulario_extras: {
         tipo_processo: data.tipo_processo.trim() || undefined,
         sistemas: data.sistemas.trim() || undefined,
         cargo_solicitante: data.cargo.trim() || undefined,
-        criterios: data.criterios,
-        beneficios: data.beneficios,
       },
     };
 
@@ -494,308 +410,9 @@ export function PublicForm({ tenant, siteKey }: Props) {
             </div>
           )}
 
-          {currentStep.id === 'automacao' && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-sm font-bold text-txt mb-1">
-                  Como você imagina a automação?
-                </h2>
-                <p className="text-[11px] text-mut mb-3">
-                  Sem certeza? Tudo bem — deixa o CoE sugerir.
-                </p>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-                  Ferramenta sugerida
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { v: 'rpa', label: '🤖 RPA', desc: 'Sistemas legados/desktop' },
-                    { v: 'n8n', label: '⚡ n8n', desc: 'APIs e integrações' },
-                    { v: 'ambos', label: '🔁 Ambos', desc: 'Mix' },
-                  ].map((opt) => {
-                    const active = data.ferramenta === opt.v;
-                    return (
-                      <button
-                        key={opt.v}
-                        type="button"
-                        onClick={() =>
-                          patch({
-                            ferramenta:
-                              data.ferramenta === opt.v
-                                ? ''
-                                : (opt.v as FormState['ferramenta']),
-                          })
-                        }
-                        className={
-                          'p-3 text-left rounded-lg border-2 transition-all ' +
-                          (active
-                            ? 'border-pri bg-pri/5'
-                            : 'border-bdr bg-white hover:border-pril')
-                        }
-                      >
-                        <div className="text-[13px] font-bold mb-0.5">{opt.label}</div>
-                        <div className="text-[10px] text-mut leading-snug">
-                          {opt.desc}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-                  O que você quer automatizar?
-                </div>
-                <DynamicList
-                  items={data.escopo_automacao}
-                  onChange={(next) => patch({ escopo_automacao: next })}
-                  placeholder="Ex: Validar CNPJ no Receita Federal"
-                  addLabel="+ Adicionar item"
-                />
-              </div>
-
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-                  Benefícios esperados (texto livre)
-                </div>
-                <DynamicList
-                  items={data.beneficios_esperados}
-                  onChange={(next) => patch({ beneficios_esperados: next })}
-                  placeholder="Ex: Economia de 4h/dia"
-                  addLabel="+ Adicionar benefício"
-                />
-              </div>
-
-              <TextareaField
-                label="Observação"
-                value={data.observacao}
-                onChange={(v) => patch({ observacao: v })}
-                placeholder="Detalhes adicionais, contexto, premissas..."
-                rows={3}
-              />
-
-              <TextareaField
-                label="Risco"
-                value={data.risco}
-                onChange={(v) => patch({ risco: v })}
-                placeholder="Riscos identificados, dependências críticas, pontos de atenção..."
-                rows={3}
-              />
-            </div>
-          )}
-
-          {currentStep.id === 'criterios' && (
-            <div>
-              <h2 className="text-sm font-bold text-txt mb-1">
-                Critérios técnicos
-              </h2>
-              <p className="text-[11px] text-mut mb-4">
-                Click pra alternar entre SIM / NÃO / PARCIAL.
-              </p>
-              <div className="space-y-1.5">
-                {CRITERIOS.map((c) => {
-                  const v = data.criterios[c.key];
-                  const meta =
-                    v === 'SIM'
-                      ? {
-                          icon: '✅',
-                          label: 'Sim',
-                          cls: 'bg-green-50 text-green-800 border-green-300',
-                        }
-                      : v === 'NAO'
-                        ? {
-                            icon: '❌',
-                            label: 'Não',
-                            cls: 'bg-red-50 text-red-800 border-red-300',
-                          }
-                        : v === 'PARCIAL'
-                          ? {
-                              icon: '⚠️',
-                              label: 'Parcial',
-                              cls: 'bg-yellow-50 text-yellow-900 border-yellow-300',
-                            }
-                          : {
-                              icon: '⚪',
-                              label: '—',
-                              cls: 'bg-slate-50 text-mut border-slate-200',
-                            };
-                  return (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => {
-                        const nextV: CriterioValor =
-                          v === 'SIM'
-                            ? 'NAO'
-                            : v === 'NAO'
-                              ? 'PARCIAL'
-                              : 'SIM';
-                        patch({
-                          criterios: { ...data.criterios, [c.key]: nextV },
-                        });
-                      }}
-                      className={
-                        'w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-[12px] text-left transition-colors hover:brightness-95 ' +
-                        meta.cls
-                      }
-                    >
-                      <span className="text-base w-5 text-center">
-                        {meta.icon}
-                      </span>
-                      <span className="flex-1">{c.label}</span>
-                      <span className="font-bold text-[11px]">{meta.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {currentStep.id === 'beneficios' && (
-            <div>
-              <h2 className="text-sm font-bold text-txt mb-1">
-                Pontue os benefícios esperados
-              </h2>
-              <p className="text-[11px] text-mut mb-4">
-                De 1 (nada alinhado) a 5 (totalmente alinhado). Pode deixar em branco
-                quem não se aplica.
-              </p>
-              <div className="space-y-3">
-                {BENEFICIOS.map((b) => {
-                  const v = data.beneficios[b.key];
-                  return (
-                    <div key={b.key} className="flex items-center gap-3 flex-wrap">
-                      <span className="text-[11px] text-mut min-w-[160px]">
-                        {b.label}
-                      </span>
-                      <div className="flex-1 flex gap-1 min-w-[200px]">
-                        {[1, 2, 3, 4, 5].map((n) => {
-                          const active = v === n;
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => {
-                                const nextBen = { ...data.beneficios };
-                                if (active) delete nextBen[b.key];
-                                else nextBen[b.key] = n;
-                                patch({ beneficios: nextBen });
-                              }}
-                              className={
-                                'flex-1 py-1.5 rounded text-[11px] font-bold border transition-colors ' +
-                                (active
-                                  ? 'text-white border-transparent'
-                                  : 'bg-bg text-txt border-bdr hover:border-pril')
-                              }
-                              style={active ? { background: b.color } : undefined}
-                            >
-                              {n}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <span
-                        className="text-[11px] font-bold min-w-[32px] text-right tabular-nums"
-                        style={{ color: v ? b.color : 'var(--color-mut)' }}
-                      >
-                        {v ?? '—'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {currentStep.id === 'priorizacao' && (
-            <div>
-              <h2 className="text-sm font-bold text-txt mb-1">
-                Como você prioriza isso?
-              </h2>
-              <p className="text-[11px] text-mut mb-4">
-                O CoE ajusta depois — esta é sua visão.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                <SelectField
-                  label="Esforço de Implementação"
-                  required
-                  value={data.esforco}
-                  onChange={(v) =>
-                    patch({ esforco: v as FormState['esforco'] })
-                  }
-                  options={[
-                    { value: 'baixo', label: 'Baixo' },
-                    { value: 'medio', label: 'Médio' },
-                    { value: 'alto', label: 'Alto' },
-                  ]}
-                />
-                <SelectField
-                  label="Complexidade Técnica"
-                  required
-                  value={data.complexidade}
-                  onChange={(v) =>
-                    patch({ complexidade: v as FormState['complexidade'] })
-                  }
-                  options={[
-                    { value: 'baixo', label: 'Baixo' },
-                    { value: 'medio', label: 'Médio' },
-                    { value: 'alto', label: 'Alto' },
-                  ]}
-                />
-                <SelectField
-                  label="Tempo Estimado"
-                  required
-                  value={data.tempo}
-                  onChange={(v) =>
-                    patch({ tempo: v as FormState['tempo'] })
-                  }
-                  options={[
-                    { value: 'pequeno', label: 'Pequeno' },
-                    { value: 'medio', label: 'Médio' },
-                    { value: 'grande', label: 'Grande' },
-                  ]}
-                />
-                <div className="mb-3">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
-                    Alinhamento Estratégico <span className="text-red-500">*</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((n) => {
-                      const active = data.objetivo === n;
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => patch({ objetivo: n })}
-                          className={
-                            'flex-1 py-1.5 rounded-lg text-[12px] font-bold border ' +
-                            (active
-                              ? 'bg-pri text-white border-pri'
-                              : 'bg-bg text-txt border-bdr hover:border-pril')
-                          }
-                        >
-                          {n}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {errors.objetivo && (
-                    <div className="text-[11px] text-red-700 mt-1">
-                      {errors.objetivo}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3">
-                <ScorePreview
-                  esforco={data.esforco}
-                  complexidade={data.complexidade}
-                  tempo={data.tempo}
-                  objetivo={data.objetivo}
-                />
-              </div>
-            </div>
-          )}
+          {/* Phase 7.6: render branches `automacao`, `criterios`, `beneficios`,
+              `priorizacao` REMOVIDOS — os campos agora são output da IA
+              (lib/ai/enrichment.ts), preenchidos via after() do Server Action. */}
 
           {/* Phase 7.5 Bloco D — Turnstile invisível. Renderiza sempre (não só
               no último step) para que o challenge possa rodar em background
