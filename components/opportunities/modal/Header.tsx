@@ -3,6 +3,7 @@ import { getInitials, scoreColor } from '@/lib/opportunities/utils';
 import { StatusSelector } from './StatusSelector';
 import { DeleteButton } from './DeleteButton';
 import { EditButton } from './EditButton';
+import { AiEnrichmentBadge } from './AiEnrichmentBadge';
 
 type Props = {
   opportunity: Opportunity;
@@ -34,8 +35,12 @@ export function ModalHeader({ opportunity: o }: Props) {
             🏢 {o.area}
             {o.subarea && o.subarea !== o.area ? ` · ${o.subarea}` : ''}
           </div>
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <StatusSelector opportunityId={o.id} currentStatus={o.status} />
+            <AiEnrichmentBadge
+              status={o.ai_enrichment_status}
+              error={o.ai_enrichment_error}
+            />
           </div>
         </div>
       </div>

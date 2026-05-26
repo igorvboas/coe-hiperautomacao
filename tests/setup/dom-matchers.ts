@@ -14,8 +14,10 @@
  * Padrão recomendado pela própria doc do @testing-library/jest-dom.
  */
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  // Dynamic import async não é necessário — `expect.extend` é síncrono e o
-  // pacote já chama por side-effect quando importado. Usar require evita
-  // top-level await + funciona com módulos ESM/CJS.
+  // Dynamic import async via top-level await — Vitest 3 + Node 20 suportam.
+  // O `export {}` abaixo marca o arquivo como módulo ES (requerido pelo TS
+  // para top-level await).
   await import('@testing-library/jest-dom/vitest');
 }
+
+export {};
