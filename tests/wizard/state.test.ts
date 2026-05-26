@@ -51,17 +51,19 @@ describe('stepsFor — Phase 7.6 refactor', () => {
     ]);
   });
 
-  it('persona edit → 4 steps (sem "tipo")', () => {
+  it('persona edit → 6 steps (sem "tipo", com Automação + Priorização para admin corrigir IA)', () => {
     const result = stepsFor('persona', 'edit');
     expect(result.map((s) => s.id)).toEqual([
       'classificacao',
       'identificacao',
       'processo',
       'contexto',
+      'automacao',
+      'priorizacao',
     ]);
   });
 
-  it('formulario edit → 5 steps (sem "tipo")', () => {
+  it('formulario edit → 7 steps (sem "tipo", com Automação + Priorização para admin corrigir IA)', () => {
     const result = stepsFor('formulario', 'edit');
     expect(result.map((s) => s.id)).toEqual([
       'classificacao',
@@ -69,6 +71,8 @@ describe('stepsFor — Phase 7.6 refactor', () => {
       'processo',
       'criterios',
       'beneficios',
+      'automacao',
+      'priorizacao',
     ]);
   });
 
@@ -90,12 +94,18 @@ describe('stepsFor — Phase 7.6 refactor', () => {
     expect(allCreateIds).not.toContain('priorizacao');
   });
 
-  it('AI-WIZARD-01 cross-check: nenhum step em EDIT tem id "automacao" nem "priorizacao" (renderizacao vem de WizardShell renderStep, nao da sequencia)', () => {
+  it('AI-WIZARD-01 (post-hotfix): EDIT mode INCLUI "automacao" e "priorizacao" no final — admin precisa corrigir IA', () => {
     const personaEdit = stepsFor('persona', 'edit');
     const formularioEdit = stepsFor('formulario', 'edit');
-    const allEditIds = [...personaEdit, ...formularioEdit].map((s) => s.id);
-    expect(allEditIds).not.toContain('automacao');
-    expect(allEditIds).not.toContain('priorizacao');
+    // Ambos os modos terminam com os 2 steps de campos IA, nessa ordem
+    expect(personaEdit.slice(-2).map((s) => s.id)).toEqual([
+      'automacao',
+      'priorizacao',
+    ]);
+    expect(formularioEdit.slice(-2).map((s) => s.id)).toEqual([
+      'automacao',
+      'priorizacao',
+    ]);
   });
 });
 

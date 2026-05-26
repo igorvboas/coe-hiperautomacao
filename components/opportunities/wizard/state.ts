@@ -59,10 +59,18 @@ const STEPS_FORMULARIO_EXTRA: StepDef[] = [
   { id: 'beneficios', label: 'Benefícios', icon: '📈' },
 ];
 
+// Phase 7.6 (hotfix pós-execute): admin precisa editar os 9 campos preenchidos
+// pela IA. Steps Automação + Priorização voltam SÓ em mode='edit' (continuam
+// invisíveis no fluxo create, que é IA-only).
+const STEPS_EDIT_AI_FIELDS: StepDef[] = [
+  { id: 'automacao', label: 'Automação', icon: '🤖' },
+  { id: 'priorizacao', label: 'Priorização', icon: '🎯' },
+];
+
 /**
  * Sequência de steps por modo+source.
- * - mode='create': Tipo → Classificação → Identificação → ...
- * - mode='edit': pula Tipo (source é imutável) mas mantém Classificação editável.
+ * - mode='create': Tipo → Classificação → Identificação → ... (sem Automação/Priorização — IA preenche)
+ * - mode='edit':   Classificação → Identificação → ... → Automação → Priorização (admin pode corrigir IA)
  */
 export function stepsFor(
   source: 'persona' | 'formulario' | undefined,
@@ -77,7 +85,8 @@ export function stepsFor(
     mode === 'create'
       ? [STEP_TIPO, STEP_CLASSIFICACAO]
       : [STEP_CLASSIFICACAO];
-  return [...prefix, ...STEPS_COMMON, ...extras];
+  const suffix = mode === 'edit' ? STEPS_EDIT_AI_FIELDS : [];
+  return [...prefix, ...STEPS_COMMON, ...extras, ...suffix];
 }
 
 export function defaultFormData(): WizardFormData {
