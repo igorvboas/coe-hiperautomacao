@@ -57,6 +57,8 @@ export type OpportunityRequestType =
   | 'incidente'
   | 'treinamento';
 
+export type AiEnrichmentStatus = 'pending' | 'enriched' | 'failed';
+
 // -----------------------------------------------------------------------------
 // JSONB schemas (descritivos; o banco aceita qualquer shape)
 // -----------------------------------------------------------------------------
@@ -210,6 +212,9 @@ export type Database = {
           notas: string | null;
           observacao: string | null;
           risco: string | null;
+          ai_enrichment_status: AiEnrichmentStatus;
+          ai_enrichment_error: string | null;
+          ai_enriched_at: string | null;
           persona_extras: PersonaExtras | null;
           formulario_extras: FormularioExtras | null;
           created_by: string | null;
@@ -243,6 +248,9 @@ export type Database = {
           notas?: string | null;
           observacao?: string | null;
           risco?: string | null;
+          ai_enrichment_status?: AiEnrichmentStatus;
+          ai_enrichment_error?: string | null;
+          ai_enriched_at?: string | null;
           persona_extras?: PersonaExtras | null;
           formulario_extras?: FormularioExtras | null;
           created_by?: string | null;
