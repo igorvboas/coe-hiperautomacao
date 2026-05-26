@@ -185,10 +185,15 @@ const baseSchema = z.object({
     .array(z.string().max(200, 'Item excede 200 caracteres'))
     .max(20, 'Máximo 20 itens')
     .default([]),
-  esforco: effortEnum,
-  complexidade: complexityEnum,
-  tempo: timeBucketEnum,
-  objetivo: z.number().int().min(1).max(5),
+  // ─── Campos enriquecidos pela IA (Phase 7.6) ────────────────────────────
+  // esforco/complexidade/tempo/objetivo viram opcionais no INPUT do user:
+  //   - Wizard interno (Plan 04) não coleta mais (steps "Automação"+"Priorização" removidos)
+  //   - DB tem defaults (NOT NULL DEFAULT 'medio'/3) — `.insert` sem o campo usa default
+  //   - Após INSERT, `enrichOpportunity()` via after() sobrescreve com valores da IA
+  esforco: effortEnum.optional(),
+  complexidade: complexityEnum.optional(),
+  tempo: timeBucketEnum.optional(),
+  objetivo: z.number().int().min(1).max(5).optional(),
   status: statusEnum.default('novo'),
   responsavel: z
     .string()
