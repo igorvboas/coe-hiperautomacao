@@ -21,7 +21,21 @@ export default defineConfig({
     globalSetup: ['./tests/setup/global-setup.ts'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
-    include: ['tests/**/*.test.ts'],
+    // Phase 7.6 Plan 06: aceita `.test.tsx` p/ testes de componentes React
+    // (tests/modal/ai-enrichment-badge.test.tsx etc.). Padrão server-side
+    // continua sendo `.test.ts` em tests/**.
+    include: ['tests/**/*.test.{ts,tsx}'],
     exclude: ['node_modules/**', '.next/**', 'supabase/**', 'get-shit-done/**'],
+    // Phase 7.6 Plan 06: tests de modal (UI React) precisam de DOM. Vitest
+    // resolve o env por glob match; demais tests permanecem em node. Vitest 3
+    // ainda suporta esta opção (deprecada em favor de `projects` mas funcional);
+    // migrar p/ projects fica em backlog 999.x se virar dor real.
+    environmentMatchGlobs: [
+      ['tests/modal/**', 'jsdom'],
+    ],
+    // Setup global p/ matchers do @testing-library/jest-dom (toBeInTheDocument
+    // etc.). O arquivo importa o entry `@testing-library/jest-dom/vitest` só
+    // se rodando em jsdom (defesa interna do setup file) — em node, no-op safe.
+    setupFiles: ['./tests/setup/dom-matchers.ts'],
   },
 });
