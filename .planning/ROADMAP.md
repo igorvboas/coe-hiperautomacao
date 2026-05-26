@@ -16,7 +16,8 @@
 | 6 | **Wizard CRUD (Criar + Editar + Excluir)** | ✅ Done | Wizard criar/editar + popup confirmação de delete (extra) | 06-01 a 06-03 |
 | 7 | **Filtros, Busca, Sort, KPIs reativos** | ✅ Done | Paridade total com toolbar do mockup + KPI bar reativa | 07-01 a 07-03 |
 | 7.5 | **Hardening de Segurança MVP** | ✅ Done (6/6) | Testes RLS, Zod centralizado, atomicidade `seq_id`, hardening form público (BotID+Turnstile+RPC limits+IP hashed), headers de segurança | **6 plans** (07.5-01 a 07.5-06) |
-| 8 | **Polish + Deploy** | 🔜 Próximo | Loading states, error boundaries, responsivo, deploy Vercel | 08-01 a 08-03 |
+| 7.6 | **Enriquecimento por IA das Oportunidades** *(INSERTED)* | 🔜 Planejado (0/6) | Remove steps "Automação" e "Priorização" do user input; pós-processamento OpenAI server-side preenche 9 campos automaticamente; admin edita no modal de detalhe | **6 plans** (07.6-01 a 07.6-06) |
+| 8 | **Polish + Deploy** | ⏸ Aguardando 7.6 | Loading states, error boundaries, responsivo, deploy Vercel | 08-01 a 08-03 |
 
 ## Phase 7.5 — Plans (planejados em 2026-05-21)
 
@@ -39,6 +40,34 @@ Plans:
 
 **Tasks com [BLOCKING] schema push:** Plan 02 (migration 0006) e Plan 06 (migration 0007) — pedem confirmação humana antes de aplicar.
 
+## Phase 7.6 — Plans (planejados em 2026-05-26)
+
+**Goal:** Tirar do usuário final a responsabilidade de preencher campos técnicos (Automação + Priorização) e transferi-la para pós-processamento OpenAI server-side disparado via `after()` do Next.js. Usuário NUNCA sabe que existe IA — vê só um formulário menor. Bloqueia Phase 8 (deploy).
+
+**Plans:** 6 plans em 4 waves (paralelismo otimizado em waves 2-3).
+
+Plans:
+- [ ] 07.6-01-PLAN.md — Wave 0: Infra (npm install openai + `serviceRoleClient()` em lib/supabase/server.ts + migration 0010 + handoff doc + OPPORTUNITY_COLUMNS update) [AI-DB-01, AI-DB-02, AI-RLS-01, HARDEN-E-06-EXT]. Inclui **[BLOCKING] apply manual** da migration 0010 no Supabase Cloud Dashboard SQL Editor.
+- [ ] 07.6-02-PLAN.md — Wave 1: Pipeline IA (`lib/ai/schema.ts` Zod 9 campos + `lib/ai/prompts.ts` builder anti prompt-injection + `lib/ai/enrichment.ts` wrapper completo com gpt-4o-mini + parse + zodResponseFormat + WHERE defensivo triplo + testes mockados via `vi.mock('openai')`) [AI-MODEL-01, AI-RLS-01, AI-IDEMP-01, AI-TEST-01, AI-TEST-02].
+- [ ] 07.6-03-PLAN.md — Wave 2: Server Action integration (campos enriquecidos viram opcionais em `opportunityInputSchema` + `createOpportunity`/`createPublicOpportunity` disparam `after(enrichOpportunity)` envolto em try/catch + testes mockam `next/server.after` para verificar wiring) [AI-ASYNC-01, AI-SCHEMA-OPT-01].
+- [ ] 07.6-04-PLAN.md — Wave 3: Wizard refactor (remover steps `automacao` e `priorizacao` de `STEPS_COMMON`, `STEPS_PERSONA_EXTRA`, `STEPS_FORMULARIO_EXTRA` em `state.ts` + remover branch validateStep priorizacao + componentes `AutomacaoStep`/`PriorizacaoStep` PRESERVADOS para mode='edit' + testes puros sobre `stepsFor()`) [AI-WIZARD-01]. **Paralelo com 05 e 06.**
+- [ ] 07.6-05-PLAN.md — Wave 3: PublicForm refactor (reduzir `app/r/[slug]/PublicForm.tsx` de 6 para 2-3 steps; remover campos enriquecidos do `FormState`/`initialState`/submit payload; Turnstile widget INTACTO via 7.5 Plan 06; testes via regex sobre source code) [AI-PUB-01]. **Paralelo com 04 e 06.**
+- [ ] 07.6-06-PLAN.md — Wave 3: Modal badge + smoke E2E (componente novo `AiEnrichmentBadge.tsx` com 3 estados pt-BR pending/failed/enriched + integração em `ModalHeader.tsx` ao lado do StatusSelector + instalar `@testing-library/react` + `jsdom` + tests + `checkpoint:human-verify` para smoke A wizard interno + smoke B form público + smoke C path de falha com `OPENAI_API_KEY` inválida) [AI-UI-01, AI-ADMIN-01]. **Paralelo com 04 e 05.**
+
+**Dependências entre plans (encoded em frontmatter `depends_on`):**
+- Wave 0: Plan 01 sozinho (sem deps; bloqueia tudo).
+- Wave 1: Plan 02 depende de 01 (precisa do openai npm pkg + `serviceRoleClient()` para implementar enrichment).
+- Wave 2: Plan 03 depende de 01 + 02 (importa `enrichOpportunity` de Plan 02).
+- Wave 3: Plans 04, 05, 06 dependem só de 01 (no overlap de arquivos entre eles → paralelos). Plan 06 também depende de 02 + 03 (smoke checkpoint precisa do pipeline funcionando).
+
+**Tasks com [BLOCKING] schema push:** Plan 01 Task 6 (migration 0010 — `add column ai_enrichment_status` + DROP/CREATE view `opportunities_with_score`).
+**Tasks com [BLOCKING] smoke verification:** Plan 06 Task 3 (smoke E2E manual com `OPENAI_API_KEY` real).
+
+**User setup pendente antes de executar:**
+- `SUPABASE_SERVICE_ROLE_KEY` em `.env.local` (gerado em Supabase Dashboard → Project Settings → API → service_role)
+- `OPENAI_API_KEY` em `.env.local` populado com chave real (gerado em https://platform.openai.com/api-keys; já presente vazio em `.env.example` e `.env.local`)
+- Aplicar migration 0010 no Dashboard SQL Editor + rodar `npm run gen:types` (gates de Plan 01 Task 6)
+
 ## Requisitos validados (mapeados de PROJECT.md)
 
 Cada requisito de PROJECT.md → uma ou mais fases:
@@ -54,13 +83,14 @@ Cada requisito de PROJECT.md → uma ou mais fases:
 | Fases com datas | 1 (tabela), 8 (UI + trigger) |
 | Filtros + busca + ordenação | 7 |
 | KPIs no topo | 7 |
-| Modal de detalhe com edição inline | 4, 6 |
+| Modal de detalhe com edição inline | 4, 6, **7.6 (badge AI + edit dos 9 campos enriquecidos)** |
 | Deploy em produção | 8 |
 | **Defesa contra vazamento entre tenants** | **7.5 (Bloco A)** |
 | **Validação centralizada anti-Mass Assignment** | **7.5 (Bloco B)** |
 | **Atomicidade `seq_id` (race condition)** | **7.5 (Bloco C)** |
 | **Hardening do formulário público anônimo** | **7.5 (Bloco D)** |
 | **Headers de segurança + audit de segredos** | **7.5 (Bloco E)** |
+| **Enriquecimento server-side por IA dos campos técnicos** | **7.6 (Blocos A–F)** |
 
 ## Ordem das Phases
 
@@ -73,6 +103,7 @@ A ordem é por dependência prática, não por importância. Cada fase entrega a
 - **Phase 6 (CRUD) pode ser paralela a Phase 5**, mas plano sequencial pra evitar context switching.
 - **Phase 7 (filtros/KPIs)** depende da lista funcionando (Phase 3).
 - **Phase 7.5 (hardening de segurança)** inserida entre 7 e 8 — deploy de produção sem testes de isolamento de tenant + rate limit no formulário público é risco real, não teórico. Bloqueia Phase 8.
+- **Phase 7.6 (enriquecimento por IA)** inserida entre 7.5 e 8 (2026-05-26) — wizard precisa ser refatorado antes do deploy (steps "Automação" e "Priorização" deixam de ser inputs do usuário; viram output de OpenAI server-side). Reverte escopadamente a decisão "IA generativa = out-of-scope" do PROJECT.md: IA é auxiliar interno invisível, não feature do produto. Bloqueia Phase 8.
 - **Phase 8 (polish/deploy)** é sempre por último.
 
 ## Princípios de execução
@@ -95,4 +126,4 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - Mobile nativo
 
 ---
-*Última atualização: 2026-05-22 — Phase 7.5 Plan 02 (Wave 1 — Bloco C: atomicidade `seq_id`) executado em write-only mode (Supabase Cloud — apply manual no Dashboard pendente). Próximo: Plan 07.5-04 (Wave 3 — RLS isolation tests, depende de `.env.test` + Supabase running) ou Plan 07.5-06 (Wave 5 — formulário público hardened).*
+*Última atualização: 2026-05-26 — Phase 7.6 planejada em 6 plans/4 waves. `/gsd-plan-phase 7.6` produziu plans `07.6-01-PLAN.md` a `07.6-06-PLAN.md` em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`. Próximo: rodar Plan 01 (Wave 0 — `npm install openai` + `serviceRoleClient()` + migration 0010 + [BLOCKING] apply manual + handoff doc), depois Plans 02 (Wave 1, depende de 01) → 03 (Wave 2, depende de 02) → 04+05+06 em paralelo (Wave 3, todos dependem só de 01 com 06 também dependendo de 02+03 para smoke).*

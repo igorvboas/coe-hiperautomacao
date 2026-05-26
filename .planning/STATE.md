@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.1
 milestone_name: MVP — Sistema Real a partir do Mockup
-status: ready_for_verification
-next_action: verify-work
-active_phase: "7.5"
+status: ready_to_execute
+next_action: execute-phase
+active_phase: "7.6"
 next_phases: ["8"]
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 8
-  percent: 89
+  percent: 80
 ---
 
 # Project State
@@ -23,10 +23,14 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 7.5 — Hardening de Segurança MVP. **TODOS os 5 Waves completos (0..5).**
-Plan: 6 of 6 (Phase 7.5 done)
-Status: **ready_for_verification**. Plans 01..06 done. Plan 06 (Wave 5 — formulário público hardened) completo em **write-only mode**: BotID + Turnstile + payload limits no RPC + log com IP hashed entregues; migration 0007 + 3 env vars Vercel aguardam apply manual. 7 integration specs em `public-form.test.ts` em skip mode aguardando `.env.test` apontar para Supabase Cloud de teste. Próximo: `/gsd-verify-work 7.5` (UAT) ou avançar para Phase 8 (Polish & Deploy) após usuário aplicar 0006+0007 + setar env vars.
-Last activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
+Phase: **7.6 — Enriquecimento por IA das Oportunidades** *(INSERTED 2026-05-26, status: ready_to_execute)*. Phase 7.5 (Hardening) completa (6/6 plans). 7.6 inserida entre 7.5 e 8 para refatorar wizard ANTES do deploy.
+Plan: 0 of 6 (Phase 7.6 planejada, execução pendente)
+Status: **ready_to_execute**. 6 plans criados em 4 waves (W0→W1→W2→W3). Plan-checker passou na iteração 1 (resolveu 4 blockers + 4 warnings). 3 decisões arquiteturais lockadas (em PHASE.md `## Decisões locked`): (1) disparo via `after()` do Next.js dentro do Server Action, (2) `gpt-4o-mini` via `chat.completions.parse()` + `zodResponseFormat()` (não raw json_schema), (3) `serviceRoleClient()` writes com WHERE `id+tenant_id+ai_enrichment_status='pending'` (defesa em profundidade + idempotência). **Pré-requisitos para execute:** popular `OPENAI_API_KEY` em `.env.local` (linha 24 já existe vazia). `SUPABASE_SERVICE_ROLE_KEY` também precisa estar setada (Plan 01 cria `serviceRoleClient()`). Plan 01 termina com `[BLOCKING] autonomous: false` MIGRATION-HANDOFF da 0010 (apply manual no Supabase Cloud Dashboard SQL Editor — padrão 7.5 Plan 02/06). Plan 06 termina com `[BLOCKING] autonomous: false` smoke E2E (cria oportunidade → observa pending → real OpenAI call → observa enriched). Próximo: `/gsd-execute-phase 7.6` ou `/clear` + `/gsd-execute-phase 7.6` (recomendado).
+Last activity: 2026-05-26 — `/gsd-plan-phase 7.6` completou em 3 etapas: (1) researcher produziu `07.6-RESEARCH.md` (~900 linhas, validou as 3 decisões locked, corrigiu 2 erros factuais no PHASE.md — `serviceRoleClient()` ainda não existia, usar `parse()` + `zodResponseFormat()` em vez de raw `json_schema`, lembrou que migration 0010 precisa drop+recreate da view `opportunities_with_score`); (2) planner criou 6 plans (01..06) em 4 waves cobrindo todos os 14 REQ-IDs (AI-DB-01/02, AI-RLS-01, AI-MODEL-01, AI-IDEMP-01, AI-ASYNC-01, AI-SCHEMA-OPT-01, AI-WIZARD-01, AI-PUB-01, AI-UI-01, AI-ADMIN-01, AI-TEST-01/02, HARDEN-E-06-EXT) + ROADMAP.md atualizado com seção "Phase 7.6 — Plans"; (3) plan-checker rodou 2 iterações — primeira encontrou 4 BLOCKERS (Plan 06 frontmatter incompleto, Plan 02 Test 8 sham assertion `expect(true).toBe(true)`, Plan 03 Task 3 grep verify pattern errado `enrichOpportunity` vs `mockEnrich`, VALIDATION.md ausente) + 4 WARNINGS (Plan 04 wave inconsistente 3→1, Plan 02 Test 4 `@ts-expect-error`, Plan 03 anon-client `tenants` lookup falha contra RLS, Plan 01 Task 4 grep `-q` + pipe nonsense), segunda iteração confirmou TODOS resolvidos sem regressões. `07.6-VALIDATION.md` criado mapeando 14 REQ-IDs a test artifacts concretos (não placeholders). Dependency graph consistente: W0=[01], W1=[02, 04 parallel], W2=[03], W3=[05, 06 parallel].
+
+Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA das Oportunidades) inserida entre 7.5 e 8 a pedido do PO. Criados: `.planning/phases/07.6-enriquecimento-ia-oportunidades/PHASE.md` (148 linhas, escopo em 6 blocos A-F). ROADMAP.md atualizado. `.env.example` (linha 30) e `.env.local` (linha 24) ganharam `OPENAI_API_KEY=` vazio. Reversão escopada da decisão "IA generativa = out-of-scope" do PROJECT.md.
+
+Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
 Progress: [█████████░] 89%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
@@ -49,6 +53,8 @@ Progress: [█████████░] 89%
 **Reordenação (2026-05-20):** banco antes do bootstrap do app. Schema é o contrato; corrigir migration depois é caro.
 
 **Inserção (2026-05-21):** Phase 7.5 (Hardening de Segurança MVP) inserida entre 7 e 8. Motivo: deploy de produção com cliente piloto sem testes automatizados de isolamento de tenant + sem rate limit no formulário público é risco real. Documentado em `.planning/phases/07.5-hardening-seguranca-mvp/PHASE.md`.
+
+**Inserção (2026-05-26):** Phase 7.6 (Enriquecimento por IA das Oportunidades) inserida entre 7.5 e 8 (URGENT). Motivo: o wizard de criação e o formulário público pedem 9 campos (`ferramenta`, `escopo_automacao[]`, `beneficios_esperados[]`, `observacao`, `risco`, `esforco`, `complexidade`, `tempo`, `objetivo`) que o usuário final não tem contexto pra responder bem. Esses campos passam a ser **output** de um pós-processamento OpenAI server-side, disparado assincronamente após o INSERT da oportunidade. Reverte escopadamente "IA generativa = out-of-scope" do PROJECT.md — IA é auxiliar interno invisível, não feature do produto. `OPENAI_API_KEY` já adicionada (vazia) em `.env.example` e `.env.local`. Documentado em `.planning/phases/07.6-enriquecimento-ia-oportunidades/PHASE.md`. Próximo: `/gsd-discuss-phase 7.6` (decisões em aberto: disparo via `after()` do Next vs Supabase Edge Function via webhook vs Vercel Cron).
 
 ## Performance Metrics
 
