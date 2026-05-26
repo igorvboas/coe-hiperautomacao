@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { headers as nextHeaders } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { after } from 'next/server';
+import { createClient, serviceRoleClient } from '@/lib/supabase/server';
 import type { OpportunityStatus } from './types';
 import { opportunityInputSchema } from './schema';
 import { verifyTurnstileToken } from '@/lib/security/turnstile';
@@ -13,6 +14,7 @@ import {
   logPublicFormAttempt,
   updatePublicFormAttempt,
 } from '@/lib/public-form/log';
+import { enrichOpportunity } from '@/lib/ai/enrichment';
 
 export type UpdateStatusResult = { ok: true } | { ok: false; error: string };
 
@@ -148,6 +150,36 @@ export async function createPublicOpportunity(
     };
   }
 
+  // ── Phase 7.6: resolve tenant_id para enriquecimento via SERVICE ROLE ────
+  // POR QUÊ service role e não o anon client deste handler:
+  //   RLS policy `tenants_select_own` em 0001_init.sql usa
+  //   `id = current_tenant_id()` que requer auth.uid(). Session anônima do
+  //   form público faz `current_tenant_id()` retornar NULL → query retorna
+  //   ZERO rows → after() NUNCA dispararia silenciosamente. serviceRoleClient
+  //   bypassa RLS de forma segura: executado server-only; `tenantSlug` já
+  //   passou pelos guardas anteriores (BotID + Turnstile) e a query é
+  //   defensiva por `eq('status', 'active')`.
+  // Resolução SEPARADA da RPC para capturar tenant_id em closure do after()
+  // — a RPC continua a resolver internamente como autoridade.
+  let tenantRow: { id: string } | null = null;
+  try {
+    const adminSb = serviceRoleClient();
+    const result = await adminSb
+      .from('tenants')
+      .select('id')
+      .eq('slug', tenantSlug)
+      .eq('status', 'active')
+      .maybeSingle();
+    tenantRow = result.data;
+  } catch (e) {
+    // serviceRoleClient throw (env var missing) — log e continua.
+    // RPC abaixo dá o error path autoritativo; after() não dispara.
+    console.error(
+      '[actions/createPublicOpportunity] tenant lookup falhou (serviceRoleClient):',
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+
   // 6. RPC — length/array/jsonb limits enforced no DB (migration 0007)
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('create_public_opportunity', {
@@ -193,7 +225,33 @@ export async function createPublicOpportunity(
 
   // 8. Sucesso
   await updatePublicFormAttempt(logId, 'success');
-  return { ok: true, id: data as unknown as string };
+
+  // ── Phase 7.6: dispara enrichment se RPC sucedeu E tenant resolveu ───────
+  // Mesma defesa em camadas de createOpportunity: try/catch no callback,
+  // closure de primitivos, sem cookies/headers dentro. Fallback null-safe
+  // — row já está criada (RPC sucedeu); admin pode editar manualmente.
+  const oppId = data as unknown as string;
+  const tenantId = tenantRow?.id;
+  if (tenantId) {
+    after(async () => {
+      try {
+        await enrichOpportunity(oppId, tenantId);
+      } catch (e) {
+        console.error(
+          '[actions/createPublicOpportunity] enrichment after() inesperado:',
+          e instanceof Error ? e.message : String(e),
+        );
+      }
+    });
+  } else {
+    // Log estruturado — NÃO retorna erro ao client; row já foi criada.
+    console.error(
+      '[actions/createPublicOpportunity] tenant_id ausente após RPC success (slug=%s) — enrichment NÃO disparado',
+      tenantSlug,
+    );
+  }
+
+  return { ok: true, id: oppId };
 }
 
 // =============================================================================
@@ -295,7 +353,7 @@ export async function createOpportunity(
         data.source === 'formulario' ? data.formulario_extras ?? null : null,
       created_by: user.id,
     })
-    .select('id')
+    .select('id, tenant_id')
     .single();
 
   if (error || !inserted) {
@@ -305,8 +363,29 @@ export async function createOpportunity(
     };
   }
 
+  // ── Phase 7.6: enriquecimento por IA assíncrono (fire-and-forget) ────────
+  // - Não bloqueia a response (after() roda após HTTP response enviado).
+  // - Closure captura primitivos (oppId, tenantId) — NÃO usa cookies/headers
+  //   dentro do callback (T-07.6-C-02).
+  // - try/catch defensivo garante que erros não propaguem (T-07.6-C-01).
+  // - Se cold-restart matar a função antes do callback, row fica em
+  //   ai_enrichment_status='pending' (default da migration 0010) — job de
+  //   catch-up futuro (backlog 999.x) pode re-enriquecer.
+  const oppId = inserted.id;
+  const tenantId = inserted.tenant_id as string;
+  after(async () => {
+    try {
+      await enrichOpportunity(oppId, tenantId);
+    } catch (e) {
+      console.error(
+        '[actions/createOpportunity] enrichment after() inesperado:',
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
   revalidatePath('/opportunities');
-  return { ok: true, id: inserted.id };
+  return { ok: true, id: oppId };
 }
 
 // =============================================================================
