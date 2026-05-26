@@ -21,12 +21,12 @@ export type { OpportunityPhase };
  * EXPLICITAMENTE se ela deve aparecer aqui — se for sensível, não incluir.
  */
 const OPPORTUNITY_COLUMNS =
-  'id, tenant_id, seq_id, source, ' +
+  'id, tenant_id, seq_id, source, request_type, ' +
   'solicitante, email, area, subarea, processo, ' +
   'frequencia, volume_medio, tempo_execucao, num_pessoas, ' +
   'ferramenta, escopo_automacao, beneficios_esperados, ' +
   'esforco, complexidade, tempo, objetivo, ' +
-  'status, responsavel, notas, ' +
+  'status, responsavel, notas, observacao, risco, ' +
   'persona_extras, formulario_extras, ' +
   'created_by, created_at, updated_at, ' +
   'score, priority_level';

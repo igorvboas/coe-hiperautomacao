@@ -6,6 +6,8 @@ export type TabId =
   | 'criterios'
   | 'beneficios'
   | 'automacao'
+  | 'observacao'
+  | 'risco'
   | 'fases'
   | 'score';
 

@@ -67,6 +67,34 @@ export function AutomacaoStep({ data, onChange }: Props) {
           addLabel="+ Adicionar benefício"
         />
       </div>
+
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">
+          Observação
+        </label>
+        <textarea
+          value={data.observacao ?? ''}
+          onChange={(e) => onChange({ observacao: e.target.value })}
+          placeholder="Detalhes adicionais, contexto, premissas..."
+          rows={3}
+          maxLength={2000}
+          className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15 leading-relaxed"
+        />
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">
+          Risco
+        </label>
+        <textarea
+          value={data.risco ?? ''}
+          onChange={(e) => onChange({ risco: e.target.value })}
+          placeholder="Riscos identificados, dependências críticas, pontos de atenção..."
+          rows={3}
+          maxLength={2000}
+          className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15 leading-relaxed"
+        />
+      </div>
     </div>
   );
 }

@@ -50,6 +50,13 @@ export type PhaseKey =
 
 export type TenantRole = 'member' | 'tenant_admin';
 
+export type OpportunityRequestType =
+  | 'nova_oportunidade'
+  | 'melhoria_automacao'
+  | 'duvidas_terceiros'
+  | 'incidente'
+  | 'treinamento';
+
 // -----------------------------------------------------------------------------
 // JSONB schemas (descritivos; o banco aceita qualquer shape)
 // -----------------------------------------------------------------------------
@@ -181,6 +188,7 @@ export type Database = {
           tenant_id: string;
           seq_id: number;
           source: OpportunitySource;
+          request_type: OpportunityRequestType;
           solicitante: string;
           email: string | null;
           area: string;
@@ -200,6 +208,8 @@ export type Database = {
           status: OpportunityStatus;
           responsavel: string | null;
           notas: string | null;
+          observacao: string | null;
+          risco: string | null;
           persona_extras: PersonaExtras | null;
           formulario_extras: FormularioExtras | null;
           created_by: string | null;
@@ -211,6 +221,7 @@ export type Database = {
           tenant_id: string;
           seq_id?: number;
           source: OpportunitySource;
+          request_type?: OpportunityRequestType;
           solicitante: string;
           email?: string | null;
           area: string;
@@ -230,6 +241,8 @@ export type Database = {
           status?: OpportunityStatus;
           responsavel?: string | null;
           notas?: string | null;
+          observacao?: string | null;
+          risco?: string | null;
           persona_extras?: PersonaExtras | null;
           formulario_extras?: FormularioExtras | null;
           created_by?: string | null;

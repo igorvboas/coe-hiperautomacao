@@ -20,6 +20,7 @@ export type WizardFormData = Partial<
 
 export type StepId =
   | 'tipo'
+  | 'classificacao'
   | 'identificacao'
   | 'processo'
   | 'automacao'
@@ -35,6 +36,11 @@ export type StepDef = {
 };
 
 const STEP_TIPO: StepDef = { id: 'tipo', label: 'Tipo', icon: '🔀' };
+const STEP_CLASSIFICACAO: StepDef = {
+  id: 'classificacao',
+  label: 'Classificação',
+  icon: '🏷️',
+};
 const STEPS_COMMON: StepDef[] = [
   { id: 'identificacao', label: 'Identificação', icon: '👤' },
   { id: 'processo', label: 'Processo', icon: '📋' },
@@ -52,7 +58,8 @@ const STEPS_FORMULARIO_EXTRA: StepDef[] = [
 
 /**
  * Sequência de steps por modo+source.
- * Em mode='edit' pulamos o step Tipo (source é imutável).
+ * - mode='create': Tipo → Classificação → Identificação → ...
+ * - mode='edit': pula Tipo (source é imutável) mas mantém Classificação editável.
  */
 export function stepsFor(
   source: 'persona' | 'formulario' | undefined,
@@ -63,12 +70,16 @@ export function stepsFor(
   }
   const extras =
     source === 'persona' ? STEPS_PERSONA_EXTRA : STEPS_FORMULARIO_EXTRA;
-  const prefix = mode === 'create' ? [STEP_TIPO] : [];
+  const prefix =
+    mode === 'create'
+      ? [STEP_TIPO, STEP_CLASSIFICACAO]
+      : [STEP_CLASSIFICACAO];
   return [...prefix, ...STEPS_COMMON, ...extras];
 }
 
 export function defaultFormData(): WizardFormData {
   return {
+    request_type: 'nova_oportunidade',
     escopo_automacao: [''],
     beneficios_esperados: [''],
     esforco: 'medio',
@@ -86,6 +97,7 @@ export function defaultFormData(): WizardFormData {
 export function opportunityToFormData(opp: Opportunity): WizardFormData {
   return {
     source: opp.source,
+    request_type: opp.request_type ?? 'nova_oportunidade',
     solicitante: opp.solicitante,
     email: opp.email ?? '',
     area: opp.area,
@@ -111,6 +123,8 @@ export function opportunityToFormData(opp: Opportunity): WizardFormData {
     status: opp.status,
     responsavel: opp.responsavel ?? '',
     notas: opp.notas ?? '',
+    observacao: opp.observacao ?? '',
+    risco: opp.risco ?? '',
     persona_extras: opp.persona_extras ?? undefined,
     formulario_extras: opp.formulario_extras ?? undefined,
   };
@@ -128,6 +142,10 @@ export function validateStep(
 
   if (step === 'tipo') {
     if (!data.source) errors.source = 'Escolha um tipo';
+  }
+
+  if (step === 'classificacao') {
+    if (!data.request_type) errors.request_type = 'Escolha uma classificação';
   }
 
   if (step === 'identificacao') {

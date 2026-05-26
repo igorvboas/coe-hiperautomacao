@@ -45,6 +45,13 @@ export const effortEnum = z.enum(['baixo', 'medio', 'alto']);
 export const complexityEnum = z.enum(['baixo', 'medio', 'alto']);
 export const timeBucketEnum = z.enum(['pequeno', 'medio', 'grande']);
 export const criterioEnum = z.enum(['SIM', 'NAO', 'PARCIAL']);
+export const requestTypeEnum = z.enum([
+  'nova_oportunidade',
+  'melhoria_automacao',
+  'duvidas_terceiros',
+  'incidente',
+  'treinamento',
+]);
 
 // =============================================================================
 // Sub-schemas (JSONB) — `.strict()` para bloquear campos extras nos objetos
@@ -148,6 +155,7 @@ const baseSchema = z.object({
     .string()
     .min(3, 'Processo obrigatório')
     .max(2000, 'Máximo 2000 caracteres'),
+  request_type: requestTypeEnum.default('nova_oportunidade'),
   frequencia: z
     .string()
     .max(60, 'Máximo 60 caracteres')
@@ -188,6 +196,16 @@ const baseSchema = z.object({
     .optional()
     .or(z.literal('')),
   notas: z
+    .string()
+    .max(2000, 'Máximo 2000 caracteres')
+    .optional()
+    .or(z.literal('')),
+  observacao: z
+    .string()
+    .max(2000, 'Máximo 2000 caracteres')
+    .optional()
+    .or(z.literal('')),
+  risco: z
     .string()
     .max(2000, 'Máximo 2000 caracteres')
     .optional()

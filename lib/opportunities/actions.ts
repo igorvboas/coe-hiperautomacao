@@ -66,6 +66,14 @@ export type PublicSubmitInput = {
   tempo?: 'pequeno' | 'medio' | 'grande';
   objetivo: number;
   formulario_extras?: Record<string, unknown>;
+  request_type?:
+    | 'nova_oportunidade'
+    | 'melhoria_automacao'
+    | 'duvidas_terceiros'
+    | 'incidente'
+    | 'treinamento';
+  observacao?: string;
+  risco?: string;
 };
 
 export type CreatePublicResult =
@@ -165,6 +173,9 @@ export async function createPublicOpportunity(
     p_tempo: input.tempo ?? 'medio',
     p_objetivo: input.objetivo,
     p_formulario_extras: (input.formulario_extras ?? {}) as never,
+    p_request_type: input.request_type ?? 'nova_oportunidade',
+    p_observacao: input.observacao ?? null,
+    p_risco: input.risco ?? null,
   });
 
   // 7. Erro: log mensagem REAL no DB, mensagem GENÉRICA ao cliente (Falha Segura)
@@ -256,6 +267,7 @@ export async function createOpportunity(
     .insert({
       tenant_id: profile.tenant_id,
       source: data.source,
+      request_type: data.request_type,
       solicitante: data.solicitante,
       email: data.email || null,
       area: data.area,
@@ -275,6 +287,8 @@ export async function createOpportunity(
       status: data.status,
       responsavel: data.responsavel || null,
       notas: data.notas || null,
+      observacao: data.observacao || null,
+      risco: data.risco || null,
       persona_extras:
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:
@@ -348,6 +362,7 @@ export async function updateOpportunity(
     .from('opportunities')
     .update({
       source: data.source,
+      request_type: data.request_type,
       solicitante: data.solicitante,
       email: data.email || null,
       area: data.area,
@@ -366,6 +381,8 @@ export async function updateOpportunity(
       objetivo: data.objetivo,
       responsavel: data.responsavel || null,
       notas: data.notas || null,
+      observacao: data.observacao || null,
+      risco: data.risco || null,
       persona_extras:
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:

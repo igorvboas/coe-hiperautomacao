@@ -81,8 +81,24 @@ const BENEFICIOS: { key: BeneficioKey; label: string; color: string }[] = [
   { key: 'objetivos_estrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
 ];
 
+type RequestType =
+  | 'nova_oportunidade'
+  | 'melhoria_automacao'
+  | 'duvidas_terceiros'
+  | 'incidente'
+  | 'treinamento';
+
+const REQUEST_TYPE_OPTIONS: { value: RequestType; label: string }[] = [
+  { value: 'nova_oportunidade', label: 'Nova Oportunidade' },
+  { value: 'melhoria_automacao', label: 'Melhoria da Automação já Existente' },
+  { value: 'duvidas_terceiros', label: 'Dúvidas — Avaliar soluções de terceiros' },
+  { value: 'incidente', label: 'Incidente' },
+  { value: 'treinamento', label: 'Pedido de Treinamento' },
+];
+
 type FormState = {
   // Identificação
+  request_type: RequestType;
   solicitante: string;
   email: string;
   area: string;
@@ -100,6 +116,8 @@ type FormState = {
   ferramenta: 'rpa' | 'n8n' | 'ambos' | '';
   escopo_automacao: string[];
   beneficios_esperados: string[];
+  observacao: string;
+  risco: string;
   // Critérios
   criterios: Partial<Record<CriterioKey, CriterioValor>>;
   // Benefícios
@@ -113,6 +131,7 @@ type FormState = {
 
 function initialState(): FormState {
   return {
+    request_type: 'nova_oportunidade',
     solicitante: '',
     email: '',
     area: '',
@@ -128,6 +147,8 @@ function initialState(): FormState {
     ferramenta: '',
     escopo_automacao: [''],
     beneficios_esperados: [''],
+    observacao: '',
+    risco: '',
     criterios: {},
     beneficios: {},
     esforco: 'medio',
@@ -167,6 +188,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
   function validateCurrent(): boolean {
     const errs: Record<string, string> = {};
     if (currentStep.id === 'identificacao') {
+      if (!data.request_type) errs.request_type = 'Selecione a classificação';
       if (!data.solicitante.trim() || data.solicitante.trim().length < 2)
         errs.solicitante = 'Informe seu nome completo';
       if (!data.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
@@ -209,6 +231,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
     }
 
     const input: PublicSubmitInput = {
+      request_type: data.request_type,
       solicitante: data.solicitante.trim(),
       email: data.email.trim(),
       area: data.area.trim(),
@@ -221,6 +244,8 @@ export function PublicForm({ tenant, siteKey }: Props) {
       ferramenta: data.ferramenta || null,
       escopo_automacao: data.escopo_automacao,
       beneficios_esperados: data.beneficios_esperados,
+      observacao: data.observacao.trim() || undefined,
+      risco: data.risco.trim() || undefined,
       esforco: data.esforco,
       complexidade: data.complexidade,
       tempo: data.tempo,
@@ -355,6 +380,17 @@ export function PublicForm({ tenant, siteKey }: Props) {
                 a oportunidade.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <div className="sm:col-span-2">
+                  <SelectField
+                    label="Classificação da Solicitação"
+                    required
+                    value={data.request_type}
+                    onChange={(v) => patch({ request_type: v as RequestType })}
+                    options={REQUEST_TYPE_OPTIONS}
+                    error={errors.request_type}
+                    placeholder="Selecione..."
+                  />
+                </div>
                 <TextField
                   label="Nome completo"
                   required
@@ -529,6 +565,22 @@ export function PublicForm({ tenant, siteKey }: Props) {
                   addLabel="+ Adicionar benefício"
                 />
               </div>
+
+              <TextareaField
+                label="Observação"
+                value={data.observacao}
+                onChange={(v) => patch({ observacao: v })}
+                placeholder="Detalhes adicionais, contexto, premissas..."
+                rows={3}
+              />
+
+              <TextareaField
+                label="Risco"
+                value={data.risco}
+                onChange={(v) => patch({ risco: v })}
+                placeholder="Riscos identificados, dependências críticas, pontos de atenção..."
+                rows={3}
+              />
             </div>
           )}
 

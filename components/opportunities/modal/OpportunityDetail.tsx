@@ -14,12 +14,16 @@ import { CoeTab } from './tabs/CoeTab';
 import { ProcessoTab } from './tabs/ProcessoTab';
 import { CriteriosTab } from './tabs/CriteriosTab';
 import { BeneficiosTab } from './tabs/BeneficiosTab';
+import { ObservacaoTab } from './tabs/ObservacaoTab';
+import { RiscoTab } from './tabs/RiscoTab';
 
 const TABS_PERSONA: TabDef[] = [
   { id: 'perfil', label: 'Perfil', icon: '👤' },
   { id: 'desafios', label: 'Desafios', icon: '⚠️' },
   { id: 'automacao', label: 'Automação', icon: '🤖' },
   { id: 'coe', label: 'CoE', icon: '🎯' },
+  { id: 'observacao', label: 'Observação', icon: '📝' },
+  { id: 'risco', label: 'Risco', icon: '⚡' },
   { id: 'fases', label: 'Fases', icon: '📅' },
   { id: 'score', label: 'Score', icon: '📊' },
 ];
@@ -29,6 +33,8 @@ const TABS_FORMULARIO: TabDef[] = [
   { id: 'criterios', label: 'Critérios Técnicos', icon: '✅' },
   { id: 'beneficios', label: 'Benefícios', icon: '📈' },
   { id: 'automacao', label: 'Automação', icon: '🤖' },
+  { id: 'observacao', label: 'Observação', icon: '📝' },
+  { id: 'risco', label: 'Risco', icon: '⚡' },
   { id: 'fases', label: 'Fases', icon: '📅' },
   { id: 'score', label: 'Score', icon: '📊' },
 ];
@@ -81,6 +87,12 @@ function renderTab(tab: TabId, opp: Opportunity, phases: OpportunityPhase[]) {
       return <CriteriosTab opportunity={opp} />;
     case 'beneficios':
       return <BeneficiosTab opportunity={opp} />;
+
+    // tabs comuns adicionais — Observação + Risco
+    case 'observacao':
+      return <ObservacaoTab opportunity={opp} />;
+    case 'risco':
+      return <RiscoTab opportunity={opp} />;
 
     default:
       return null;

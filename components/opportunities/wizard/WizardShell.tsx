@@ -17,6 +17,7 @@ import {
 } from './state';
 import { StepsNav } from './StepsNav';
 import { TipoStep } from './steps/TipoStep';
+import { ClassificacaoStep } from './steps/ClassificacaoStep';
 import { IdentificacaoStep } from './steps/IdentificacaoStep';
 import { ProcessoStep } from './steps/ProcessoStep';
 import { AutomacaoStep } from './steps/AutomacaoStep';
@@ -250,6 +251,8 @@ function renderStep(
   switch (id) {
     case 'tipo':
       return <TipoStep data={data} onChange={patch} />;
+    case 'classificacao':
+      return <ClassificacaoStep data={data} onChange={patch} errors={errors} />;
     case 'identificacao':
       return <IdentificacaoStep data={data} onChange={patch} errors={errors} />;
     case 'processo':
