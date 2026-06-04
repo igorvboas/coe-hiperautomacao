@@ -1,14 +1,21 @@
 // =============================================================================
 // database.types.ts — Types do schema Supabase (multi-tenant CoE)
 // =============================================================================
-// ⚠️  ARQUIVO PROVISÓRIO escrito à mão a partir de
-//     supabase/migrations/0001_init.sql. SUBSTITUA por geração automática
-//     assim que tiver o SUPABASE_ACCESS_TOKEN:
+// ⚠️  ARQUIVO MANTIDO À MÃO. O projeto ainda não tem SUPABASE_ACCESS_TOKEN com
+//     privilégio no projeto `vxgthycrjetniejsjmee`, então `npm run gen:types`
+//     (e o MCP Auton-DB, que aponta para OUTRO projeto) não funcionam.
 //
-//         npm run gen:types
+//     Estado atual: schema vivo PÓS-migration 0011 (Phase 9), VERIFICADO contra
+//     o catálogo do Postgres por introspecção (information_schema/pg_catalog) em
+//     2026-06-04 (Phase 10 / Plan 10-01, D-04). Reflete:
+//       - opportunities: tempo→frequency_bucket; + fte_horas, fonte, tipo_processo,
+//         beneficio_qualitativo, criterios, beneficios, fte, rpa_score (GENERATED)
+//       - opportunity_score(): 5 fatores (p_fte fte_bucket adicionado)
+//       - view opportunities_with_score (herda as colunas novas + score/priority_level)
+//       - tabela opportunity_risks (priority risk_priority, set por trigger)
 //
-//     O script regenera este arquivo lendo o schema real do projeto via
-//     `supabase gen types typescript --project-id $SUPABASE_PROJECT_REF`.
+//     Quando houver token com privilégio: rodar `npm run gen:types` deve produzir
+//     um superset equivalente deste arquivo (verificação, não mudança funcional).
 // =============================================================================
 
 export type Json =
@@ -37,7 +44,22 @@ export type OpportunityStatus =
 export type AutomationTool = 'rpa' | 'n8n' | 'ambos';
 export type EffortLevel = 'baixo' | 'medio' | 'alto';
 export type ComplexityLevel = 'baixo' | 'medio' | 'alto';
+/** @deprecated v0.1 — `tempo` migrou para FrequencyBucket em 0011. Tipo mantido
+ * porque o enum `time_bucket` ainda existe no banco e é usado pelo contrato legado
+ * da IA (lib/ai/schema.ts) até REALIGN-7.6. */
 export type TimeBucket = 'pequeno' | 'medio' | 'grande';
+
+/** v0.2 (0011): `tempo` como frequência. */
+export type FrequencyBucket = 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'anual';
+/** v0.2 (0011): 5º fator de score (bucket de FTE). */
+export type FteBucket = 'muito_baixo' | 'baixo' | 'medio' | 'alto' | 'muito_alto';
+
+// opportunity_risks (0011)
+export type RiskType = 'impedimento' | 'risco' | 'oportunidade';
+export type RiskImpact = 'alto' | 'significativo' | 'moderado' | 'baixo';
+export type RiskProbability = 'provavel' | 'possivel' | 'improvavel' | 'remota';
+export type RiskStatus = 'novo' | 'gerenciado' | 'mitigado' | 'ocorrido';
+export type RiskPriority = 'critica' | 'alta' | 'media' | 'baixa';
 
 export type PhaseKey =
   | 'em_analise'
@@ -79,6 +101,8 @@ export type PersonaExtras = {
   processos_detalhados?: string[];
 };
 
+/** @deprecated v0.1 — domínio uppercase do `formulario_extras.criterios` legado.
+ * Os novos `opportunities.criterios` (0011) usam minúsculo sim/nao/parcial. */
 export type CriterioValor = 'SIM' | 'NAO' | 'PARCIAL';
 
 export type FormularioExtras = {
@@ -112,8 +136,9 @@ export type FormularioExtras = {
 export type Prioridade = {
   esforco: EffortLevel | null;
   complexidade: ComplexityLevel | null;
-  tempo: TimeBucket | null;
+  tempo: FrequencyBucket | null;
   objetivo: number | null;
+  fte: FteBucket | null;
 };
 
 // -----------------------------------------------------------------------------
@@ -205,13 +230,22 @@ export type Database = {
           beneficios_esperados: string[];
           esforco: EffortLevel | null;
           complexidade: ComplexityLevel | null;
-          tempo: TimeBucket | null;
+          tempo: FrequencyBucket | null;
           objetivo: number | null;
           status: OpportunityStatus;
           responsavel: string | null;
           notas: string | null;
           observacao: string | null;
           risco: string | null;
+          // v0.2 (0011)
+          fte_horas: number | null;
+          fonte: string | null;
+          tipo_processo: string[];
+          beneficio_qualitativo: string | null;
+          criterios: Json | null;
+          beneficios: Json | null;
+          fte: FteBucket | null;
+          rpa_score: number | null; // GENERATED ALWAYS — leitura apenas
           ai_enrichment_status: AiEnrichmentStatus;
           ai_enrichment_error: string | null;
           ai_enriched_at: string | null;
@@ -241,13 +275,21 @@ export type Database = {
           beneficios_esperados?: string[];
           esforco?: EffortLevel | null;
           complexidade?: ComplexityLevel | null;
-          tempo?: TimeBucket | null;
+          tempo?: FrequencyBucket | null;
           objetivo?: number | null;
           status?: OpportunityStatus;
           responsavel?: string | null;
           notas?: string | null;
           observacao?: string | null;
           risco?: string | null;
+          // v0.2 (0011) — rpa_score é GENERATED (omitido do Insert)
+          fte_horas?: number | null;
+          fonte?: string | null;
+          tipo_processo?: string[];
+          beneficio_qualitativo?: string | null;
+          criterios?: Json | null;
+          beneficios?: Json | null;
+          fte?: FteBucket | null;
           ai_enrichment_status?: AiEnrichmentStatus;
           ai_enrichment_error?: string | null;
           ai_enriched_at?: string | null;
@@ -316,6 +358,64 @@ export type Database = {
           }
         ];
       };
+
+      opportunity_risks: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          descricao: string;
+          tipo: RiskType;
+          responsavel: string | null;
+          impacto: RiskImpact;
+          probabilidade: RiskProbability;
+          status: RiskStatus;
+          resposta: string | null;
+          descricao_impacto: string | null;
+          priority: RiskPriority | null; // set por trigger set_risk_priority() — nunca input manual
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          tenant_id: string;
+          descricao: string;
+          tipo: RiskType;
+          responsavel?: string | null;
+          impacto: RiskImpact;
+          probabilidade: RiskProbability;
+          status?: RiskStatus;
+          resposta?: string | null;
+          descricao_impacto?: string | null;
+          priority?: RiskPriority | null; // sobrescrito pelo trigger; não enviar
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['opportunity_risks']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_risks_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_risks_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_risks_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
 
     Views: {
@@ -333,8 +433,9 @@ export type Database = {
         Args: {
           p_esforco: EffortLevel;
           p_complexidade: ComplexityLevel;
-          p_tempo: TimeBucket;
+          p_tempo: FrequencyBucket;
           p_objetivo: number;
+          p_fte: FteBucket;
         };
         Returns: number;
       };
@@ -374,10 +475,19 @@ export type Database = {
     Enums: {
       opportunity_source: OpportunitySource;
       opportunity_status: OpportunityStatus;
+      opportunity_request_type: OpportunityRequestType;
       automation_tool: AutomationTool;
       effort_level: EffortLevel;
       complexity_level: ComplexityLevel;
       time_bucket: TimeBucket;
+      frequency_bucket: FrequencyBucket;
+      fte_bucket: FteBucket;
+      risk_type: RiskType;
+      risk_impact: RiskImpact;
+      risk_probability: RiskProbability;
+      risk_status: RiskStatus;
+      risk_priority: RiskPriority;
+      ai_enrichment_status: AiEnrichmentStatus;
       phase_key: PhaseKey;
       tenant_role: TenantRole;
     };
