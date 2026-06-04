@@ -179,7 +179,11 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   2. O `opportunityInputSchema` (Zod `.strict()` / discriminatedUnion) aceita e valida `fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo`, os 8 critérios e o bucket `prioridade.fte`, rejeitando campos não reconhecidos (defesa anti mass-assignment preservada).
   3. O preview de score calculado no cliente (durante o wizard) produz exatamente o mesmo número que `opportunity_score()` no backend para o mesmo input — verificado por um teste de paridade que compara as duas fórmulas em casos representativos.
   4. O schema permanece compatível com o enrichment por IA (MODEL-10): campos derivados são preenchíveis manualmente agora e por IA depois, sem exigir refatoração de schema.
-**Plans**: TBD
+**Plans**: 4 plans (planejados em 2026-06-04) — Wave 1: 01 (tipos+RPC) ‖ 02 (paridade score); Wave 2: 03 (schema+whitelist); Wave 3: 04 (testes legados+AI-compat)
+- [ ] 10-01-PLAN.md — Regen de tipos (MCP) + migration 0012 (RPC create_public_opportunity p_tempo→frequency_bucket, BLOCKING apply) + remoção dos any-casts do teste de riscos [SC1, D-04]
+- [ ] 10-02-PLAN.md — Paridade SCORE-04: módulo único lib/opportunities/score.ts + rewire do ScorePreview + teste de paridade 2 níveis (puro + skipIf SQL contra opportunity_score()) [SCORE-04, D-01]
+- [ ] 10-03-PLAN.md — opportunityInputSchema aditivo (campos novos + criterios minúsculo + tempo frequência + bucket prioridade.fte) + riskInputSchema + whitelist OPPORTUNITY_COLUMNS ampliada [SC1, SC2, D-02, D-03]
+- [ ] 10-04-PLAN.md — Migração dos ~7 testes legados ao domínio de frequência + verificação MODEL-10/SC4 (AI-compat) + suite/tsc verdes [SC4, D-04]
 
 ### Phase 11: Wizard de Fluxo Único (5 steps)
 **Goal**: O usuário cria uma oportunidade por um único wizard de 5 steps que coleta identificação, processo, os 8 critérios, os 8 benefícios + FTE e a priorização de 5 fatores — substituindo o split persona/formulário.
@@ -244,7 +248,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 9. Schema Evolution + Score/Risk/Contract Foundation | 3/3 | ✅ Done | 2026-06-04 |
-| 10. Backend — Queries, Validação e Paridade de Score | 0/? | Not started | - |
+| 10. Backend — Queries, Validação e Paridade de Score | 0/4 | Planned | - |
 | 11. Wizard de Fluxo Único (5 steps) | 0/? | Not started | - |
 | 12. Registro de Riscos (UI do modal) | 0/? | Not started | - |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |
