@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: phase_complete
-next_action: plan-phase
+status: ready_to_execute
+next_action: execute-phase
 active_phase: 10
 next_phases: [11, 12, 13, 14, 15]
 progress:
@@ -128,6 +128,11 @@ Last session: 2026-06-04 — `/gsd-discuss-phase 10`. Contexto da Phase 10 (Back
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
 Resume file: `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md`
+
+---
+
+Update 2026-06-04 (mesma sessão) — `/gsd-plan-phase 10 --skip-research`. **Phase 10 PLANEJADA — 4 plans em 3 waves, aprovados pelo plan-checker na 1ª passada (VERIFICATION PASSED, zero blockers/warnings).** Wave 1: 10-01 (regen tipos via MCP Auton-DB + **migration 0012** + remove any-casts do teste de riscos; Task 3 = [BLOCKING] apply manual no SQL Editor, `autonomous:false`) ‖ 10-02 (SCORE-04: módulo único `lib/opportunities/score.ts` + ScorePreview rewire + paridade 2 níveis pure+skipIf SQL, inclui trap case `(baixo,baixo,diario,5,muito_alto)=88`; type `tdd`). Wave 2: 10-03 (schema Zod aditivo — campos novos, `criterioEnum`→minúsculo, `timeBucketEnum`→frequência, `riskInputSchema`, whitelist ampliada; dep 10-01). Wave 3: 10-04 (migra ~7 testes legados `tempo:'medio'/'pequeno'`→frequência + verificação MODEL-10/SC4 + gate suite verde; deps 10-01+10-03). SCORE-04 coberto em todos os 4 plans; 4/4 Success Criteria mapeados. **Achado crítico do planner (encodado nos plans):** a RPC `create_public_opportunity` (def viva em 0009, intocada por 0011) ainda mapeia `p_tempo` via `time_bucket` enquanto 0011 mudou `opportunities.tempo`→`frequency_bucket` — **regressão latente do formulário público da Phase 7.5**. 10-01 entrega migration `0012` (write-only + apply manual BLOCKING) recriando a RPC no domínio de frequência; 10-04 migra o valor de teste p/ `'mensal'`. Nota: ROADMAP SC2 lista `rpaScore` entre os campos do input, mas D-02 (travado) prevalece — `rpa_score` é GENERATED e é REJEITADO no input; os plans implementam D-02. Commit: 3c88745. **Próximo: `/gsd-execute-phase 10`** (Plan 10-01 Task 3 exige apply manual de 0012 no Supabase Cloud SQL Editor).
+Status: **ready_to_execute**.
 
 ---
 
