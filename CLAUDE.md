@@ -4,7 +4,7 @@ Instruções específicas deste projeto para o Claude Code. Para a visão de pro
 
 ## O que estamos construindo
 
-SaaS multi-tenant de gestão de pipeline de automações. O cliente loga e enxerga **apenas** as demandas da sua empresa. Esqueleto visual já validado em [fgcoop-coe-v2.html](fgcoop-coe-v2.html) (mockup estático — fonte da verdade para UI e modelo de dados). Stack-alvo: Next.js 16 + Supabase + Vercel.
+SaaS multi-tenant de gestão de pipeline de automações. O cliente loga e enxerga **apenas** as demandas da sua empresa. **Fonte da verdade visual + modelo de dados (v0.2):** [_giba_wsi-dashboard.html](_giba_wsi-dashboard.html) — score de 5 fatores, FTE, RPA Fit, registro de riscos e view de Relatório. O mockup antigo [fgcoop-coe-v2.html](fgcoop-coe-v2.html) está **deprecated** (era o contrato do v0.1). Stack-alvo: Next.js 16 + Supabase + Vercel.
 
 ## Workflow (Get Shit Done)
 
@@ -32,20 +32,23 @@ O time usa o framework GSD (pasta [get-shit-done/](get-shit-done/)). Convençõe
 
 ### 2. O mockup é o contrato visual
 
-[fgcoop-coe-v2.html](fgcoop-coe-v2.html) é a especificação visual + modelo de dados. Antes de evoluir/melhorar UI, replique a estrutura exibida ali. Mudanças de layout só após paridade.
+[_giba_wsi-dashboard.html](_giba_wsi-dashboard.html) é a especificação visual + modelo de dados (v0.2). Antes de evoluir/melhorar UI, replique a estrutura exibida ali. Mudanças de layout só após paridade. (`fgcoop-coe-v2.html` está **deprecated** — não use como referência.)
 
 ### 3. Score é calculado, nunca persistido
 
-A fórmula está em [fgcoop-coe-v2.html:410-413](fgcoop-coe-v2.html#L410-L413):
+A fórmula de 5 fatores × 20 = 100 está em [_giba_wsi-dashboard.html:483-490](_giba_wsi-dashboard.html#L483-L490):
 
 ```
-em = {baixo:25, medio:15, alto:5}
-cm = {baixo:25, medio:15, alto:5}
-tm = {pequeno:25, medio:15, grande:5}
-score = em[esforco] + cm[complexidade] + tm[tempo] + (min(5,objetivo)/5)*25
+ef = {baixo:8, medio:14, alto:20}                              # esforço (fallback 14)
+cx = {baixo:20, medio:13, alto:6}                              # complexidade — INVERTIDO: menos complexo pontua mais (fallback 13)
+tm = {diario:20, semanal:16, quinzenal:12, mensal:8, anual:2}  # tempo = frequência (fallback 16)
+ob = {1:4, 2:8, 3:12, 4:16, 5:20}                              # objetivo × 4 (fallback 12)
+ft = {muito_baixo:4, baixo:8, medio:12, alto:16, muito_alto:20}# FTE (fallback 12)
+score = ef[esforco] + cx[complexidade] + tm[tempo] + ob[objetivo] + ft[fte]   # 0–100
+priority_level: alta >=70 / media 40–69 / baixa <40
 ```
 
-Persistir o score gera bug quando a fórmula mudar. Calcular no SELECT (view ou função SQL) ou no client.
+Persistir o score gera bug quando a fórmula mudar. Calcular no SELECT (view `opportunities_with_score` / função SQL `opportunity_score()`) ou no client — **nunca persistir**. Idem `rpa_score` (0–6) e `opportunity_risks.priority`: são colunas **GENERATED** (derivadas dos critérios / da matriz impacto×probabilidade), nunca input manual.
 
 ### 4. Admin / cross-tenant fica para depois
 
@@ -63,33 +66,73 @@ Não criar rotas, páginas ou queries que cruzem tenants no MVP. Se for inevitá
   - `lib/` clientes Supabase, helpers, types
   - `supabase/` migrations + seed
 
-## Modelo de dados (esboço, refinar na Fase 2)
+## Modelo de dados (v0.2 — evoluído pela migration 0011)
 
 ```
 tenants(id, name, slug, created_at)
 users(id, tenant_id, email, role, created_at)  -- role: 'member' (futuro 'admin')
 opportunities(
-  id, tenant_id, seq_id, tipo,            -- 'persona' | 'formulario'
+  id, tenant_id, seq_id, source,           -- 'persona' | 'formulario'
   solicitante, email, area, subarea, processo,
   frequencia, volume_medio, tempo_execucao, num_pessoas,
   ferramenta,                              -- 'RPA' | 'n8n' | 'ambos'
-  status, prioridade (jsonb),              -- {esforco,complexidade,tempo,objetivo}
-  persona_extras (jsonb nullable),         -- campos só de persona
-  formulario_extras (jsonb nullable),      -- campos só de formulário
+  -- fatores de score (colunas flat, compõem opportunity_score):
+  esforco, complexidade,                   -- effort_level / complexity_level
+  tempo,                                   -- frequency_bucket: diario|semanal|quinzenal|mensal|anual (era duração no v0.1)
+  objetivo,                                -- smallint 1–5
+  fte,                                     -- fte_bucket: muito_baixo..muito_alto (5º fator, v0.2)
+  -- campos novos v0.2:
+  fte_horas (numeric),                     -- FTE estimado h/mês
+  rpa_score (smallint GENERATED),          -- 0–6 derivado de criterios (RPA Fit), nunca manual
+  fonte (text),                            -- rótulo de origem (ex. 'Workshop I', 'FGCoop')
+  tipo_processo (text[]), beneficio_qualitativo (text),
+  criterios (jsonb),                       -- 8 chaves sim|nao|parcial (first-class, com CHECK)
+  beneficios (jsonb),                      -- 8 chaves escala 1–5 (com CHECK)
+  status, persona_extras (jsonb nullable), formulario_extras (jsonb nullable),
   escopo_automacao (text[]), beneficios_esperados (text[]),
+  observacao (text), risco (text),         -- notas livres legadas (0009; ≠ tabela opportunity_risks)
   created_at, updated_at, created_by
 )
 opportunity_phases(
   id, opportunity_id, phase_key,           -- 'em_analise' | 'planejamento' | ...
   started_at, finished_at
 )
+opportunity_risks(                          -- NOVO v0.2 — registro de riscos estruturado
+  id, opportunity_id, tenant_id,           -- tenant_id not null + RLS (4 policies)
+  descricao, tipo,                         -- impedimento | risco | oportunidade
+  responsavel,                             -- text livre tenant-agnóstico (não enum: 'PSW'/cliente varia por tenant)
+  impacto,                                 -- alto | significativo | moderado | baixo
+  probabilidade,                           -- provavel | possivel | improvavel | remota
+  status,                                  -- novo | gerenciado | mitigado | ocorrido
+  resposta, descricao_impacto,
+  priority (GENERATED)                     -- critica|alta|media|baixa, da matriz impacto×probabilidade
+)
 ```
 
-RLS policy padrão em toda tabela com `tenant_id`:
+RLS policy padrão em toda tabela com `tenant_id` (helper `current_tenant_id()` de 0001):
 ```sql
-create policy tenant_isolation on <table>
-  for all using (tenant_id = (select tenant_id from users where id = auth.uid()));
+alter table <table> enable row level security;
+create policy <table>_select on <table> for select using (tenant_id = current_tenant_id());
+-- + insert (with check), update (using + with check), delete (using) — 4 policies por tabela.
 ```
+
+### Wizard 5-steps (v0.2)
+
+Substitui o split persona/formulário do v0.1 por um **único wizard de 5 steps** (ref. [_giba_wsi-dashboard.html:1504-1597](_giba_wsi-dashboard.html#L1504-L1597)):
+
+`Identificação → Processo → Critérios → Benefícios → Priorização`
+
+- **Critérios**: os 8 critérios (SIM/NÃO/PARCIAL).
+- **Benefícios**: os 8 benefícios (escala 1–5) + estimativa de FTE em h/mês.
+- **Priorização**: os 5 fatores de score (incl. bucket de FTE), com os pesos visíveis.
+
+### Matriz de risco
+
+`opportunity_risks.priority` é auto-calculada pela matriz impacto × probabilidade (ref. [_giba_wsi-dashboard.html:1180-1185](_giba_wsi-dashboard.html#L1180-L1185)) → Crítica / Alta / Média / Baixa. É coluna GENERATED — o usuário nunca escolhe a prioridade manualmente.
+
+### Compatibilidade com IA (MODEL-10)
+
+Os campos derivados (`criterios`, `fte_horas`, `rpa_score` via critérios, riscos, score) são **preenchíveis manualmente agora e por IA depois** (Phase 7.6 realinhada ao 2º momento), sem exigir refatoração de schema. O schema já fica compatível com o enrichment server-side.
 
 ## Comandos GSD úteis neste projeto
 
@@ -105,7 +148,6 @@ create policy tenant_isolation on <table>
 - Não persistir score calculado.
 - Não usar schema-per-tenant — RLS está decidido.
 - Não desviar do esqueleto do mockup sem discussão explícita.
-- Não adicionar IA generativa ao produto (as personas pedem IA para o trabalho delas — isso é demanda do cliente, não feature da plataforma).
 - Não criar tabelas sem `tenant_id` (exceto `tenants` e tabelas globais como `feature_flags`, se existirem).
 
 ## Referências externas (auto-injetadas nesta sessão)
@@ -117,4 +159,4 @@ create policy tenant_isolation on <table>
 - **Vercel deploy**: https://vercel.com/docs
 
 ---
-*Última atualização: 2026-05-20 — bootstrap inicial do projeto a partir do mockup.*
+*Última atualização: 2026-06-04 — troca de contrato v0.2 (`_giba_wsi-dashboard.html`): score de 5 fatores, modelo evoluído (FTE/RPA Fit/critérios/benefícios/`opportunity_risks`), wizard 5-steps. `fgcoop-coe-v2.html` deprecated. Anterior: 2026-05-20 bootstrap a partir do mockup.*
