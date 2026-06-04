@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: phase_context_ready
-next_action: plan-phase
+status: ready_to_execute
+next_action: execute-phase
 active_phase: 9
 next_phases: [10, 11, 12, 13, 14, 15]
 progress:
@@ -126,6 +126,11 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 Last session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
 Resume file: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md`
+
+---
+
+Update 2026-06-04 (mesma sessão) — `/gsd-plan-phase 9`. RESEARCH.md produzido (regra do rpa_score resolvida por engenharia reversa: reproduz 64/64 linhas do `_giba` — soma de 6 indicadores; `causaReclamacoes`+`temDocumentacao` excluídos). 3 plans criados em 2 waves e **aprovados pelo plan-checker após 1 revisão** (corrigidos 2 blockers: backfill abortava na linha seq_id 18 sem `padronizacao_docs` → coalesce p/ 'nao'; smoke-test esperava score 100 num caso que dá 88 → trocado p/ `(alto,baixo,diario,5,muito_alto)=100`). Wave 0: 09-01 (migration 0011, `autonomous:false` [BLOCKING] apply manual) ‖ 09-02 (CLAUDE.md + fgcoop deprecated). Wave 1: 09-03 (testes de regra puros + isolamento A≠B). 16/16 REQ-IDs cobertos. Commits: research, 3 plans. **Próximo: `/gsd-execute-phase 9`.**
+Status: **ready_to_execute**.
 
 ---
 
