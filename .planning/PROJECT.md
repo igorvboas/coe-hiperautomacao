@@ -12,6 +12,24 @@ O esqueleto visual e o modelo de dados já foram validados no protótipo `fgcoop
 
 Se tudo mais falhar, esta jornada (login → ver minhas demandas → cadastrar nova) precisa funcionar.
 
+## Current Milestone: v0.2 — Evolução do Modelo (Workshop I / Unidasul)
+
+**Goal:** Evoluir o produto do contrato `fgcoop-coe-v2.html` para o novo contrato `_giba_wsi-dashboard.html` — score de 5 fatores, FTE, RPA Fit, registro de riscos e view de relatório — aplicado globalmente a todos os tenants.
+
+**Target features:**
+- Modelo de dados evoluído: `fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo` + critérios 8 first-class
+- Score reescrito para 5 fatores × 20 (esforço + complexidade + tempo[frequência] + objetivo + **fte**) — função SQL `opportunity_score()` + view `opportunities_with_score`
+- Registro de Riscos — nova tabela `opportunity_risks` (tenant_id + RLS), prioridade auto-calculada por matriz impacto×probabilidade
+- View "Relatório" — dashboard analítico (cards de portfólio, barras por área, 2 pie charts SVG)
+- Wizard de fluxo único de 5 steps (substitui split persona/formulario)
+- Atualizações de tela: KPI FTE Total/mês, colunas de tabela (Frequência/Pessoas/Complexidade/FTE/RPA Fit), FTE somado por coluna no kanban
+- `_giba_wsi-dashboard.html` vira a fonte da verdade visual + modelo; `fgcoop-coe-v2.html` aposentado; CLAUDE.md atualizado
+
+**Key context:**
+- **2º momento (fora deste escopo)**: gerar `fteHoras`/`rpaScore`/`fte`/`ferramenta`/`riscos`/score por IA a partir do input — estende a Phase 7.6 já planejada. v0.2 só precisa deixar o schema **compatível** com isso (campos preenchíveis manualmente agora, por IA depois).
+- Phase 7.6 (Enriquecimento por IA) do v0.1 permanece pendente e será realinhada ao novo conjunto de campos.
+- Deploy de produção (antiga Phase 8 do v0.1) é absorvido ao final deste milestone, pois o schema muda por baixo.
+
 ## Requirements
 
 ### Validated
@@ -42,7 +60,8 @@ Se tudo mais falhar, esta jornada (login → ver minhas demandas → cadastrar n
 
 - **Painel administrativo (super-admin / cross-tenant)** — adiado para milestone posterior; foco do MVP é entrega ao cliente final
 - **Integração viva com n8n / RPA** — `ferramenta` é apenas um campo de classificação; orquestração real fica para depois
-- **IA generativa** (minutas, análise de contratos, etc. mencionadas nas personas) — fora do escopo; é demanda dos clientes, não da plataforma
+- **IA generativa como feature do produto** (minutas, análise de contratos, etc. mencionadas nas personas) — fora do escopo; é demanda dos clientes, não da plataforma. *(Nota: IA como auxiliar interno invisível — enrichment server-side dos campos de oportunidade — foi reintroduzida escopadamente na Phase 7.6 do v0.1 e estendida no "2º momento" do v0.2.)*
+- **Geração por IA dos campos derivados** (`fteHoras`, `rpaScore`, `fte`, `ferramenta`, `riscos`, score a partir do input bruto) — adiada para o "2º momento" (estende Phase 7.6). No v0.2 esses campos são preenchidos manualmente; o schema apenas fica compatível.
 - **Notificações por e-mail / push** — não no MVP; usuário consulta sob demanda
 - **Audit log / histórico de alterações por campo** — adiar até existir cliente que peça compliance
 - **Importação em massa (CSV / Excel)** — adiar; cadastro manual via wizard cobre o início
@@ -90,6 +109,27 @@ Se tudo mais falhar, esta jornada (login → ver minhas demandas → cadastrar n
 | Pipeline de status fixo no código (não configurável por tenant) | MVP não precisa flexibilidade; muda quando segundo cliente pedir | — Pending |
 | Admin panel adiado para pós-MVP | PSW pode operar via Supabase Studio enquanto não há volume de tenants | — Pending |
 | **Começar pela modelagem do banco antes de qualquer código de app** | Schema é o contrato; corrigir migration depois é caro. Front e back se encaixam sobre ele | ✓ Decidido (2026-05-20) |
+| **`_giba_wsi-dashboard.html` é o novo contrato visual/modelo global** (v0.2) | Modelo evoluiu substancialmente (FTE, RPA Fit, riscos, score 5-fatores, relatório); aplica a todos os tenants, não só Unidasul | ✓ Decidido (2026-06-04) |
+| **Score reescrito para 5 fatores × 20 = 100** (v0.2) | Adiciona FTE como 5º fator e muda `tempo` para frequência; substitui a fórmula 3-fatores+objetivo do mockup antigo | ✓ Decidido (2026-06-04) |
+| **Registro de Riscos em tabela própria `opportunity_risks`** (v0.2) | Risco deixa de ser texto livre e vira registro estruturado N:1 com prioridade por matriz; tenant_id + RLS como toda tabela de domínio | ✓ Decidido (2026-06-04) |
+| **Geração por IA dos campos derivados adiada para o "2º momento"** (v0.2) | Entregar primeiro o modelo/UI com preenchimento manual; IA enrichment estende a Phase 7.6 depois, sobre schema já compatível | ✓ Decidido (2026-06-04) |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-05-20 after initial project bootstrap from mockup `fgcoop-coe-v2.html`*
+*Last updated: 2026-06-04 — milestone v0.2 started (model evolution from `_giba_wsi-dashboard.html`). Previous: 2026-05-20 bootstrap from `fgcoop-coe-v2.html`.*

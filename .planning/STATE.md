@@ -1,15 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.1
-milestone_name: MVP — Sistema Real a partir do Mockup
-status: ready_to_execute
-next_action: execute-phase
-active_phase: "7.6"
-next_phases: ["8"]
+milestone: v0.2
+milestone_name: Evolução do Modelo (Workshop I / Unidasul)
+status: defining_requirements
+next_action: plan-phase
+active_phase: null
+next_phases: []
 progress:
-  total_phases: 10
-  completed_phases: 8
-  percent: 80
+  total_phases: 0
+  completed_phases: 0
+  percent: 0
+carryover_from_v0.1:
+  pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (absorvido pelo v0.2)"]
 ---
 
 # Project State
@@ -23,10 +25,12 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: **7.6 — Enriquecimento por IA das Oportunidades** *(INSERTED 2026-05-26, status: ready_to_execute)*. Phase 7.5 (Hardening) completa (6/6 plans). 7.6 inserida entre 7.5 e 8 para refatorar wizard ANTES do deploy.
-Plan: 0 of 6 (Phase 7.6 planejada, execução pendente)
-Status: **ready_to_execute**. 6 plans criados em 4 waves (W0→W1→W2→W3). Plan-checker passou na iteração 1 (resolveu 4 blockers + 4 warnings). 3 decisões arquiteturais lockadas (em PHASE.md `## Decisões locked`): (1) disparo via `after()` do Next.js dentro do Server Action, (2) `gpt-4o-mini` via `chat.completions.parse()` + `zodResponseFormat()` (não raw json_schema), (3) `serviceRoleClient()` writes com WHERE `id+tenant_id+ai_enrichment_status='pending'` (defesa em profundidade + idempotência). **Pré-requisitos para execute:** popular `OPENAI_API_KEY` em `.env.local` (linha 24 já existe vazia). `SUPABASE_SERVICE_ROLE_KEY` também precisa estar setada (Plan 01 cria `serviceRoleClient()`). Plan 01 termina com `[BLOCKING] autonomous: false` MIGRATION-HANDOFF da 0010 (apply manual no Supabase Cloud Dashboard SQL Editor — padrão 7.5 Plan 02/06). Plan 06 termina com `[BLOCKING] autonomous: false` smoke E2E (cria oportunidade → observa pending → real OpenAI call → observa enriched). Próximo: `/gsd-execute-phase 7.6` ou `/clear` + `/gsd-execute-phase 7.6` (recomendado).
-Last activity: 2026-05-26 — `/gsd-plan-phase 7.6` completou em 3 etapas: (1) researcher produziu `07.6-RESEARCH.md` (~900 linhas, validou as 3 decisões locked, corrigiu 2 erros factuais no PHASE.md — `serviceRoleClient()` ainda não existia, usar `parse()` + `zodResponseFormat()` em vez de raw `json_schema`, lembrou que migration 0010 precisa drop+recreate da view `opportunities_with_score`); (2) planner criou 6 plans (01..06) em 4 waves cobrindo todos os 14 REQ-IDs (AI-DB-01/02, AI-RLS-01, AI-MODEL-01, AI-IDEMP-01, AI-ASYNC-01, AI-SCHEMA-OPT-01, AI-WIZARD-01, AI-PUB-01, AI-UI-01, AI-ADMIN-01, AI-TEST-01/02, HARDEN-E-06-EXT) + ROADMAP.md atualizado com seção "Phase 7.6 — Plans"; (3) plan-checker rodou 2 iterações — primeira encontrou 4 BLOCKERS (Plan 06 frontmatter incompleto, Plan 02 Test 8 sham assertion `expect(true).toBe(true)`, Plan 03 Task 3 grep verify pattern errado `enrichOpportunity` vs `mockEnrich`, VALIDATION.md ausente) + 4 WARNINGS (Plan 04 wave inconsistente 3→1, Plan 02 Test 4 `@ts-expect-error`, Plan 03 anon-client `tenants` lookup falha contra RLS, Plan 01 Task 4 grep `-q` + pipe nonsense), segunda iteração confirmou TODOS resolvidos sem regressões. `07.6-VALIDATION.md` criado mapeando 14 REQ-IDs a test artifacts concretos (não placeholders). Dependency graph consistente: W0=[01], W1=[02, 04 parallel], W2=[03], W3=[05, 06 parallel].
+Phase: **Não iniciada** — milestone v0.2 recém-aberto, definindo requisitos.
+Plan: —
+Status: **defining_requirements**. Roadmap a ser criado pelo gsd-roadmapper. Numeração de fases continua a partir do v0.1 (próxima = Phase 9).
+Last activity: 2026-06-04 — `/gsd-new-milestone` iniciou o v0.2 (Evolução do Modelo a partir de `_giba_wsi-dashboard.html`). PROJECT.md atualizado com seção "Current Milestone: v0.2", 4 novas Key Decisions e seção Evolution. Decisões travadas com o PO: (1) novo milestone v0.2 (não inserir na v0.1); (2) `_giba` é evolução GLOBAL do produto — aposenta `fgcoop-coe-v2.html` como contrato; (3) pesquisa de ecossistema pulada (delta totalmente especificado pelo HTML). Pesquisa do delta concluída: todos os campos novos (`fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo`, `riscos[]`) confirmados ausentes no mockup antigo; fórmula de score nova mapeada (`calcScore` _giba:483-490, 5 fatores × 20); matriz de risco mapeada (_giba:1180-1185); wizard 5-steps mapeado (_giba:1504-1597); view Relatório mapeada (_giba:853-928).
+
+**Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
 Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA das Oportunidades) inserida entre 7.5 e 8 a pedido do PO. Criados: `.planning/phases/07.6-enriquecimento-ia-oportunidades/PHASE.md` (148 linhas, escopo em 6 blocos A-F). ROADMAP.md atualizado. `.env.example` (linha 30) e `.env.local` (linha 24) ganharam `OPENAI_API_KEY=` vazio. Reversão escopada da decisão "IA generativa = out-of-scope" do PROJECT.md.
 
