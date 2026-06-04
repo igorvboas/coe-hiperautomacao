@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: defining_requirements
+status: roadmap_ready
 next_action: plan-phase
-active_phase: null
-next_phases: []
+active_phase: 9
+next_phases: [10, 11, 12, 13, 14, 15]
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   percent: 0
 carryover_from_v0.1:
-  pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (absorvido pelo v0.2)"]
+  pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (adiado — Future Requirements)"]
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: **Não iniciada** — milestone v0.2 recém-aberto, definindo requisitos.
+Phase: **9 — Schema Evolution + Score/Risk/Contract Foundation** (próxima a planejar; ainda não iniciada).
 Plan: —
-Status: **defining_requirements**. Roadmap a ser criado pelo gsd-roadmapper. Numeração de fases continua a partir do v0.1 (próxima = Phase 9).
+Status: **roadmap_ready**. Roadmap v0.2 criado pelo gsd-roadmapper (2026-06-04): 7 fases (9–15), 35/35 REQ-IDs mapeados, seção "Milestone v0.2 — Roadmap" anexada ao ROADMAP.md (v0.1 preservado). Traceability de REQUIREMENTS.md preenchida. Numeração continua a partir do v0.1 (Phase 9). Próximo: `/gsd-plan-phase 9`.
 Last activity: 2026-06-04 — `/gsd-new-milestone` iniciou o v0.2 (Evolução do Modelo a partir de `_giba_wsi-dashboard.html`). PROJECT.md atualizado com seção "Current Milestone: v0.2", 4 novas Key Decisions e seção Evolution. Decisões travadas com o PO: (1) novo milestone v0.2 (não inserir na v0.1); (2) `_giba` é evolução GLOBAL do produto — aposenta `fgcoop-coe-v2.html` como contrato; (3) pesquisa de ecossistema pulada (delta totalmente especificado pelo HTML). Pesquisa do delta concluída: todos os campos novos (`fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo`, `riscos[]`) confirmados ausentes no mockup antigo; fórmula de score nova mapeada (`calcScore` _giba:483-490, 5 fatores × 20); matriz de risco mapeada (_giba:1180-1185); wizard 5-steps mapeado (_giba:1504-1597); view Relatório mapeada (_giba:853-928).
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.

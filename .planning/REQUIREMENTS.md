@@ -78,8 +78,44 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 
 ## Traceability
 
-<!-- Preenchido pelo roadmapper: REQ-ID → Phase -->
+<!-- Preenchido pelo roadmapper (2026-06-04): REQ-ID → Phase. Cobertura 35/35. -->
 
 | REQ-ID | Phase |
 |--------|-------|
-| _(pendente — gsd-roadmapper)_ | |
+| MODEL-01 | 9 |
+| MODEL-02 | 9 |
+| MODEL-03 | 9 |
+| MODEL-04 | 9 |
+| MODEL-05 | 9 |
+| MODEL-06 | 9 |
+| MODEL-07 | 9 |
+| MODEL-08 | 9 |
+| MODEL-09 | 9 |
+| MODEL-10 | 9 (compat) / 10 (verificado) |
+| SCORE-01 | 9 |
+| SCORE-02 | 9 |
+| SCORE-03 | 9 |
+| SCORE-04 | 10 |
+| RISK-01 | 12 |
+| RISK-02 | 12 |
+| RISK-03 | 12 |
+| RISK-04 | 9 |
+| RISK-05 | 12 |
+| REPORT-01 | 14 |
+| REPORT-02 | 14 |
+| REPORT-03 | 14 |
+| REPORT-04 | 14 |
+| WIZARD-01 | 11 |
+| WIZARD-02 | 11 |
+| WIZARD-03 | 11 |
+| WIZARD-04 | 11 |
+| VIEW-01 | 13 |
+| VIEW-02 | 13 |
+| VIEW-03 | 13 |
+| VIEW-04 | 13 |
+| VIEW-05 | 13 |
+| DATA-01 | 15 |
+| CONTRACT-01 | 9 |
+| CONTRACT-02 | 9 |
+
+**Cobertura:** 35/35 REQ-IDs mapeados, cada um a exatamente uma fase. (MODEL-10 é uma restrição de compatibilidade satisfeita pelo schema da Phase 9 e verificada na Phase 10 — sem duplicação de entrega.)
