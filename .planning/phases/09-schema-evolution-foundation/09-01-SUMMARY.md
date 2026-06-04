@@ -1,7 +1,7 @@
 # Plan 09-01 — Summary
 
 **Plan:** Migration 0011 — schema evolution v0.2
-**Status:** ⏸ Tasks 1+2 done; **Task 3 = [BLOCKING] checkpoint:human-action PENDENTE** (apply manual no Supabase Cloud)
+**Status:** ✅ Complete — migration **APLICADA** no Supabase Cloud (2026-06-04, confirmada via dry-run transacional + apply real "applied" pelo PO). `gen:types` pendente (Phase 10 — falta `SUPABASE_PROJECT_REF`).
 **Requirements:** MODEL-01..10, SCORE-01/02/03, RISK-04
 
 ## What was built
@@ -24,10 +24,18 @@
 - 7 `create type`, 2 `generated always as`, 4 policies de `opportunity_risks`, score com 5 args + pesos `diario...20`, backfill resiliente, CHECKs guardados ✓ (todos os greps do plano passam)
 - **Apply real ainda não feito** — é o checkpoint bloqueante.
 
-## Deviations
-- **Drop do overload antigo `opportunity_score(effort_level,complexity_level,time_bucket,smallint)`** antes do `create or replace` da nova assinatura de 5 args. Motivo: `create or replace` com assinatura diferente cria OVERLOAD, deixando a função antiga órfã e ambígua. A intenção do plano era "reescrever/substituir". Seguro: a view (único dependente) já foi dropada no passo 3. Idempotente (`drop ... if exists`).
+## Deviations (5 — todas descobertas/corrigidas no apply, validadas por dry-run 11/11)
+1. **Drop do overload antigo `opportunity_score(...,time_bucket,smallint)`** antes do create da nova assinatura de 5 args (evita overload órfão; a view, único dependente, já foi dropada no passo 3).
+2. **CHECKs sem subquery** (Postgres `0A000`): a validação `jsonb_each`+`bool_and` da RESEARCH §5 é inválida em CHECK. Trocada por validação por-chave explícita (`?&` p/ presença + `in (...)` por chave; beneficios valida range por chave conhecida).
+3. **`opportunity_risks.priority` via TRIGGER, não GENERATED** (Postgres `42P17`): qualquer cast de enum (`enum_in` E `enum_out`) é tratado como não-imutável → coluna GENERATED rejeitada. `set_risk_priority()` BEFORE INSERT/UPDATE sempre sobrescreve `new.priority` (mesma garantia "nunca manual", padrão do seq_id em 0006). priority volta a ser enum `risk_priority`.
+4. **Backfill de `fonte` escopado ao tenant FGCoop** (`11111111-…`): o banco tinha 33 oportunidades, 4 de um tenant distinto (`99999999-…`); o `update` cego carimbaria 'FGCoop' neles. Escopado → 29 (validado). Os 4 do tenant 9999 ficam `fonte` NULL.
+5. **2 valores de `frequencia` mapeados** (`eventual`→`anual`, `5 vezes por dia`→`diario`) para zerar `tempo` NULL em formulário.
 
-## Pending (BLOCKING)
-Apply manual de `0011` no Supabase Cloud SQL Editor + queries de verificação + `npm run gen:types`. Resume signal: usuário digita "applied" ou descreve o erro. Ver `09-MIGRATION-HANDOFF.md`.
+## Validação (dry-run transacional begin/rollback contra dados reais)
+11/11 checks: criterios_null=0, padronizacaoDocs_fora_dominio=0, formulario_tempo_null=0, fonte_FGCoop=29, risk_policies=4, tempo_type=frequency_bucket, score=100/36, rpa_score max=6, trigger alto×provavel=critica, trigger moderado×remota=baixa. Depois aplicada pra valer.
 
-## Self-Check: PASSED (artefatos), apply pendente
+## Pending (Phase 10, não bloqueia)
+- `npm run gen:types` (precisa de `SUPABASE_PROJECT_REF`) — vai trocar `tempo` p/ frequency_bucket nos tipos e quebrar o typecheck dos 7 testes com `tempo:'medio'` (corrigir junto na Phase 10) + permitir remover os `any`-casts do teste de riscos.
+- Decidir destino do tenant `99999999` (4 rows, ≥1 de teste `dev coe`).
+
+## Self-Check: PASSED — migration aplicada e validada

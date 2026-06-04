@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: executing_blocked_on_apply
-next_action: apply-migration-0011
-active_phase: 9
-next_phases: [10, 11, 12, 13, 14, 15]
+status: phase_complete
+next_action: plan-phase
+active_phase: 10
+next_phases: [11, 12, 13, 14, 15]
 progress:
   total_phases: 7
-  completed_phases: 0
-  percent: 0
+  completed_phases: 1
+  percent: 14
 carryover_from_v0.1:
   pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (adiado — Future Requirements)"]
 ---
@@ -125,7 +125,12 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: `.planning/phases/09-schema-evolution-foundation/09-MIGRATION-HANDOFF.md`
+Resume file: `.planning/phases/09-schema-evolution-foundation/09-01-SUMMARY.md`
+
+---
+
+Update 2026-06-04 (mesma sessão) — **Phase 9 COMPLETA.** Migration `0011` aplicada no Supabase Cloud pelo PO (confirmado "applied") após validação por **dry-run transacional (begin/rollback) 11/11 checks green** contra dados reais. 5 deviations descobertas e corrigidas no apply (todas no `09-01-SUMMARY.md`): (1) drop do overload antigo de `opportunity_score`; (2) CHECKs sem subquery (Postgres 0A000); (3) `opportunity_risks.priority` via TRIGGER em vez de GENERATED (42P17 — qualquer cast de enum é não-imutável); (4) backfill de `fonte` escopado ao tenant FGCoop (banco tinha 33 opps, 4 de outro tenant 99999999 — não carimbar 'FGCoop'); (5) 2 valores de `frequencia` mapeados (eventual→anual, '5 vezes por dia'→diario). typecheck clean, suite 103 passed/27 skipped/0 failed. **Pendências p/ Phase 10 (não bloqueiam):** `npm run gen:types` (falta SUPABASE_PROJECT_REF) → vai quebrar typecheck dos 7 testes com `tempo:'medio'` (corrigir junto); remover `any`-casts do teste de riscos; decidir destino do tenant 99999999. Próximo: `/gsd-plan-phase 10`.
+Status: **phase_complete** → Phase 10.
 
 ---
 
