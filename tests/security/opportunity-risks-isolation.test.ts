@@ -2,7 +2,7 @@
 // opportunity_risks — isolamento RLS cross-tenant — Phase 9 / Plan 09-03 (RISK-04 SC4)
 // =============================================================================
 // Prova que `opportunity_risks` (migration 0011) está isolada por tenant: tenant A
-// NÃO enxerga nem altera riscos de tenant B. Espelha integralmente o padrão de
+// NÃO enxerga nem altera riscos de tenant B. Espelha o padrão de
 // `tenant-isolation.test.ts` (RLS exercitada via JWT do usuário, NUNCA service-role;
 // service-role só em setup/teardown e nas assertions de "registro persiste").
 //
@@ -11,7 +11,7 @@
 //   2. UPDATE cross-tenant → 0 rows; original intacto (via service-role).
 //   3. DELETE cross-tenant → 0 rows; registro persiste (via service-role).
 //   4. INSERT com tenant_id forjado → error não-nulo (RLS WITH CHECK, 42501).
-//   5. (sanity) SELECT do próprio risco → 1 linha.
+//   5. (sanity) SELECT do próprio risco → 1 linha (priority GENERATED = critica).
 //
 // `priority` é coluna GENERATED — NUNCA inserir (Postgres rejeita).
 //
@@ -21,17 +21,27 @@
 //
 // Pré-requisito: migrations 0001..0011 aplicadas + seed dos dois tenants
 // (FGCOOP_TEST_ID, ACME_TEST_ID) via seedTestTenants.
+//
+// NOTA DE TIPOS (write-only mode): `lib/database.types.ts` é gerado da DB viva e só
+// conhecerá `opportunity_risks` + o novo `tempo` (frequency_bucket) DEPOIS do apply
+// manual de 0011 + `npm run gen:types`. Até lá, os clientes que tocam essas tabelas/
+// colunas são tipados como `any` (mesmo padrão de `lib/public-form/log.ts` pós-0007).
+// Após gen:types (Phase 10), os `any` podem ser removidos para recuperar a checagem
+// de tipos completa.
 // =============================================================================
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { serviceRoleClient } from '../setup/supabase-test-client';
-import { asFgcoop, asAcme, asService } from '../helpers/auth-as';
+import { asFgcoop, asService } from '../helpers/auth-as';
 import { FGCOOP_TEST_ID, ACME_TEST_ID, seedTestTenants } from '../setup/seed-test-tenants';
 
 const HAS_DB = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
+// Acesso à DB com tipo `any` enquanto os tipos gerados não conhecem 0011 (ver nota acima).
+const svc = (): any => asService();
+const fgcoopClient = async (): Promise<any> => (await asFgcoop()).client;
+
 describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)', () => {
-  type SbClient = ReturnType<typeof serviceRoleClient>;
-  let sb: SbClient;
+  let sb: any;
 
   let fgcoopOppId: string;
   let acmeOppId: string;
@@ -96,14 +106,14 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
   });
 
   it('1. SELECT cross-tenant: FGCoop NÃO vê risco do Acme (data === [])', async () => {
-    const { client } = await asFgcoop();
+    const client = await fgcoopClient();
     const { data, error } = await client.from('opportunity_risks').select('id, descricao').eq('id', acmeRiskId);
     expect(error).toBeNull();
     expect(data).toEqual([]);
   });
 
   it('2. UPDATE cross-tenant: FGCoop tentando alterar risco do Acme afeta 0 linhas', async () => {
-    const { client } = await asFgcoop();
+    const client = await fgcoopClient();
     const { data, error } = await client
       .from('opportunity_risks')
       .update({ descricao: 'HIJACKED' })
@@ -112,7 +122,7 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
     expect(error).toBeNull();
     expect(data).toEqual([]);
 
-    const { data: original, error: readErr } = await asService()
+    const { data: original, error: readErr } = await svc()
       .from('opportunity_risks')
       .select('descricao')
       .eq('id', acmeRiskId)
@@ -122,12 +132,12 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
   });
 
   it('3. DELETE cross-tenant: FGCoop tentando deletar risco do Acme afeta 0 linhas', async () => {
-    const { client } = await asFgcoop();
+    const client = await fgcoopClient();
     const { data, error } = await client.from('opportunity_risks').delete().eq('id', acmeRiskId).select('id');
     expect(error).toBeNull();
     expect(data).toEqual([]);
 
-    const { data: still, error: readErr } = await asService()
+    const { data: still, error: readErr } = await svc()
       .from('opportunity_risks')
       .select('id')
       .eq('id', acmeRiskId)
@@ -137,7 +147,7 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
   });
 
   it('4. INSERT com tenant_id forjado: FGCoop não cria risco como Acme (RLS WITH CHECK rejeita)', async () => {
-    const { client } = await asFgcoop();
+    const client = await fgcoopClient();
     const { error } = await client
       .from('opportunity_risks')
       .insert({
@@ -153,7 +163,7 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
     // Não asserir texto específico — versões do Postgres mudam a mensagem.
     expect(error).not.toBeNull();
 
-    const { count, error: countErr } = await asService()
+    const { count, error: countErr } = await svc()
       .from('opportunity_risks')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', ACME_TEST_ID)
@@ -163,7 +173,7 @@ describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)',
   });
 
   it('5. sanity: FGCoop FAZ SELECT no seu próprio risco (1 linha)', async () => {
-    const { client } = await asFgcoop();
+    const client = await fgcoopClient();
     const { data, error } = await client
       .from('opportunity_risks')
       .select('id, descricao, priority')
