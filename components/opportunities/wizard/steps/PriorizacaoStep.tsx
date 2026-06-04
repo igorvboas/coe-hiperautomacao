@@ -10,16 +10,27 @@ type Props = {
   errors: Record<string, string>;
 };
 
+// Pesos alinhados à fórmula de 5 fatores (lib/opportunities/score.ts / _giba:483-490).
 const EFFORT_OPTIONS = [
-  { value: 'baixo', label: 'Baixo (+25)' },
-  { value: 'medio', label: 'Médio (+15)' },
-  { value: 'alto', label: 'Alto (+5)' },
+  { value: 'baixo', label: 'Baixo (+8)' },
+  { value: 'medio', label: 'Médio (+14)' },
+  { value: 'alto', label: 'Alto (+20)' },
 ];
 
+// Complexidade é INVERTIDA: menos complexo pontua mais.
+const COMPLEXITY_OPTIONS = [
+  { value: 'baixo', label: 'Baixo (+20)' },
+  { value: 'medio', label: 'Médio (+13)' },
+  { value: 'alto', label: 'Alto (+6)' },
+];
+
+// `tempo` agora é FREQUÊNCIA (0011), não duração.
 const TIME_OPTIONS = [
-  { value: 'pequeno', label: 'Pequeno (+25)' },
-  { value: 'medio', label: 'Médio (+15)' },
-  { value: 'grande', label: 'Grande (+5)' },
+  { value: 'diario', label: 'Diário (+20)' },
+  { value: 'semanal', label: 'Semanal (+16)' },
+  { value: 'quinzenal', label: 'Quinzenal (+12)' },
+  { value: 'mensal', label: 'Mensal (+8)' },
+  { value: 'anual', label: 'Anual (+2)' },
 ];
 
 export function PriorizacaoStep({ data, onChange, errors }: Props) {
@@ -41,7 +52,7 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
           onChange={(v) =>
             onChange({ complexidade: v as 'baixo' | 'medio' | 'alto' })
           }
-          options={EFFORT_OPTIONS}
+          options={COMPLEXITY_OPTIONS}
           error={errors.complexidade}
         />
         <SelectField
@@ -49,7 +60,14 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
           required
           value={data.tempo}
           onChange={(v) =>
-            onChange({ tempo: v as 'pequeno' | 'medio' | 'grande' })
+            onChange({
+              tempo: v as
+                | 'diario'
+                | 'semanal'
+                | 'quinzenal'
+                | 'mensal'
+                | 'anual',
+            })
           }
           options={TIME_OPTIONS}
           error={errors.tempo}

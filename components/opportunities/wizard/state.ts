@@ -96,7 +96,7 @@ export function defaultFormData(): WizardFormData {
     beneficios_esperados: [''],
     esforco: 'medio',
     complexidade: 'medio',
-    tempo: 'medio',
+    // tempo (frequência, 0011) não tem default no create — IA/priorização define.
     objetivo: 3,
     status: 'novo',
   };
@@ -130,7 +130,7 @@ export function opportunityToFormData(opp: Opportunity): WizardFormData {
         : [''],
     esforco: opp.esforco ?? 'medio',
     complexidade: opp.complexidade ?? 'medio',
-    tempo: opp.tempo ?? 'medio',
+    tempo: opp.tempo ?? undefined,
     objetivo: opp.objetivo ?? 3,
     status: opp.status,
     responsavel: opp.responsavel ?? '',

@@ -347,6 +347,15 @@ export async function createOpportunity(
       notas: data.notas || null,
       observacao: data.observacao || null,
       risco: data.risco || null,
+      // v0.2 (0011) — opcionais. rpa_score/score/priority NÃO entram (GENERATED/
+      // calculados no DB). `prioridade_fte` mapeia para a coluna `fte`.
+      fonte: data.fonte || null,
+      tipo_processo: data.tipo_processo ?? [],
+      beneficio_qualitativo: data.beneficio_qualitativo || null,
+      fte_horas: data.fte_horas ?? null,
+      fte: data.prioridade_fte ?? null,
+      criterios: data.criterios ?? null,
+      beneficios: data.beneficios ?? null,
       persona_extras:
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:
@@ -462,6 +471,14 @@ export async function updateOpportunity(
       notas: data.notas || null,
       observacao: data.observacao || null,
       risco: data.risco || null,
+      // v0.2 (0011) — opcionais (idem createOpportunity). `prioridade_fte` → `fte`.
+      fonte: data.fonte || null,
+      tipo_processo: data.tipo_processo ?? [],
+      beneficio_qualitativo: data.beneficio_qualitativo || null,
+      fte_horas: data.fte_horas ?? null,
+      fte: data.prioridade_fte ?? null,
+      criterios: data.criterios ?? null,
+      beneficios: data.beneficios ?? null,
       persona_extras:
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:

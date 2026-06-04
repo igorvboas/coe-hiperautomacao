@@ -151,7 +151,11 @@ export async function enrichOpportunity(
         risco: enriched.risco,
         esforco: enriched.esforco,
         complexidade: enriched.complexidade,
-        tempo: enriched.tempo,
+        // REALIGN-7.6 (deferido): a IA ainda produz `tempo` no domínio antigo de
+        // DURAÇÃO (pequeno/medio/grande, lib/ai/schema.ts), mas 0011 mudou a coluna
+        // `opportunities.tempo` para FREQUÊNCIA (frequency_bucket). Não há mapeamento
+        // 1:1 entre duração e frequência — então o enrichment NÃO sobrescreve `tempo`
+        // até a IA ser realinhada (REALIGN-7.6). Os outros 8 campos seguem normais.
         objetivo: enriched.objetivo,
         ai_enrichment_status: 'enriched',
         ai_enriched_at: new Date().toISOString(),

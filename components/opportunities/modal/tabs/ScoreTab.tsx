@@ -4,9 +4,13 @@ import { PriorityPill } from '@/components/opportunities/cells';
 
 type Props = { opportunity: Opportunity };
 
+// NOTA: breakdown por-fator aproximado. O número FINAL (`o.score`) vem da view
+// (backend, fórmula de 5 fatores). O detalhamento completo de 5 fatores (incl. FTE)
+// fica para a P13 (telas/Relatório). Pesos do `tempo` alinhados ao domínio de
+// frequência (0011) para corrigir o type-error pós-evolução do schema.
 const EFFORT_VALUES = { baixo: 25, medio: 15, alto: 5 } as const;
 const COMPLEX_VALUES = { baixo: 25, medio: 15, alto: 5 } as const;
-const TIME_VALUES = { pequeno: 25, medio: 15, grande: 5 } as const;
+const TIME_VALUES = { diario: 20, semanal: 16, quinzenal: 12, mensal: 8, anual: 2 } as const;
 
 function objetivoPoints(obj: number | null): number {
   if (!obj) return 0;
@@ -117,7 +121,15 @@ function labelOrDash(v: 'baixo' | 'medio' | 'alto' | null): string {
   return { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }[v];
 }
 
-function labelOrDashTempo(v: 'pequeno' | 'medio' | 'grande' | null): string {
+function labelOrDashTempo(
+  v: 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'anual' | null,
+): string {
   if (!v) return '—';
-  return { pequeno: 'Pequeno', medio: 'Médio', grande: 'Grande' }[v];
+  return {
+    diario: 'Diário',
+    semanal: 'Semanal',
+    quinzenal: 'Quinzenal',
+    mensal: 'Mensal',
+    anual: 'Anual',
+  }[v];
 }

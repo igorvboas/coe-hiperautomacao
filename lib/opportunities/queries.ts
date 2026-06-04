@@ -27,6 +27,10 @@ const OPPORTUNITY_COLUMNS =
   'ferramenta, escopo_automacao, beneficios_esperados, ' +
   'esforco, complexidade, tempo, objetivo, ' +
   'status, responsavel, notas, observacao, risco, ' +
+  // v0.2 (0011) — incluídos por decisão explícita (HARDEN-E-06): consumidos por
+  // P11/P12/P13/P14; nenhum sensível. rpa_score é GENERATED (leitura).
+  'fte_horas, fonte, tipo_processo, beneficio_qualitativo, ' +
+  'criterios, beneficios, fte, rpa_score, ' +
   'persona_extras, formulario_extras, ' +
   'ai_enrichment_status, ai_enrichment_error, ai_enriched_at, ' +
   'created_by, created_at, updated_at, ' +

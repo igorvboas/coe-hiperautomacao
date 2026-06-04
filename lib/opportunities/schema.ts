@@ -43,8 +43,14 @@ export const statusEnum = z.enum([
 export const toolEnum = z.enum(['rpa', 'n8n', 'ambos']);
 export const effortEnum = z.enum(['baixo', 'medio', 'alto']);
 export const complexityEnum = z.enum(['baixo', 'medio', 'alto']);
-export const timeBucketEnum = z.enum(['pequeno', 'medio', 'grande']);
-export const criterioEnum = z.enum(['SIM', 'NAO', 'PARCIAL']);
+// v0.2 (0011): `tempo` migrou de duração para FREQUÊNCIA (D-05).
+export const frequencyEnum = z.enum(['diario', 'semanal', 'quinzenal', 'mensal', 'anual']);
+// v0.2 (0011): 5º fator de score — bucket de FTE.
+export const fteBucketEnum = z.enum(['muito_baixo', 'baixo', 'medio', 'alto', 'muito_alto']);
+// Novo domínio dos 8 critérios first-class (D-08, minúsculo).
+export const criterioEnum = z.enum(['sim', 'nao', 'parcial']);
+// Legado: critérios aninhados em `formulario_extras` (v0.1, uppercase) — preservado até P11.
+export const legacyCriterioEnum = z.enum(['SIM', 'NAO', 'PARCIAL']);
 export const requestTypeEnum = z.enum([
   'nova_oportunidade',
   'melhoria_automacao',
@@ -82,16 +88,16 @@ export const formularioExtrasSchema = z
     sistemas: z.string().max(1000, 'Máximo 1000 caracteres').optional(),
     criterios: z
       .object({
-        regras_claras: criterioEnum.optional(),
-        totalmente_manual: criterioEnum.optional(),
-        processo_uniforme: criterioEnum.optional(),
-        digitacao_manual: criterioEnum.optional(),
-        causa_reclamacoes: criterioEnum.optional(),
-        padronizacao_docs: criterioEnum.optional(),
-        validacao_dados: criterioEnum.optional(),
-        schedulable: criterioEnum.optional(),
-        tem_documentacao: criterioEnum.optional(),
-        decisao_humana: criterioEnum.optional(),
+        regras_claras: legacyCriterioEnum.optional(),
+        totalmente_manual: legacyCriterioEnum.optional(),
+        processo_uniforme: legacyCriterioEnum.optional(),
+        digitacao_manual: legacyCriterioEnum.optional(),
+        causa_reclamacoes: legacyCriterioEnum.optional(),
+        padronizacao_docs: legacyCriterioEnum.optional(),
+        validacao_dados: legacyCriterioEnum.optional(),
+        schedulable: legacyCriterioEnum.optional(),
+        tem_documentacao: legacyCriterioEnum.optional(),
+        decisao_humana: legacyCriterioEnum.optional(),
       })
       .strict()
       .partial()
@@ -192,7 +198,7 @@ const baseSchema = z.object({
   //   - Após INSERT, `enrichOpportunity()` via after() sobrescreve com valores da IA
   esforco: effortEnum.optional(),
   complexidade: complexityEnum.optional(),
-  tempo: timeBucketEnum.optional(),
+  tempo: frequencyEnum.optional(),
   objetivo: z.number().int().min(1).max(5).optional(),
   status: statusEnum.default('novo'),
   responsavel: z
@@ -215,6 +221,56 @@ const baseSchema = z.object({
     .max(2000, 'Máximo 2000 caracteres')
     .optional()
     .or(z.literal('')),
+  // ─── Campos v0.2 (0011) — aditivos, todos opcionais (compat enrichment manual/IA, MODEL-10) ───
+  // rpa_score NÃO entra aqui: é GENERATED no DB (derivado de criterios) — só leitura/saída.
+  fte_horas: z.number().min(0, 'FTE não pode ser negativo').nullable().optional(),
+  fonte: z
+    .string()
+    .max(200, 'Máximo 200 caracteres')
+    .optional()
+    .or(z.literal('')),
+  tipo_processo: z
+    .array(z.string().max(200, 'Item excede 200 caracteres'))
+    .max(20, 'Máximo 20 itens')
+    .optional()
+    .default([]),
+  beneficio_qualitativo: z
+    .string()
+    .max(2000, 'Máximo 2000 caracteres')
+    .optional()
+    .or(z.literal('')),
+  // bucket de FTE como 5º fator de score (o wizard P11 mapeia fte_horas → bucket)
+  prioridade_fte: fteBucketEnum.optional(),
+  // 8 critérios first-class (espelham a coluna jsonb de 0011; D-08 minúsculo)
+  criterios: z
+    .object({
+      causaReclamacoes: criterioEnum.optional(),
+      totalmenteManual: criterioEnum.optional(),
+      regrasClaras: criterioEnum.optional(),
+      decisaoHumana: criterioEnum.optional(),
+      padronizacaoDocs: criterioEnum.optional(),
+      validacaoDados: criterioEnum.optional(),
+      schedulable: criterioEnum.optional(),
+      temDocumentacao: criterioEnum.optional(),
+    })
+    .strict()
+    .partial()
+    .optional(),
+  // 8 benefícios first-class (escala 1–5, espelham a coluna jsonb de 0011)
+  beneficios: z
+    .object({
+      reducaoTempo: z.number().int().min(1).max(5).optional(),
+      eliminacaoErros: z.number().int().min(1).max(5).optional(),
+      produtividade: z.number().int().min(1).max(5).optional(),
+      qualidadeDados: z.number().int().min(1).max(5).optional(),
+      reducaoCustos: z.number().int().min(1).max(5).optional(),
+      reducaoRetrabalho: z.number().int().min(1).max(5).optional(),
+      compliance: z.number().int().min(1).max(5).optional(),
+      objetivosEstrategicos: z.number().int().min(1).max(5).optional(),
+    })
+    .strict()
+    .partial()
+    .optional(),
 });
 
 // =============================================================================
