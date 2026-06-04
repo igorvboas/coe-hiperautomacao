@@ -133,21 +133,38 @@ alter table opportunities
 -- ---------------------------------------------------------------------------
 -- 6. CHECK constraints dos jsonb — D-06 / D-07 / D-08
 -- ---------------------------------------------------------------------------
+-- NB: CHECK constraints NÃO podem conter subquery (Postgres 0A000). Por isso a
+-- validação é por-chave explícita (sem jsonb_each). `?&` garante presença das 8
+-- chaves de criterios; os `in (...)` por chave validam os valores. Para beneficios,
+-- valida-se o range 1–5 das 8 chaves conhecidas (null-tolerante p/ ausentes); chaves
+-- desconhecidas não são rejeitadas aqui (defesa de shape fica no Zod da Phase 10).
 do $$ begin if not exists (select 1 from pg_constraint where conname='opportunities_criterios_chk') then
   alter table opportunities add constraint opportunities_criterios_chk check (
     criterios is null or (
       criterios ?& array['causaReclamacoes','totalmenteManual','regrasClaras','decisaoHumana',
                          'padronizacaoDocs','validacaoDados','schedulable','temDocumentacao']
-      and (select bool_and(value::text in ('"sim"','"nao"','"parcial"')) from jsonb_each(criterios))
+      and criterios->>'causaReclamacoes' in ('sim','nao','parcial')
+      and criterios->>'totalmenteManual' in ('sim','nao','parcial')
+      and criterios->>'regrasClaras'     in ('sim','nao','parcial')
+      and criterios->>'decisaoHumana'    in ('sim','nao','parcial')
+      and criterios->>'padronizacaoDocs' in ('sim','nao','parcial')
+      and criterios->>'validacaoDados'   in ('sim','nao','parcial')
+      and criterios->>'schedulable'      in ('sim','nao','parcial')
+      and criterios->>'temDocumentacao'  in ('sim','nao','parcial')
     )); end if; end$$;
 
 do $$ begin if not exists (select 1 from pg_constraint where conname='opportunities_beneficios_chk') then
   alter table opportunities add constraint opportunities_beneficios_chk check (
     beneficios is null or (
-      (select bool_and(key in ('reducaoTempo','eliminacaoErros','produtividade','qualidadeDados',
-                               'reducaoCustos','reducaoRetrabalho','compliance','objetivosEstrategicos')
-                       and (value::text)::int between 1 and 5)
-       from jsonb_each(beneficios)))); end if; end$$;
+          (beneficios->>'reducaoTempo'          is null or (beneficios->>'reducaoTempo')::int          between 1 and 5)
+      and (beneficios->>'eliminacaoErros'       is null or (beneficios->>'eliminacaoErros')::int       between 1 and 5)
+      and (beneficios->>'produtividade'         is null or (beneficios->>'produtividade')::int         between 1 and 5)
+      and (beneficios->>'qualidadeDados'        is null or (beneficios->>'qualidadeDados')::int        between 1 and 5)
+      and (beneficios->>'reducaoCustos'         is null or (beneficios->>'reducaoCustos')::int         between 1 and 5)
+      and (beneficios->>'reducaoRetrabalho'     is null or (beneficios->>'reducaoRetrabalho')::int     between 1 and 5)
+      and (beneficios->>'compliance'            is null or (beneficios->>'compliance')::int            between 1 and 5)
+      and (beneficios->>'objetivosEstrategicos' is null or (beneficios->>'objetivosEstrategicos')::int between 1 and 5)
+    )); end if; end$$;
 
 -- ---------------------------------------------------------------------------
 -- 7. opportunity_score() reescrita — 5 fatores x 20 = 100 — SCORE-01 / SCORE-02 / D-16
