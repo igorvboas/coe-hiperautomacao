@@ -165,7 +165,10 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   3. `rpaScore` (0–6) é derivado dos 8 critérios por regra determinística documentada (em função SQL ou na view), não persistido como input manual arbitrário.
   4. A tabela `opportunity_risks` existe com `tenant_id not null` + RLS ativado e as 4 policies padrão (select/insert/update/delete por `current_tenant_id()`); um teste cruzado confirma que tenant A não enxerga riscos do tenant B.
   5. `_giba_wsi-dashboard.html` está documentado como a fonte da verdade visual/modelo e o `CLAUDE.md` reflete a nova fórmula de score, o novo modelo e o novo wizard; `fgcoop-coe-v2.html` está marcado como deprecated.
-**Plans**: TBD
+**Plans**: 3 plans (planejados em 2026-06-04) — Wave 0: 01 (migration) ‖ 02 (docs); Wave 1: 03 (testes)
+- [ ] 09-01-PLAN.md — Migração 0011 (enums, colunas, rpa_score GENERATED, tempo→frequência, opportunity_score 5-fatores, backfill FGCoop, opportunity_risks + RLS) + handoff de apply manual [BLOCKING]
+- [ ] 09-02-PLAN.md — Troca de contrato: CLAUDE.md (nova fórmula/modelo/wizard/risco) + fgcoop-coe-v2.html marcado deprecated
+- [ ] 09-03-PLAN.md — Validação: testes de regra puros (rpa_score, score, matriz priority) + isolamento cross-tenant A≠B em opportunity_risks (skipIf)
 
 ### Phase 10: Backend — Queries, Validação e Paridade de Score
 **Goal**: A camada de aplicação (queries de leitura, server actions de mutação, Zod schema e tipos gerados) cobre o novo modelo, e o preview de score exibido no cliente é idêntico ao calculado no backend.
