@@ -146,7 +146,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 ## Phases
 
 - [x] **Phase 9: Schema Evolution + Score/Risk/Contract Foundation** ✅ — Migration `0011` aplicada (write-only): `opportunities` evoluída (7 col + `rpa_score` GENERATED + `tempo`→frequência), `opportunity_score()` 5 fatores, view recriada, backfill FGCoop (29, escopado ao tenant), `opportunity_risks` (tenant_id + RLS + priority via trigger). Contrato trocado p/ `_giba`, `fgcoop` deprecated. Validado por dry-run 11/11.
-- [ ] **Phase 10: Backend — Queries, Validação e Paridade de Score** — Server actions, Zod e tipos cobrem o novo modelo; preview de score no cliente usa exatamente a fórmula do backend.
+- [x] **Phase 10: Backend — Queries, Validação e Paridade de Score** ✅ — Tipos pós-0011 (hand-derived, verificados vs catálogo vivo), Zod aditivo (criterios minúsculo, tempo→frequência, campos novos, mass-assignment preservado), whitelist ampliada, `riskInputSchema`. SCORE-04: fórmula única `lib/opportunities/score.ts` (cliente=backend, paridade validada ao vivo 100/88/59/36/67). Migration `0012` (RPC pública → frequência, dropa overload duplicado). tsc 0 erros, suíte 109 passed/0 failed.
 - [ ] **Phase 11: Wizard de Fluxo Único (5 steps)** — Substitui o split persona/formulário por um wizard de 5 steps com critérios, benefícios, FTE e priorização de 5 fatores.
 - [ ] **Phase 12: Registro de Riscos (UI do modal)** — Aba "Risco" do modal: criar/editar/remover riscos com prioridade auto-calculada pela matriz impacto×probabilidade.
 - [ ] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo.
@@ -248,7 +248,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 9. Schema Evolution + Score/Risk/Contract Foundation | 3/3 | ✅ Done | 2026-06-04 |
-| 10. Backend — Queries, Validação e Paridade de Score | 0/4 | Planned | - |
+| 10. Backend — Queries, Validação e Paridade de Score | 4/4 | ✅ Done | 2026-06-04 |
 | 11. Wizard de Fluxo Único (5 steps) | 0/? | Not started | - |
 | 12. Registro de Riscos (UI do modal) | 0/? | Not started | - |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |

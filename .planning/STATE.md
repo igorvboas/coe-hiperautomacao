@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_execute
-next_action: execute-phase
-active_phase: 10
-next_phases: [11, 12, 13, 14, 15]
+status: phase_complete
+next_action: plan-phase
+active_phase: 11
+next_phases: [12, 13, 14, 15]
 progress:
   total_phases: 7
-  completed_phases: 1
-  percent: 14
+  completed_phases: 2
+  percent: 28
 carryover_from_v0.1:
   pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (adiado — Future Requirements)"]
 ---
@@ -127,7 +127,19 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 Last session: 2026-06-04 — `/gsd-discuss-phase 10`. Contexto da Phase 10 (Backend — Queries, Validação e Paridade de Score) capturado em `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md` (+ DISCUSSION-LOG, commit 38a94c6). 4 áreas discutidas, **todas delegadas pelo PO ("Você decide")** → direções recomendadas travadas (D-01..D-04): (1) **Paridade SCORE-04** = módulo único `lib/opportunities/score.ts` (5 fatores `_giba`) importado por ScorePreview + teste, com 2º nível de teste SQL `skipIf` contra `opportunity_score()`; achado: `ScorePreview.tsx` tem a fórmula v0.1 obsoleta, `tests/schema/score-rule.test.ts` já tem a nova travada. (2) **Schema Zod aditivo** — adiciona campos novos, corrige `criterioEnum`→minúsculo (D-08) e `timeBucketEnum`→frequência, **mantém** o split persona/formulário (P11 reestrutura). (3) **opportunity_risks** = só tipos + `riskInputSchema` Zod; CRUD vai p/ Phase 12. (4) **Tipos** via MCP Supabase `generate_typescript_types` (fallback `npm run gen:types`, ref já no `.env.local`) + migrar ~7 testes legados (`tempo:'medio'/'pequeno'`) ao domínio de frequência. Riscos de execução flagados: confirmar domínio de `p_tempo` da RPC `create_public_opportunity` pós-0011; checar compat MODEL-10 (`enrichment.ts`). Próximo: `/gsd-plan-phase 10 --skip-research`.
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md`
+Resume file: `.planning/phases/11-*/11-CONTEXT.md` (ainda não criado — próximo: `/gsd-discuss-phase 11` ou `/gsd-plan-phase 11`)
+
+---
+
+Update 2026-06-04 (mesma sessão) — **Phase 10 COMPLETA** (`/gsd-execute-phase 10`, execução inline). 4 plans, gsd-verifier **passed 4/4 must-haves**. Gate: `tsc --noEmit` 0 erros; `vitest` 109 passed/0 failed/32 skipped (skipIf integração). **SCORE-04 validado AO VIVO** contra `opportunity_score()` (casos 100/88/59/36/67 — cliente=backend). Commits 36e4e69 (10-02 fórmula única+paridade), bd979e4 (10-01 tipos+0012), 9bdb027 (10-03 schema+cascata), 3aa438a (10-04 testes+AI-COMPAT), + fix do overload duplicado.
+
+**Decisões/descobertas-chave (registradas nos SUMMARYs):**
+1. **Regen de tipos (D-04) não foi possível pelos caminhos do plano** — MCP "Auton - DB" aponta para OUTRO projeto (`yzjlhezmvdkwdhibyvwh`, sem as tabelas do CoE); `gen:types` sem privilégio em `vxgthycrjetniejsjmee` (sem SUPABASE_ACCESS_TOKEN). `lib/database.types.ts` foi **hand-derived do 0011 + verificado contra o catálogo vivo** via introspecção rodada pelo PO. (O arquivo já era hand-maintained.) **TODO:** rodar `gen:types` quando houver token (deve ser no-op de verificação).
+2. **Migration `0012` aplicada** (RPC pública `create_public_opportunity` → `frequency_bucket`). Descoberta no apply: existiam **2 overloads** (18 + 21 params com defaults) → `42725 is not unique`; a app chama o de 21 (de 0009), que ainda tinha o mapeamento antigo. 0012 revisada **dropa o de 18 e recria o de 21** com frequência. Confirmado: 1 overload, sem cast `time_bucket`.
+3. **Cascata de domínio descoberta** (tempo duração→frequência além dos testes): ScoreTab.tsx (3ª cópia da fórmula v0.1), wizard/state.ts + PriorizacaoStep.tsx, `lib/ai/enrichment.ts` (NÃO sobrescreve mais `tempo` — **REALIGN-7.6** deferido), `actions.ts` PublicSubmitInput.tempo + fallback. Todos corrigidos minimamente (sem antecipar o wizard da P11).
+4. **REALIGN-7.6 (deferido):** `lib/ai/schema.ts:31` ainda gera `tempo` no domínio antigo; antes de reativar o enrichment, realinhar o schema da IA p/ frequência e restaurar o write. Doc: `10-04-AI-COMPAT.md`.
+
+**Pendência herdada (não bloqueia):** rodar `gen:types` quando o token existir (verificação). Próximo: **`/gsd-discuss-phase 11`** (Wizard de Fluxo Único — 5 steps).
 
 ---
 

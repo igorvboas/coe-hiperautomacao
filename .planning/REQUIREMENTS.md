@@ -22,7 +22,7 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 - [ ] **SCORE-01**: Função SQL `opportunity_score()` calcula 5 fatores × 20 = 100 (esforço + complexidade + tempo[frequência] + objetivo + fte), conforme `_giba:483-490`
 - [ ] **SCORE-02**: View `opportunities_with_score` expõe o novo `score` + `priority_level` (alta ≥70 / média 40–69 / baixa <40)
 - [ ] **SCORE-03**: `rpaScore` (0–6) derivado dos 8 critérios por regra determinística documentada
-- [ ] **SCORE-04**: Preview de score no wizard usa exatamente a mesma fórmula do backend (sem divergência cliente/servidor)
+- [x] **SCORE-04**: Preview de score no wizard usa exatamente a mesma fórmula do backend (sem divergência cliente/servidor) — Phase 10: `lib/opportunities/score.ts` único, paridade validada ao vivo (100/88/59/36/67)
 
 ### RISK — Registro de Riscos
 

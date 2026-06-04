@@ -1,6 +1,11 @@
 # 10-01 SUMMARY — Tipos pós-0011 + migration 0012 (RPC frequência)
 
-**Status:** ⏳ Tasks 1,2,4 ✅ | Task 3 (apply 0012) **PENDENTE (checkpoint humano)** | **Commit:** bd979e4 (+ 3aa438a p/ T4) | **Requirements:** SCORE-04
+**Status:** ✅ Complete (Tasks 1–4) | **Commits:** bd979e4, 3aa438a (T4), <fix overload> | **Requirements:** SCORE-04
+
+> **Task 3 (apply 0012) — APLICADO E CONFIRMADO pelo PO.** Introspecção pós-apply: **um único**
+> overload (21 params), `frequency_bucket` presente, `time_bucket` cast **ausente** → regressão
+> eliminada e ambiguidade (42725) resolvida. Paridade SCORE-04 validada AO VIVO contra
+> `opportunity_score()` (100/88/59/36/67, todos batem). Correção pós-apply: ver Deviation 3.
 
 ## O que foi construído
 - **`lib/database.types.ts`** (Task 1) — regenerado refletindo o schema vivo pós-0011,
@@ -33,7 +38,8 @@
 2. **A RPC viva tem 18 params, não 21** (o plano supôs 21 de `0009`). 0012 foi construída da
    definição viva (18 params), confirmada por `pg_get_functiondef`.
 
-## Pendência (Task 3 — BLOCKING)
-Aplicar `0012` no Supabase Cloud SQL Editor (handoff). Aguardando "applied" do PO.
-A suíte unit-only passa SEM o apply (public-form é integração skipIf); o apply fecha a
-correção real da regressão do formulário público.
+3. **Dois overloads descobertos no apply.** O smoke deu `42725 is not unique`: existiam
+   overloads de 18 e 21 params (este com defaults, chamado pela app). 0012 foi **revisado**
+   para dropar o de 18 e recriar o de 21 com `frequency_bucket`. Confirmado: 1 overload,
+   sem cast `time_bucket`. Também corrigido `actions.ts` (`p_tempo: input.tempo ?? ''` em vez
+   de `'medio'`) e os tipos (`create_public_opportunity` → 21 params).
