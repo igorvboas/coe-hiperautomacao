@@ -230,43 +230,38 @@ grant select on opportunities_with_score to authenticated;
 -- === VERIFICAÇÃO (dentro da mesma transação, antes do rollback) ===
 -- =============================================================================
 
--- 1) Backfill + tempo + fonte (esperados: 0, 0, 0, 29)
-select 'criterios_null (esp 0)'             as verificacao, count(*) as valor from opportunities where source='formulario' and criterios is null
-union all
-select 'padronizacaoDocs_fora_dominio (esp 0)', count(*)                from opportunities where source='formulario' and criterios is not null and not (criterios->>'padronizacaoDocs' in ('sim','nao','parcial'))
-union all
-select 'formulario_tempo_null (esp 0)',          count(*)               from opportunities where source='formulario' and tempo is null
-union all
-select 'fonte_FGCoop (esp 29)',                  count(*)               from opportunities where fonte='FGCoop'
-union all
-select 'risk_policies (esp 4)',                  count(*)               from pg_policies where tablename='opportunity_risks'
-order by 1;
-
--- 2) tipo da coluna tempo (esperado: frequency_bucket)
-select 'tempo_type' as verificacao,
-       atttypid::regtype::text as valor
-from pg_attribute where attrelid='opportunities'::regclass and attname='tempo';
-
--- 3) smoke do score (esperado: 100 e 36)
-select opportunity_score('alto','baixo','diario',5,'muito_alto') as score_esp_100,
-       opportunity_score('alto','alto','anual',1,'muito_baixo')  as score_esp_36;
-
--- 4) smoke do rpa_score nas linhas legadas (esperado: valores 0–6; null em persona)
-select 'rpa_score amostra' as verificacao, source, rpa_score
-from opportunities where rpa_score is not null order by rpa_score desc limit 5;
-
--- 5) smoke do TRIGGER de priority: insere 1 risco numa opp existente e lê priority.
---    alto × provavel  -> esperado 'critica'.  (rollback desfaz o insert)
+-- Smoke do TRIGGER de priority: insere 2 riscos (priority é setada pelo trigger).
+-- Rollback desfaz. alto×provavel -> critica ; moderado×remota -> baixa.
 insert into opportunity_risks (opportunity_id, tenant_id, descricao, tipo, impacto, probabilidade)
-select id, tenant_id, 'DRYRUN smoke (será desfeito)', 'risco', 'alto', 'provavel'
-from opportunities limit 1
-returning priority as trigger_priority_esp_critica;
-
--- 6) smoke do trigger com outra célula: moderado × remota -> esperado 'baixa'
+select id, tenant_id, 'DRYRUN1', 'risco', 'alto', 'provavel' from opportunities limit 1;
 insert into opportunity_risks (opportunity_id, tenant_id, descricao, tipo, impacto, probabilidade)
-select id, tenant_id, 'DRYRUN smoke 2 (será desfeito)', 'risco', 'moderado', 'remota'
-from opportunities limit 1
-returning priority as trigger_priority_esp_baixa;
+select id, tenant_id, 'DRYRUN2', 'risco', 'moderado', 'remota' from opportunities limit 1;
+
+-- RESULTADO ÚNICO (o SQL Editor mostra só o último select) — manda esta tabela.
+select * from (
+    select 1 ord, 'criterios_null (esp 0)' verificacao,
+           count(*)::text valor from opportunities where source='formulario' and criterios is null
+  union all select 2, 'padronizacaoDocs_fora_dominio (esp 0)',
+           count(*)::text from opportunities where source='formulario' and criterios is not null and criterios->>'padronizacaoDocs' not in ('sim','nao','parcial')
+  union all select 3, 'formulario_tempo_null (esp 0)',
+           count(*)::text from opportunities where source='formulario' and tempo is null
+  union all select 4, 'fonte_FGCoop (esp 29)',
+           count(*)::text from opportunities where fonte='FGCoop'
+  union all select 5, 'risk_policies (esp 4)',
+           count(*)::text from pg_policies where tablename='opportunity_risks'
+  union all select 6, 'tempo_type (esp frequency_bucket)',
+           (select atttypid::regtype::text from pg_attribute where attrelid='opportunities'::regclass and attname='tempo')
+  union all select 7, 'score (esp 100)',
+           opportunity_score('alto'::effort_level,'baixo'::complexity_level,'diario'::frequency_bucket,5::smallint,'muito_alto'::fte_bucket)::text
+  union all select 8, 'score (esp 36)',
+           opportunity_score('alto'::effort_level,'alto'::complexity_level,'anual'::frequency_bucket,1::smallint,'muito_baixo'::fte_bucket)::text
+  union all select 9, 'rpa_score max amostra (esp 0-6)',
+           (select max(rpa_score)::text from opportunities)
+  union all select 10, 'trigger alto x provavel (esp critica)',
+           (select priority::text from opportunity_risks where descricao='DRYRUN1')
+  union all select 11, 'trigger moderado x remota (esp baixa)',
+           (select priority::text from opportunity_risks where descricao='DRYRUN2')
+) t order by ord;
 
 -- =============================================================================
 -- ROLLBACK — nada acima é gravado. Para APLICAR DE VERDADE, troque por: commit;

@@ -58,8 +58,9 @@ where attrelid='opportunities'::regclass and attname='tempo';
 -- esperado: frequency_bucket
 
 -- 7. smoke do score (5 fatores) — bate _giba:483-490
-select opportunity_score('alto','baixo','diario',5,'muito_alto');   -- esperado: 100  (20+20+20+20+20)
-select opportunity_score('alto','alto','anual',1,'muito_baixo');    -- esperado: 36   (20+6+2+4+4)
+-- (casts explícitos: literais 'unknown' não resolvem a função sem tipar os enums)
+select opportunity_score('alto'::effort_level,'baixo'::complexity_level,'diario'::frequency_bucket,5::smallint,'muito_alto'::fte_bucket);   -- esperado: 100  (20+20+20+20+20)
+select opportunity_score('alto'::effort_level,'alto'::complexity_level,'anual'::frequency_bucket,1::smallint,'muito_baixo'::fte_bucket);    -- esperado: 36   (20+6+2+4+4)
 
 -- 8. smoke do rpa_score GENERATED (deve refletir os criterios)
 select rpa_score from opportunities where source='formulario' and rpa_score is not null limit 3;
