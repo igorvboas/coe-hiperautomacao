@@ -64,11 +64,13 @@ begin
     alter table opportunities alter column tempo drop default;
     alter table opportunities alter column tempo type frequency_bucket using (
       case lower(translate(coalesce(frequencia,''),'áéíóúÁÉÍÓÚ','aeiouAEIOU'))
-        when 'diario'    then 'diario'
-        when 'semanal'   then 'semanal'
-        when 'quinzenal' then 'quinzenal'
-        when 'mensal'    then 'mensal'
-        when 'anual'     then 'anual'
+        when 'diario'          then 'diario'
+        when 'semanal'         then 'semanal'
+        when 'quinzenal'       then 'quinzenal'
+        when 'mensal'          then 'mensal'
+        when 'anual'           then 'anual'
+        when 'eventual'        then 'anual'    -- raro/ocasional -> bucket mais baixo (dado real FGCoop seq_id 25)
+        when '5 vezes por dia' then 'diario'   -- várias vezes ao dia -> diário (dado real)
         else null end::frequency_bucket);
   end if;
 end$$;
@@ -108,8 +110,11 @@ set beneficios = jsonb_strip_nulls(jsonb_build_object(
 from (select id, formulario_extras->'beneficios' as b from opportunities) src
 where o.id = src.id and src.b is not null;
 
--- 4c. fonte = 'FGCoop' nas 29 legadas (D-03). fte_horas/fte ficam NULL (D-02).
-update opportunities set fonte = 'FGCoop' where fonte is null;
+-- 4c. fonte = 'FGCoop' nas 29 legadas do tenant FGCoop (D-03). fte_horas/fte ficam NULL (D-02).
+-- ESCOPADO ao tenant FGCoop (11111111-...): NÃO carimbar 'FGCoop' em dados de outros
+-- tenants (ex.: tenant 99999999 tem 4 rows próprios). Outros tenants ficam fonte NULL.
+update opportunities set fonte = 'FGCoop'
+where fonte is null and tenant_id = '11111111-1111-1111-1111-111111111111';
 
 -- ---------------------------------------------------------------------------
 -- 5. rpa_score GENERATED (0-6) derivado de criterios — MODEL-02 / SCORE-03 / D-09..D-11

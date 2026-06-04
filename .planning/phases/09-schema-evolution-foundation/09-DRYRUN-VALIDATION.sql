@@ -45,11 +45,13 @@ begin
     alter table opportunities alter column tempo drop default;
     alter table opportunities alter column tempo type frequency_bucket using (
       case lower(translate(coalesce(frequencia,''),'áéíóúÁÉÍÓÚ','aeiouAEIOU'))
-        when 'diario'    then 'diario'
-        when 'semanal'   then 'semanal'
-        when 'quinzenal' then 'quinzenal'
-        when 'mensal'    then 'mensal'
-        when 'anual'     then 'anual'
+        when 'diario'          then 'diario'
+        when 'semanal'         then 'semanal'
+        when 'quinzenal'       then 'quinzenal'
+        when 'mensal'          then 'mensal'
+        when 'anual'           then 'anual'
+        when 'eventual'        then 'anual'
+        when '5 vezes por dia' then 'diario'
         else null end::frequency_bucket);
   end if;
 end$$;
@@ -79,7 +81,8 @@ set beneficios = jsonb_strip_nulls(jsonb_build_object(
 from (select id, formulario_extras->'beneficios' as b from opportunities) src
 where o.id = src.id and src.b is not null;
 
-update opportunities set fonte = 'FGCoop' where fonte is null;
+update opportunities set fonte = 'FGCoop'
+where fonte is null and tenant_id = '11111111-1111-1111-1111-111111111111';
 
 -- ===== 5. rpa_score GENERATED =====
 alter table opportunities
