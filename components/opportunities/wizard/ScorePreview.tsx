@@ -1,32 +1,15 @@
 'use client';
 
+import { calcScore, priorityLevel, type Prioridade } from '@/lib/opportunities/score';
 import { scoreColor } from '@/lib/opportunities/utils';
 
-type Props = {
-  esforco?: 'baixo' | 'medio' | 'alto';
-  complexidade?: 'baixo' | 'medio' | 'alto';
-  tempo?: 'pequeno' | 'medio' | 'grande';
-  objetivo?: number;
-};
-
-function calcScore(p: Props): number {
-  const em = { baixo: 25, medio: 15, alto: 5 } as const;
-  const cm = { baixo: 25, medio: 15, alto: 5 } as const;
-  const tm = { pequeno: 25, medio: 15, grande: 5 } as const;
-  const e = p.esforco ? em[p.esforco] : 0;
-  const c = p.complexidade ? cm[p.complexidade] : 0;
-  const t = p.tempo ? tm[p.tempo] : 0;
-  const o = p.objetivo
-    ? Math.round((Math.min(5, p.objetivo) / 5) * 25)
-    : 0;
-  return e + c + t + o;
-}
-
-function priorityLevel(s: number): 'alta' | 'media' | 'baixa' {
-  if (s >= 70) return 'alta';
-  if (s >= 40) return 'media';
-  return 'baixa';
-}
+// SCORE-04: consome a fórmula ÚNICA de lib/opportunities/score.ts (5 fatores,
+// incl. o bucket de FTE como 5º fator) — sem fórmula própria. Props segue
+// Prioridade: domínio de frequência para `tempo` ('diario'..'anual') e `fte`
+// ('muito_baixo'..'muito_alto'). Call-sites legados que ainda passam o domínio
+// antigo de `tempo` caem no fallback do calcScore (16) até a Phase 11 colar os
+// novos campos no wizard — comportamento aditivo aceito (P10 não reescreve o wizard).
+type Props = Prioridade;
 
 export function ScorePreview(props: Props) {
   const score = calcScore(props);
