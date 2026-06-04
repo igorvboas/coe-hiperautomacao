@@ -448,6 +448,8 @@ export type Database = {
         Returns: { id: string; name: string; slug: string }[];
       };
       create_public_opportunity: {
+        // Overload canônico (21 params, de 0009 + 0012). O overload antigo de 18
+        // params foi removido em 0012 (era ambíguo e carregava o mapeamento antigo).
         Args: {
           p_tenant_slug: string;
           p_solicitante: string;
@@ -467,6 +469,9 @@ export type Database = {
           p_tempo: string;
           p_objetivo: number;
           p_formulario_extras: Json;
+          p_request_type: string;
+          p_observacao: string | null;
+          p_risco: string | null;
         };
         Returns: string;
       };

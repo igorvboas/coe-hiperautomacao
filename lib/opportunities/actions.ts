@@ -203,7 +203,9 @@ export async function createPublicOpportunity(
     ),
     p_esforco: input.esforco ?? 'medio',
     p_complexidade: input.complexidade ?? 'medio',
-    p_tempo: input.tempo ?? 'medio',
+    // tempo agora é FREQUÊNCIA (0011/0012). Sem valor → '' (a RPC mapeia fora-do-
+    // domínio para null). 'medio' era o domínio antigo (duração) — removido.
+    p_tempo: input.tempo ?? '',
     p_objetivo: input.objetivo,
     p_formulario_extras: (input.formulario_extras ?? {}) as never,
     p_request_type: input.request_type ?? 'nova_oportunidade',

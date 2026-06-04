@@ -3,23 +3,23 @@
 -- =============================================================================
 -- Phase 10 — Plan 10-01.
 --
--- CAUSA: 0011 mudou `opportunities.tempo` de `time_bucket` para `frequency_bucket`.
--- A RPC pública `create_public_opportunity` (definição LIVE, herdada de 0005, com o
--- hardening de 0007) ainda mapeava `p_tempo` no domínio ANTIGO:
---     case when p_tempo in ('pequeno','medio','grande') then p_tempo::time_bucket else null end
--- e inseria em `opportunities.tempo`. Pós-0011 isso grava NULL silencioso (valores
--- de frequência caem no else) — regressão latente do formulário público anônimo
--- (Phase 7.5). Nenhum valor de frequência válido chegava à coluna.
+-- CAUSA: 0011 mudou `opportunities.tempo` de duração (time_bucket) para frequência
+-- (frequency_bucket). A RPC pública `create_public_opportunity` ainda mapeava
+-- `p_tempo` no domínio antigo e inseria em `opportunities.tempo` → gravava NULL
+-- silencioso para valores de frequência. Regressão latente do formulário público
+-- anônimo (Phase 7.5).
 --
--- CORREÇÃO: recriar a função com `create or replace`, assinatura IDÊNTICA (18 params,
--- confirmada por introspecção do catálogo vivo em 2026-06-04), corpo IDÊNTICO, mudando
--- APENAS a linha de mapeamento de `p_tempo` para o domínio de frequência:
---     case when p_tempo in ('diario','semanal','quinzenal','mensal','anual')
---          then p_tempo::frequency_bucket else null end
+-- DESCOBERTA NO APPLY: existiam DOIS overloads de create_public_opportunity:
+--   (a) 18 params (..., p_objetivo smallint, p_formulario_extras jsonb) — legado;
+--   (b) 21 params (..., p_request_type, p_observacao, p_risco com DEFAULT) — de 0009,
+--       o overload que a app realmente chama (lib/opportunities/actions.ts).
+-- Como (b) tem defaults nos 3 últimos params, uma chamada de 18 args casava com
+-- AMBOS → "function is not unique" (42725). E (b) ainda carregava o mapeamento antigo.
 --
--- `create or replace` com a MESMA assinatura substitui no lugar e PRESERVA os grants
--- existentes (anon, authenticated) — sem drop de overload. O grant é reafirmado ao
--- final por segurança/idempotência.
+-- CORREÇÃO:
+--   1. DROP do overload legado de 18 params (morto; nada o chama; fonte da ambiguidade).
+--   2. create or replace do overload de 21 params (corpo IDÊNTICO ao vivo, com os
+--      DEFAULTs preservados), mudando APENAS o mapeamento de `p_tempo` para frequência.
 --
 -- WRITE-ONLY MODE — aplicar manualmente no Supabase Cloud SQL Editor (NÃO db push).
 -- Colar o conteúdo INTEIRO de uma vez. Pré-requisitos: 0001..0011 aplicadas.
@@ -27,6 +27,13 @@
 
 set check_function_bodies = off;
 
+-- 1. Remove o overload legado de 18 params (ambíguo + mapeamento antigo).
+drop function if exists public.create_public_opportunity(
+  text, text, text, text, text, text, text, text, text, text, text,
+  text[], text[], text, text, text, smallint, jsonb
+);
+
+-- 2. Recria o overload canônico de 21 params com p_tempo → frequency_bucket.
 create or replace function public.create_public_opportunity(
   p_tenant_slug text,
   p_solicitante text,
@@ -45,21 +52,24 @@ create or replace function public.create_public_opportunity(
   p_complexidade text,
   p_tempo text,
   p_objetivo smallint,
-  p_formulario_extras jsonb
+  p_formulario_extras jsonb,
+  p_request_type text default 'nova_oportunidade'::text,
+  p_observacao text default null::text,
+  p_risco text default null::text
 ) returns uuid
   language plpgsql
   security definer
   set search_path to 'public'
 as $function$
 declare
-  v_tenant_id uuid;
-  v_opp_id    uuid;
-  v_item      text;
+  v_tenant_id    uuid;
+  v_opp_id       uuid;
+  v_item         text;
+  v_request_type opportunity_request_type;
 begin
   -- =====================================================================
-  -- Defesa em profundidade: length / array / jsonb limits
+  -- Length / array / jsonb limits
   -- =====================================================================
-
   if length(coalesce(p_solicitante, '')) > 200 then
     raise exception 'solicitante excede 200 caracteres';
   end if;
@@ -86,6 +96,12 @@ begin
   end if;
   if length(coalesce(p_num_pessoas, '')) > 60 then
     raise exception 'número de pessoas excede 60 caracteres';
+  end if;
+  if length(coalesce(p_observacao, '')) > 2000 then
+    raise exception 'observacao excede 2000 caracteres';
+  end if;
+  if length(coalesce(p_risco, '')) > 2000 then
+    raise exception 'risco excede 2000 caracteres';
   end if;
 
   if coalesce(array_length(p_escopo_automacao, 1), 0) > 20 then
@@ -116,9 +132,8 @@ begin
   end if;
 
   -- =====================================================================
-  -- Validações originais (de 0005, mantidas)
+  -- Validações originais
   -- =====================================================================
-
   if p_solicitante is null or length(trim(p_solicitante)) < 2 then
     raise exception 'Nome do solicitante é obrigatório';
   end if;
@@ -135,10 +150,19 @@ begin
     raise exception 'Alinhamento estratégico deve estar entre 1 e 5';
   end if;
 
-  -- =====================================================================
-  -- Resolve tenant e INSERT (mantém lógica de 0005)
-  -- =====================================================================
+  -- request_type → enum, com fallback seguro
+  if p_request_type in (
+    'nova_oportunidade','melhoria_automacao','duvidas_terceiros',
+    'incidente','treinamento'
+  ) then
+    v_request_type := p_request_type::opportunity_request_type;
+  else
+    v_request_type := 'nova_oportunidade';
+  end if;
 
+  -- =====================================================================
+  -- Resolve tenant + INSERT
+  -- =====================================================================
   select id into v_tenant_id
     from tenants
    where slug = p_tenant_slug and status = 'active'
@@ -149,13 +173,14 @@ begin
   end if;
 
   insert into opportunities (
-    tenant_id, source, solicitante, email, area, subarea, processo,
+    tenant_id, source, request_type, solicitante, email, area, subarea, processo,
     frequencia, volume_medio, tempo_execucao, num_pessoas,
     ferramenta, escopo_automacao, beneficios_esperados,
     esforco, complexidade, tempo, objetivo,
-    status, formulario_extras
+    status, formulario_extras, observacao, risco
   ) values (
-    v_tenant_id, 'formulario', trim(p_solicitante), trim(p_email),
+    v_tenant_id, 'formulario', v_request_type,
+    trim(p_solicitante), trim(p_email),
     trim(p_area), nullif(trim(coalesce(p_subarea,'')),''),
     trim(p_processo), nullif(trim(coalesce(p_frequencia,'')),''),
     nullif(trim(coalesce(p_volume_medio,'')),''),
@@ -169,11 +194,13 @@ begin
     coalesce(p_beneficios_esperados, '{}'),
     case when p_esforco in ('baixo', 'medio', 'alto') then p_esforco::effort_level else null end,
     case when p_complexidade in ('baixo', 'medio', 'alto') then p_complexidade::complexity_level else null end,
-    -- 0012: p_tempo agora no domínio de FREQUÊNCIA (era ('pequeno','medio','grande')::time_bucket)
+    -- 0012: p_tempo agora no domínio de FREQUÊNCIA (antes era duração).
     case when p_tempo in ('diario', 'semanal', 'quinzenal', 'mensal', 'anual') then p_tempo::frequency_bucket else null end,
     p_objetivo,
     'novo',
-    p_formulario_extras
+    p_formulario_extras,
+    nullif(trim(coalesce(p_observacao, '')), ''),
+    nullif(trim(coalesce(p_risco, '')), '')
   )
   returning id into v_opp_id;
 
@@ -181,14 +208,15 @@ begin
 end;
 $function$;
 
--- Reafirma os grants (idempotente; create or replace já os preserva).
+-- 3. Reafirma os grants no overload de 21 params (idempotente).
 grant execute on function public.create_public_opportunity(
   text, text, text, text, text, text, text, text, text, text, text,
-  text[], text[], text, text, text, smallint, jsonb
+  text[], text[], text, text, text, smallint, jsonb, text, text, text
 ) to anon, authenticated;
 
 -- =============================================================================
--- Smoke (rodar manualmente após o apply; limpar a row depois):
+-- Smoke (rodar após o apply; limpar a row depois). Com o overload de 18 params
+-- removido, a chamada de 18 args resolve sem ambiguidade (os 3 defaults preenchem):
 --   select public.create_public_opportunity(
 --     '<slug-de-tenant-ativo>', 'smoke', 'smoke@x.z', 'TI', '', 'proc smoke',
 --     '', '', '', '', '', '{}'::text[], '{}'::text[],

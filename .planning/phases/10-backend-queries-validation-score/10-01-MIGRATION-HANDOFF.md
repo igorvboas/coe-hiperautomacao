@@ -19,9 +19,13 @@ Pós-0011 isso grava **NULL silencioso** para qualquer valor de frequência → 
 latente do formulário público anônimo (Phase 7.5). 0012 recria a função com assinatura e
 corpo idênticos, mudando só a linha de `p_tempo` para o domínio de frequência.
 
-> **Nota:** a definição viva tem **18 parâmetros** (o PLAN.md supôs 21 a partir de
-> `0009_observacao_risco.sql`; a introspecção do catálogo mostrou que a função viva é a de
-> 18 params). 0012 foi construída a partir da **definição viva**, não da suposição do plano.
+> **Correção pós-apply (descoberta no smoke):** existiam **DOIS overloads** —
+> 18 params (legado) e 21 params (de 0009, com `p_request_type/p_observacao/p_risco`
+> DEFAULT). A app chama o de 21 params. Como o de 21 tem defaults, uma chamada de 18 args
+> casava com ambos → `42725 function is not unique`, e o de 21 ainda tinha o mapeamento
+> antigo. **0012 (revisado)** agora: (1) DROP do overload de 18 params; (2) `create or
+> replace` do de 21 params com `p_tempo`→`frequency_bucket`. Resolve a ambiguidade E corrige
+> a regressão no overload que a app usa.
 
 ## Como aplicar
 
