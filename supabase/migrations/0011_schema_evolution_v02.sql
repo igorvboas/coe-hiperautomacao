@@ -223,26 +223,13 @@ create table if not exists opportunity_risks (
   status            risk_status not null default 'novo',
   resposta          text,
   descricao_impacto text,
-  -- D-14: priority é GENERATED da matriz (derivada, nunca input manual). É `text`
-  -- (não o enum risk_priority) porque o cast runtime text->enum (`enum_in`) é STABLE,
-  -- não IMMUTABLE, e GENERATED exige expressão imutável (Postgres 42P17). Usamos só
-  -- `impacto::text`/`probabilidade::text` (enum->text = enum_out, IMMUTABLE) + comparações
-  -- de texto. Os valores ainda são sempre um de critica|alta|media|baixa por construção.
-  priority          text generated always as (
-    case
-      when impacto::text='alto'          and probabilidade::text in ('provavel','possivel')   then 'critica'
-      when impacto::text='alto'                                                               then 'alta'
-      when impacto::text='significativo' and probabilidade::text='provavel'                   then 'critica'
-      when impacto::text='significativo' and probabilidade::text='possivel'                   then 'alta'
-      when impacto::text='significativo'                                                      then 'media'
-      when impacto::text='moderado'      and probabilidade::text='provavel'                   then 'alta'
-      when impacto::text='moderado'      and probabilidade::text in ('possivel','improvavel') then 'media'
-      when impacto::text='moderado'                                                           then 'baixa'
-      when impacto::text='baixo'         and probabilidade::text='provavel'                   then 'alta'
-      when impacto::text='baixo'         and probabilidade::text='possivel'                   then 'media'
-      when impacto::text='baixo'                                                              then 'baixa'
-    end
-  ) stored,                                                -- D-14
+  -- D-14: priority é DERIVADA da matriz (nunca input manual), mas via TRIGGER (passo 11b),
+  -- não GENERATED. Motivo: uma coluna GENERATED exige expressão IMMUTABLE, e qualquer
+  -- operação com enum (text->enum `enum_in` E enum->text `enum_out`) é tratada como não-
+  -- imutável pelo Postgres (42P17). O trigger BEFORE INSERT/UPDATE não tem essa restrição
+  -- e SEMPRE sobrescreve new.priority — mesma garantia "derivada, nunca manual" (padrão do
+  -- seq_id em 0006). Coluna plain risk_priority, populada pelo trigger.
+  priority          risk_priority,                         -- D-14 (set by trigger)
   created_by        uuid references profiles(id) on delete set null,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
@@ -272,6 +259,35 @@ grant select, insert, update, delete on opportunity_risks to authenticated;
 drop trigger if exists trg_opportunity_risks_updated_at on opportunity_risks;
 create trigger trg_opportunity_risks_updated_at
   before update on opportunity_risks for each row execute function set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- 11b. Trigger priority — matriz impacto×probabilidade (_giba:1180-1185) — D-14
+-- ---------------------------------------------------------------------------
+-- SEMPRE sobrescreve new.priority (ignora valor enviado pelo cliente → "nunca input
+-- manual", igual ao seq_id em 0006). Em PL/pgSQL casts de enum são livres (sem a
+-- restrição de imutabilidade da coluna GENERATED). plpgsql_check off via check_function_bodies.
+create or replace function set_risk_priority() returns trigger language plpgsql as $$
+begin
+  new.priority := (case
+    when new.impacto='alto'          and new.probabilidade in ('provavel','possivel')   then 'critica'
+    when new.impacto='alto'                                                             then 'alta'
+    when new.impacto='significativo' and new.probabilidade='provavel'                   then 'critica'
+    when new.impacto='significativo' and new.probabilidade='possivel'                   then 'alta'
+    when new.impacto='significativo'                                                    then 'media'
+    when new.impacto='moderado'      and new.probabilidade='provavel'                   then 'alta'
+    when new.impacto='moderado'      and new.probabilidade in ('possivel','improvavel') then 'media'
+    when new.impacto='moderado'                                                         then 'baixa'
+    when new.impacto='baixo'         and new.probabilidade='provavel'                   then 'alta'
+    when new.impacto='baixo'         and new.probabilidade='possivel'                   then 'media'
+    when new.impacto='baixo'                                                            then 'baixa'
+  end)::risk_priority;
+  return new;
+end$$;
+
+drop trigger if exists trg_opportunity_risks_priority on opportunity_risks;
+create trigger trg_opportunity_risks_priority
+  before insert or update on opportunity_risks
+  for each row execute function set_risk_priority();
 
 -- ---------------------------------------------------------------------------
 -- 12. Recriar view opportunities_with_score (DROP+CREATE) — fechamento — SCORE-02
