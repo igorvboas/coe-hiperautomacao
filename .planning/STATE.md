@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_execute
-next_action: execute-phase
+status: executing_blocked_on_apply
+next_action: apply-migration-0011
 active_phase: 9
 next_phases: [10, 11, 12, 13, 14, 15]
 progress:
@@ -125,7 +125,12 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 ## Session Continuity
 
 Last session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md`
+Resume file: `.planning/phases/09-schema-evolution-foundation/09-MIGRATION-HANDOFF.md`
+
+---
+
+Update 2026-06-04 (mesma sessão) — `/gsd-execute-phase 9` (inline sequential). **Wave 0 + Wave 1 escritos e commitados; bloqueado no checkpoint [BLOCKING] de apply manual de 0011.** 09-02 (contrato/docs) ✅ completo. 09-03 (testes de validação) ✅ completo — 33 testes puros green (rpa_score/score/matriz), 5 de isolamento em skip mode; `tsc --noEmit` clean; suite completa 103 passed/27 skipped/0 failed. 09-01 (migration 0011 + handoff) escrito e commitado, **Task 3 = apply manual no Supabase Cloud SQL Editor PENDENTE** (resume: usuário digita "applied" ou descreve erro; ver `09-MIGRATION-HANDOFF.md`). Após apply: rodar `npm run gen:types`. Regressão conhecida deferida p/ Phase 10: 7 testes existentes usam `tempo:'medio'` (domínio antigo) — integração quebra quando test DB tiver 0011. Commits fe6ea42..eb31590.
+Status: **executing_blocked_on_apply** — Phase 9 NÃO marcada completa até apply + verificação.
 
 ---
 
