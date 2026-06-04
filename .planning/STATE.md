@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: roadmap_ready
+status: phase_context_ready
 next_action: plan-phase
 active_phase: 9
 next_phases: [10, 11, 12, 13, 14, 15]
@@ -124,6 +124,11 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-05-22
+Last session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
+Resume file: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md`
+
+---
+
+Previous session: 2026-05-22
 Stopped at: **Phase 7.5 COMPLETA** (6/6 plans). Plan 07.5-06 (Wave 5 — formulário público hardened) completo em **write-only mode**. 8 commits atômicos (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min. Próximo: `/gsd-verify-work 7.5` (UAT — recomendado aguardar apply de 0006+0007 + setup de Turnstile/BotID/IP_HASH_SALT para E2E real em preview), depois Phase 8 (Polish & Deploy).
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
