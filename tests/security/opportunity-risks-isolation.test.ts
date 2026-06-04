@@ -22,12 +22,11 @@
 // Pré-requisito: migrations 0001..0011 aplicadas + seed dos dois tenants
 // (FGCOOP_TEST_ID, ACME_TEST_ID) via seedTestTenants.
 //
-// NOTA DE TIPOS (write-only mode): `lib/database.types.ts` é gerado da DB viva e só
-// conhecerá `opportunity_risks` + o novo `tempo` (frequency_bucket) DEPOIS do apply
-// manual de 0011 + `npm run gen:types`. Até lá, os clientes que tocam essas tabelas/
-// colunas são tipados como `any` (mesmo padrão de `lib/public-form/log.ts` pós-0007).
-// Após gen:types (Phase 10), os `any` podem ser removidos para recuperar a checagem
-// de tipos completa.
+// NOTA DE TIPOS: os tipos de `lib/database.types.ts` foram regenerados na Phase 10
+// (Plan 10-01) e agora conhecem `opportunity_risks` + `tempo` (frequency_bucket), então
+// os `any`-casts que existiam aqui (write-only mode pós-0011) foram REMOVIDOS — os
+// clientes voltam a ser tipados (`SupabaseClient<Database>`), recuperando a checagem
+// de tipos completa nas queries de risco.
 // =============================================================================
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { serviceRoleClient } from '../setup/supabase-test-client';
@@ -36,12 +35,11 @@ import { FGCOOP_TEST_ID, ACME_TEST_ID, seedTestTenants } from '../setup/seed-tes
 
 const HAS_DB = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-// Acesso à DB com tipo `any` enquanto os tipos gerados não conhecem 0011 (ver nota acima).
-const svc = (): any => asService();
-const fgcoopClient = async (): Promise<any> => (await asFgcoop()).client;
+const svc = () => asService();
+const fgcoopClient = async () => (await asFgcoop()).client;
 
 describe.skipIf(!HAS_DB)('opportunity_risks — RLS cross-tenant (RISK-04 SC4)', () => {
-  let sb: any;
+  let sb: ReturnType<typeof serviceRoleClient>;
 
   let fgcoopOppId: string;
   let acmeOppId: string;

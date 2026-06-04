@@ -88,7 +88,7 @@ describe.skipIf(!HAS_DB)('Public form RPC hardening (Bloco D)', () => {
       p_beneficios_esperados: [],
       p_esforco: 'medio',
       p_complexidade: 'medio',
-      p_tempo: 'medio',
+      p_tempo: 'mensal',
       p_objetivo: 3,
       p_formulario_extras: null,
     });
@@ -114,7 +114,7 @@ describe.skipIf(!HAS_DB)('Public form RPC hardening (Bloco D)', () => {
       p_beneficios_esperados: [],
       p_esforco: 'medio',
       p_complexidade: 'medio',
-      p_tempo: 'medio',
+      p_tempo: 'mensal',
       p_objetivo: 3,
       p_formulario_extras: null,
     });
@@ -141,7 +141,7 @@ describe.skipIf(!HAS_DB)('Public form RPC hardening (Bloco D)', () => {
       p_beneficios_esperados: [],
       p_esforco: 'medio',
       p_complexidade: 'medio',
-      p_tempo: 'medio',
+      p_tempo: 'mensal',
       p_objetivo: 3,
       p_formulario_extras: big,
     });
@@ -167,7 +167,7 @@ describe.skipIf(!HAS_DB)('Public form RPC hardening (Bloco D)', () => {
       p_beneficios_esperados: [],
       p_esforco: 'medio',
       p_complexidade: 'medio',
-      p_tempo: 'medio',
+      p_tempo: 'mensal',
       p_objetivo: 3,
       p_formulario_extras: null,
     });
@@ -250,7 +250,7 @@ describe.skipIf(!HAS_DB)('Public form RPC hardening (Bloco D)', () => {
       p_beneficios_esperados: ['benefit1'],
       p_esforco: 'medio',
       p_complexidade: 'medio',
-      p_tempo: 'medio',
+      p_tempo: 'mensal',
       p_objetivo: 3,
       p_formulario_extras: { tipo_processo: 'Backoffice' },
     });

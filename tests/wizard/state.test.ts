@@ -163,11 +163,13 @@ describe('validateStep — Phase 7.6 (branch priorizacao removido)', () => {
 });
 
 describe('defaultFormData — defaults preservados (DB constraints)', () => {
-  it('mantém esforco/complexidade/tempo/objetivo defaults — IA vai sobrescrever', () => {
+  it('mantém esforco/complexidade/objetivo defaults — IA vai sobrescrever', () => {
     const d = defaultFormData();
     expect(d.esforco).toBe('medio');
     expect(d.complexidade).toBe('medio');
-    expect(d.tempo).toBe('medio');
+    // tempo (frequência, 0011) não tem mais default no create — 'medio' não é um
+    // valor de frequency_bucket. A priorização/IA define o valor.
+    expect(d.tempo).toBeUndefined();
     expect(d.objetivo).toBe(3);
     expect(d.status).toBe('novo');
     expect(d.request_type).toBe('nova_oportunidade');

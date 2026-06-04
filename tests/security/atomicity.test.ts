@@ -101,7 +101,7 @@ describe.skipIf(!HAS_DB)('seq_id atomicity (Bloco C)', () => {
           processo: `atomicity test ${i}`,
           esforco: 'medio',
           complexidade: 'medio',
-          tempo: 'medio',
+          tempo: 'mensal',
           objetivo: 3,
         })
         .select('seq_id')
@@ -151,7 +151,7 @@ describe.skipIf(!HAS_DB)('seq_id atomicity (Bloco C)', () => {
         processo: 'forge attempt',
         esforco: 'medio',
         complexidade: 'medio',
-        tempo: 'medio',
+        tempo: 'mensal',
         objetivo: 3,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
@@ -194,7 +194,7 @@ describe.skipIf(!HAS_DB)('seq_id atomicity (Bloco C)', () => {
           processo: `iso ${i}`,
           esforco: 'medio',
           complexidade: 'medio',
-          tempo: 'medio',
+          tempo: 'mensal',
           objetivo: 3,
         })
         .select('seq_id, tenant_id')

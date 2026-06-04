@@ -138,7 +138,7 @@ describe('enrichOpportunity', () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it('AI-MODEL-01: happy path — parse retorna parsed → UPDATE com 9 campos + enriched', async () => {
+  it('AI-MODEL-01: happy path — parse retorna parsed → UPDATE com 8 campos (tempo deferido REALIGN-7.6)', async () => {
     mockParse.mockResolvedValueOnce({
       choices: [{ message: { parsed: ENRICHED, refusal: null }, finish_reason: 'stop' }],
     });
@@ -157,7 +157,9 @@ describe('enrichOpportunity', () => {
     expect(updateCall.risco).toBe('');
     expect(updateCall.esforco).toBe('medio');
     expect(updateCall.complexidade).toBe('medio');
-    expect(updateCall.tempo).toBe('pequeno');
+    // REALIGN-7.6: enrichOpportunity NÃO sobrescreve `tempo` — a IA ainda produz o
+    // domínio antigo (duração) e a coluna virou frequency_bucket (0011). Sem map 1:1.
+    expect(updateCall.tempo).toBeUndefined();
     expect(updateCall.objetivo).toBe(4);
     expect(updateCall.ai_enrichment_status).toBe('enriched');
     expect(updateCall.ai_enriched_at).toBeTypeOf('string');

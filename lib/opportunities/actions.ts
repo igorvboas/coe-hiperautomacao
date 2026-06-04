@@ -65,7 +65,8 @@ export type PublicSubmitInput = {
   beneficios_esperados?: string[];
   esforco?: 'baixo' | 'medio' | 'alto';
   complexidade?: 'baixo' | 'medio' | 'alto';
-  tempo?: 'pequeno' | 'medio' | 'grande';
+  // v0.2 (0011/0012): `tempo` é FREQUÊNCIA (a RPC pública 0012 aceita esse domínio).
+  tempo?: 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'anual';
   objetivo: number;
   formulario_extras?: Record<string, unknown>;
   request_type?:

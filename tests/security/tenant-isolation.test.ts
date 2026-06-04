@@ -87,7 +87,7 @@ describe.skipIf(!HAS_DB)('Tenant isolation (Bloco A) — RLS + IDOR', () => {
         processo: 'fgcoop process',
         esforco: 'medio',
         complexidade: 'medio',
-        tempo: 'medio',
+        tempo: 'mensal',
         objetivo: 3,
       })
       .select('id')
@@ -107,7 +107,7 @@ describe.skipIf(!HAS_DB)('Tenant isolation (Bloco A) — RLS + IDOR', () => {
         processo: 'acme process',
         esforco: 'medio',
         complexidade: 'medio',
-        tempo: 'medio',
+        tempo: 'mensal',
         objetivo: 3,
       })
       .select('id')
@@ -214,7 +214,7 @@ describe.skipIf(!HAS_DB)('Tenant isolation (Bloco A) — RLS + IDOR', () => {
           processo: 'attack',
           esforco: 'medio',
           complexidade: 'medio',
-          tempo: 'medio',
+          tempo: 'mensal',
           objetivo: 3,
         })
         .select('id');
@@ -382,7 +382,7 @@ describe.skipIf(!HAS_DB)('Tenant isolation (Bloco A) — RLS + IDOR', () => {
         processo: 'attack',
         esforco: 'medio' as const,
         complexidade: 'medio' as const,
-        tempo: 'medio' as const,
+        tempo: 'mensal' as const,
         objetivo: 3,
       };
       const r = opportunityInputSchema.safeParse(malicious);

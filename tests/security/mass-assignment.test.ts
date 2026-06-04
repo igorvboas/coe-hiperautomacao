@@ -35,7 +35,7 @@ const VALID_PERSONA = {
   beneficios_esperados: [] as string[],
   esforco: 'medio' as const,
   complexidade: 'medio' as const,
-  tempo: 'medio' as const,
+  tempo: 'mensal' as const,
   objetivo: 3,
   status: 'novo' as const,
   responsavel: '',

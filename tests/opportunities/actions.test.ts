@@ -125,7 +125,7 @@ const PUBLIC_INPUT = {
   beneficios_esperados: [],
   esforco: 'medio' as const,
   complexidade: 'medio' as const,
-  tempo: 'medio' as const,
+  tempo: 'mensal' as const,
   objetivo: 3,
   formulario_extras: {},
   request_type: 'nova_oportunidade' as const,
