@@ -223,20 +223,25 @@ create table if not exists opportunity_risks (
   status            risk_status not null default 'novo',
   resposta          text,
   descricao_impacto text,
-  priority          risk_priority generated always as (
+  -- D-14: priority é GENERATED da matriz (derivada, nunca input manual). É `text`
+  -- (não o enum risk_priority) porque o cast runtime text->enum (`enum_in`) é STABLE,
+  -- não IMMUTABLE, e GENERATED exige expressão imutável (Postgres 42P17). Usamos só
+  -- `impacto::text`/`probabilidade::text` (enum->text = enum_out, IMMUTABLE) + comparações
+  -- de texto. Os valores ainda são sempre um de critica|alta|media|baixa por construção.
+  priority          text generated always as (
     case
-      when impacto='alto'          and probabilidade in ('provavel','possivel')   then 'critica'
-      when impacto='alto'                                                         then 'alta'
-      when impacto='significativo' and probabilidade='provavel'                   then 'critica'
-      when impacto='significativo' and probabilidade='possivel'                   then 'alta'
-      when impacto='significativo'                                                then 'media'
-      when impacto='moderado'      and probabilidade='provavel'                   then 'alta'
-      when impacto='moderado'      and probabilidade in ('possivel','improvavel') then 'media'
-      when impacto='moderado'                                                     then 'baixa'
-      when impacto='baixo'         and probabilidade='provavel'                   then 'alta'
-      when impacto='baixo'         and probabilidade='possivel'                   then 'media'
-      when impacto='baixo'                                                        then 'baixa'
-    end::risk_priority
+      when impacto::text='alto'          and probabilidade::text in ('provavel','possivel')   then 'critica'
+      when impacto::text='alto'                                                               then 'alta'
+      when impacto::text='significativo' and probabilidade::text='provavel'                   then 'critica'
+      when impacto::text='significativo' and probabilidade::text='possivel'                   then 'alta'
+      when impacto::text='significativo'                                                      then 'media'
+      when impacto::text='moderado'      and probabilidade::text='provavel'                   then 'alta'
+      when impacto::text='moderado'      and probabilidade::text in ('possivel','improvavel') then 'media'
+      when impacto::text='moderado'                                                           then 'baixa'
+      when impacto::text='baixo'         and probabilidade::text='provavel'                   then 'alta'
+      when impacto::text='baixo'         and probabilidade::text='possivel'                   then 'media'
+      when impacto::text='baixo'                                                              then 'baixa'
+    end
   ) stored,                                                -- D-14
   created_by        uuid references profiles(id) on delete set null,
   created_at        timestamptz not null default now(),
