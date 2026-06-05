@@ -209,7 +209,9 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   2. A prioridade do risco (Crítica/Alta/Média/Baixa) é exibida automaticamente conforme a matriz impacto×probabilidade de `_giba:1180-1185`, sem o usuário escolhê-la manualmente.
   3. O usuário edita e remove riscos existentes de uma oportunidade, e as mudanças persistem (refletem após reabrir o modal).
   4. A aba "Risco" lista os riscos da oportunidade em tabela com ID (Rxxx), descrição, tipo, responsável, impacto, probabilidade, prioridade, status e ações.
-**Plans**: TBD
+**Plans**: 2 plans (planejados em 2026-06-05) — Wave 1: 01 (camada de dados); Wave 2: 02 (UI, depende de 01)
+- [ ] 12-01-PLAN.md — Camada de dados: query whitelisted (fetchRisksForOpportunity/fetchRiskById), server actions create/update/deleteRisk (Zod + tenant server-derived, priority via trigger), módulo de labels enum→PT [RISK-01, RISK-02, RISK-03]
+- [ ] 12-02-PLAN.md — UI da aba Risco: tabela estruturada (RISK-05, remove campo legado), RiskForm + dialog empilhado (?risco, z-[60]) + prioridade read-only só após salvar (D-04), exclusão com confirmação (D-06), rotas fullscreen de deep-link (D-02) [RISK-01, RISK-02, RISK-03, RISK-05]
 **UI hint**: yes
 
 ### Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)
@@ -252,8 +254,8 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 |-------|----------------|--------|-----------|
 | 9. Schema Evolution + Score/Risk/Contract Foundation | 3/3 | ✅ Done | 2026-06-04 |
 | 10. Backend — Queries, Validação e Paridade de Score | 4/4 | ✅ Done | 2026-06-04 |
-| 11. Wizard de Fluxo Único (5 steps) | 3/3 | Complete   | 2026-06-05 |
-| 12. Registro de Riscos (UI do modal) | 0/? | Not started | - |
+| 11. Wizard de Fluxo Único (5 steps) | 3/3 | Complete    | 2026-06-05 |
+| 12. Registro de Riscos (UI do modal) | 0/2 | Ready to execute | - |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |
 | 14. View "Relatório" | 0/? | Not started | - |
 | 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/? | Not started | - |
