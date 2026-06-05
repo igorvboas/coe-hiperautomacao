@@ -10,6 +10,8 @@ import { Toolbar } from '@/components/opportunities/toolbar';
 import { OpportunityTable } from '@/components/opportunities/table';
 import { OpportunityCards } from '@/components/opportunities/cards';
 import { KanbanBoard } from '@/components/opportunities/kanban/Board';
+import { Relatorio } from '@/components/opportunities/relatorio/relatorio';
+import type { Opportunity } from '@/lib/opportunities/types';
 
 type SearchParams = Promise<Record<string, string | undefined>>;
 
@@ -26,11 +28,16 @@ export default async function OpportunitiesPage({
 
   const filters = parseFilters(sp);
   const view = sp.get('view');
+  const isReport = view === 'relatorio';
 
-  const [opportunities, areas, tenant] = await Promise.all([
+  const [opportunities, areas, tenant, fullPortfolio] = await Promise.all([
     fetchOpportunities(filters),
     fetchAreas(),
     getCurrentTenant(),
+    // D-01a: o Relatório agrega o portfólio INTEIRO do tenant, não a lista
+    // filtrada. Fetch SEM filtros → nenhum .eq/.or aplicado. O RLS continua
+    // escopando pelo tenant corrente (via current_tenant), nunca cross-tenant.
+    isReport ? fetchOpportunities() : Promise.resolve([] as Opportunity[]),
   ]);
   const kpis = computeKpis(opportunities);
 
@@ -46,7 +53,12 @@ export default async function OpportunitiesPage({
         tenantSlug={tenant?.slug ?? null}
       />
       <div className="flex-1 px-6 py-4">
-        {view === 'cards' ? (
+        {view === 'relatorio' ? (
+          <Relatorio
+            opportunities={fullPortfolio}
+            sourceLabel={tenant?.name ?? null}
+          />
+        ) : view === 'cards' ? (
           <OpportunityCards opportunities={opportunities} />
         ) : view === 'kanban' ? (
           <KanbanBoard opportunities={opportunities} />
