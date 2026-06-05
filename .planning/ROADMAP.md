@@ -228,7 +228,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - [x] 13-02-PLAN.md — KPI bar 9 KPIs (FTE Total + Novos/Produção/Concluídos) + tabela colunas FTE/mês+RPA Fit (mantém Fonte) + sort por FTE; `FteCell`/`RpaFitBadge`/`rpaTier` em cells.tsx [VIEW-01, VIEW-02, VIEW-03] ✅ 2026-06-05
 - [x] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04] ✅ 2026-06-05
 - [x] 13-04-PLAN.md — Modal display: colapsa 2 conjuntos em 1 de 8 abas, realinha Critérios/Benefícios/Score ao first-class v0.2, move `risco` legado → Observação; Perfil/Desafios/CoE desligados [VIEW-05] ✅ 2026-06-05
-- [ ] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; termina em checkpoint human-verify [VIEW-05]
+- [~] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; termina em checkpoint human-verify [VIEW-05] — **código completo (2 tasks, commits 15f4f28+86bb78c); human-verify PENDENTE** 2026-06-05
 **UI hint**: yes
 
 ### Phase 14: View "Relatório"
