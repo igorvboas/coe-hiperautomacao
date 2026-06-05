@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { useRouter } from 'next/navigation';
 import type { Opportunity } from '@/lib/opportunities/types';
-import { SourceBadge } from '@/components/opportunities/cells';
+import { SourceBadge, RpaFitBadge } from '@/components/opportunities/cells';
 import { scoreColor } from '@/lib/opportunities/utils';
 
 type Props = {
@@ -51,6 +51,12 @@ export function KanbanCard({ opportunity: o }: Props) {
         {o.processo}
       </div>
       <div className="text-[10px] text-mut truncate mb-2">{o.solicitante}</div>
+      <div className="flex items-center gap-1 flex-wrap mb-1.5">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-slate-100 text-slate-600">
+          ⏱️ {Math.round(o.fte_horas ?? 0)}h/mês
+        </span>
+        <RpaFitBadge score={o.rpa_score} />
+      </div>
       <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
         <SourceBadge source={o.source} />
         <div className="flex items-center gap-1">
