@@ -30,7 +30,7 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 - [x] **RISK-02**: Prioridade do risco (Crítica/Alta/Média/Baixa) é **auto-calculada** pela matriz impacto×probabilidade (`_giba:1180-1185`) — Phase 12-01: trigger `set_risk_priority()` é a autoridade; query lê `priority` GENERATED, nunca no payload; parity test 16/16
 - [x] **RISK-03**: Usuário edita e remove riscos de uma oportunidade — Phase 12-01: `updateRisk`/`deleteRisk` (escopo `.eq('tenant_id', profile.tenant_id)`); UI em 12-02
 - [ ] **RISK-04**: Riscos são isolados por tenant — nova tabela `opportunity_risks` com `tenant_id` + RLS (policy padrão)
-- [ ] **RISK-05**: Aba "Risco" do modal lista os riscos em tabela (ID Rxxx, descrição, tipo, responsável, impacto, probabilidade, prioridade, status, ações)
+- [x] **RISK-05**: Aba "Risco" do modal lista os riscos em tabela (ID Rxxx, descrição, tipo, responsável, impacto, probabilidade, prioridade, status, ações)
 
 ### REPORT — View "Relatório"
 

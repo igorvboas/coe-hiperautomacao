@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: executing
-last_updated: "2026-06-05T12:23:53Z"
+status: ready_to_plan
+last_updated: 2026-06-05T13:05:35.789Z
 last_activity: 2026-06-05 -- Phase 12 Plan 01 completo (camada de dados/mutação de riscos)
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 12
-  completed_plans: 11
-  percent: 47
+  completed_plans: 50
+  percent: 43
+stopped_at: Phase 12 complete (2/2) — ready to discuss Phase 13
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 12 — registro-riscos-modal
+**Current focus:** Phase 13 — atualizações de tela (kpi / tabela / kanban / modal)
 
 ## Current Position
 
-Phase: 12 (registro-riscos-modal) — EXECUTING
-Plan: 2 of 2 (Plan 12-01 ✅ completo)
-Status: Executing Phase 12 — Wave 1 entregue, Wave 2 (12-02) pronta
-Last activity: 2026-06-05 -- Phase 12 Plan 01 (camada de dados/mutação de riscos) completo
+Phase: 13
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-05
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -62,7 +63,7 @@ Progress: [█████████░] 89%
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 11
 - Average duration: 7.7min
 - Total execution time: ~46min
 
@@ -72,7 +73,7 @@ Progress: [█████████░] 89%
 |-------|-------|-------|----------|
 | 7.5 | 6 | 46min | 7.7min |
 | 11 | 3 | - | - |
-| 12 | 1 (de 2) | 5min | 5min |
+| 12 | 2 | - | - |
 
 **Recent Trend:**
 
