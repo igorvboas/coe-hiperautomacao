@@ -3,6 +3,7 @@
 import type { WizardFormData } from '../state';
 import { SelectField } from './fields';
 import { ScorePreview } from '../ScorePreview';
+import { deriveFteBucket, type FteBucket } from '@/lib/opportunities/fte';
 
 type Props = {
   data: WizardFormData;
@@ -24,16 +25,24 @@ const COMPLEXITY_OPTIONS = [
   { value: 'alto', label: 'Alto (+6)' },
 ];
 
-// `tempo` agora é FREQUÊNCIA (0011), não duração.
-const TIME_OPTIONS = [
-  { value: 'diario', label: 'Diário (+20)' },
-  { value: 'semanal', label: 'Semanal (+16)' },
-  { value: 'quinzenal', label: 'Quinzenal (+12)' },
-  { value: 'mensal', label: 'Mensal (+8)' },
-  { value: 'anual', label: 'Anual (+2)' },
-];
+// O fator `tempo` (frequência) agora é fonte única no step Processo — removido daqui.
+
+// 5º fator: bucket FTE DERIVADO de fte_horas (D-01/D-03), read-only. Rótulo +
+// peso alinhados à fórmula de score (ft = {muito_baixo:4..muito_alto:20}).
+const FTE_BUCKET_DISPLAY: Record<FteBucket, { label: string; weight: string }> = {
+  muito_baixo: { label: 'Muito Baixo', weight: '+4' },
+  baixo: { label: 'Baixo', weight: '+8' },
+  medio: { label: 'Médio', weight: '+12' },
+  alto: { label: 'Alto', weight: '+16' },
+  muito_alto: { label: 'Muito Alto', weight: '+20' },
+};
 
 export function PriorizacaoStep({ data, onChange, errors }: Props) {
+  // Bucket FTE derivado das horas/mês informadas em Benefícios — fonte única
+  // (mesma fn usada no submit → display === persistência). Não editável aqui.
+  const fteBucket =
+    data.fte_horas != null ? deriveFteBucket(Number(data.fte_horas)) : undefined;
+
   return (
     <div className="px-2 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
@@ -54,23 +63,6 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
           }
           options={COMPLEXITY_OPTIONS}
           error={errors.complexidade}
-        />
-        <SelectField
-          label="Tempo Estimado"
-          required
-          value={data.tempo}
-          onChange={(v) =>
-            onChange({
-              tempo: v as
-                | 'diario'
-                | 'semanal'
-                | 'quinzenal'
-                | 'mensal'
-                | 'anual',
-            })
-          }
-          options={TIME_OPTIONS}
-          error={errors.tempo}
         />
         <div className="mb-3">
           <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
@@ -102,12 +94,42 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
         </div>
       </div>
 
+      {/* 5º fator — bucket FTE DERIVADO (read-only, D-01/D-03). */}
+      <div className="mt-1 mb-3 rounded-lg border border-bdr bg-slate-50 px-3 py-2.5">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
+          Impacto FTE (derivado)
+        </div>
+        {fteBucket ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-txt">
+                {FTE_BUCKET_DISPLAY[fteBucket].label}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-pri text-white text-[11px] font-bold">
+                {FTE_BUCKET_DISPLAY[fteBucket].weight}
+              </span>
+            </div>
+            <span className="text-[11px] text-mut">
+              {Number(data.fte_horas)} h/mês
+            </span>
+          </div>
+        ) : (
+          <div className="text-[12px] text-mut">
+            Informe o FTE (h/mês) no passo Benefícios.
+          </div>
+        )}
+        <div className="text-[10px] text-mut mt-1.5">
+          Calculado a partir das horas/mês informadas em Benefícios.
+        </div>
+      </div>
+
       <div className="mt-3">
         <ScorePreview
           esforco={data.esforco}
           complexidade={data.complexidade}
           tempo={data.tempo}
           objetivo={data.objetivo}
+          fte={fteBucket}
         />
       </div>
     </div>
