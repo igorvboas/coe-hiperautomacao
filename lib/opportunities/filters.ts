@@ -8,6 +8,8 @@ import type {
 export type SortKey =
   | 'score_desc'
   | 'score_asc'
+  | 'fte_desc'
+  | 'fte_asc'
   | 'seq_asc'
   | 'seq_desc'
   | 'nome_asc'
@@ -44,9 +46,11 @@ const STATUS_VALUES: OpportunityStatus[] = [
   'producao',
   'concluido',
 ];
-const SORT_VALUES: SortKey[] = [
+export const SORT_VALUES: SortKey[] = [
   'score_desc',
   'score_asc',
+  'fte_desc',
+  'fte_asc',
   'seq_asc',
   'seq_desc',
   'nome_asc',
@@ -124,6 +128,8 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
 export const SORT_LABELS: Record<SortKey, string> = {
   score_desc: '🏆 Score: Maior primeiro',
   score_asc: 'Score: Menor primeiro',
+  fte_desc: 'FTE: Maior primeiro',
+  fte_asc: 'FTE: Menor primeiro',
   seq_asc: 'ID: Menor → Maior',
   seq_desc: 'ID: Maior → Menor',
   nome_asc: 'Nome A → Z',

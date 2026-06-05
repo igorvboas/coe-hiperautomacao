@@ -56,6 +56,13 @@ export type OpportunityKpis = {
   personas: number;
   formularios: number;
   scoreMedio: number;
+  /**
+   * Soma arredondada de `fte_horas` de todas as oportunidades (D-03 / VIEW-01).
+   * KPI novo da Phase 13. `null` por linha conta como 0. O Plan 13-02 popula este
+   * campo em `computeKpis` e reescreve a KPI bar; o contrato vive em
+   * tests/opportunities/kpis.test.ts (Wave 0).
+   */
+  fteTotal: number;
   byPriority: {
     alta: number;
     media: number;

@@ -258,10 +258,13 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
   let scoreCount = 0;
   let personas = 0;
   let formularios = 0;
+  let fteTotal = 0; // soma de fte_horas (null → 0) — KPI novo D-03/VIEW-01
 
   for (const o of opps) {
     if (o.source === 'persona') personas++;
     else if (o.source === 'formulario') formularios++;
+
+    fteTotal += o.fte_horas ?? 0;
 
     if (o.status) byStatus[o.status] = (byStatus[o.status] ?? 0) + 1;
 
@@ -284,6 +287,7 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
     personas,
     formularios,
     scoreMedio: scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0,
+    fteTotal: Math.round(fteTotal),
     byStatus,
     byTool,
     byPriority,
