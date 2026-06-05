@@ -151,7 +151,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - [x] **Phase 12: Registro de Riscos (UI do modal)** — Aba "Risco" do modal: criar/editar/remover riscos com prioridade auto-calculada pela matriz impacto×probabilidade. (completed 2026-06-05)
 - [x] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo. (completed 2026-06-05)
 - [x] **Phase 14: View "Relatório"** — Dashboard analítico: cards de portfólio, distribuição por área (barras qtd + FTE) e 2 pie charts SVG. (2026-06-05)
-- [ ] **Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)** — Importa as 64 oportunidades do Workshop I como seed de um tenant "Unidasul", isolado por tenant.
+- [x] **Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)** — Importa as 64 oportunidades do Workshop I como seed de um tenant "Unidasul", isolado por tenant. (completed 2026-06-05)
 
 ## Phase Details
 
@@ -268,7 +268,7 @@ Plans:
 | 12. Registro de Riscos (UI do modal) | 2/2 | Complete    | 2026-06-05 |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 5/5 | Complete | 2026-06-05 |
 | 14. View "Relatório" | 2/2 | Complete | 2026-06-05 |
-| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/1 | Awaiting apply (artefatos prontos) | - |
+| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 1/1 | Complete    | 2026-06-05 |
 
 ## Ordem das Phases (v0.2)
 

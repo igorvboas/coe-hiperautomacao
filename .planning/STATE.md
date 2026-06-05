@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: executing
-last_updated: "2026-06-05T19:59:27.000Z"
+status: milestone_complete
+last_updated: 2026-06-05T20:19:27.706Z
 last_activity: 2026-06-05 -- Phase 15 Plan 01 artefatos escritos+commitados; aguardando apply manual da 0013
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 20
-  completed_plans: 19
+  completed_plans: 58
   percent: 86
+stopped_at: Milestone complete (Phase 15 was final phase)
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 15 — seed-dados-workshop
+**Current focus:** Milestone complete
 
 ## Current Position
 
-Phase: 15 (seed-dados-workshop) — EXECUTING (bloqueado no apply manual da 0013)
-Plan: 1 of 1
-Status: Plan 15-01 artefatos completos (3/3 commits); AGUARDANDO apply humano write-only da 0013 no Supabase Cloud SQL Editor
-Last activity: 2026-06-05 -- Phase 15 Plan 01 artefatos escritos+commitados; aguardando apply manual da 0013
+Phase: 15
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-06-05
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -62,7 +63,7 @@ Progress: [█████████░] 89%
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 7.7min
 - Total execution time: ~46min
 
@@ -73,6 +74,7 @@ Progress: [█████████░] 89%
 | 7.5 | 6 | 46min | 7.7min |
 | 11 | 3 | - | - |
 | 12 | 2 | - | - |
+| 15 | 1 | - | - |
 
 **Recent Trend:**
 

@@ -56,7 +56,7 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 
 ### DATA — Dados reais Workshop I
 
-- [ ] **DATA-01**: As 64 oportunidades do Workshop I são importadas como seed de um tenant "Unidasul" (migration de dados isolada por tenant)
+- [x] **DATA-01**: As 64 oportunidades do Workshop I são importadas como seed de um tenant "Unidasul" (migration de dados isolada por tenant)
 
 ### CONTRACT — Fonte da verdade
 
