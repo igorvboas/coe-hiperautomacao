@@ -132,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 — milestone v0.2 started (model evolution from `_giba_wsi-dashboard.html`). Previous: 2026-05-20 bootstrap from `fgcoop-coe-v2.html`.*
+*Last updated: 2026-06-05 — Phase 12 (registro de riscos) completa: aba Risco do modal com CRUD estruturado, prioridade auto (matriz impacto×probabilidade), rotas fullscreen — RISK-01/02/03/05 entregues. Previous: 2026-06-04 milestone v0.2 started (model evolution from `_giba_wsi-dashboard.html`); 2026-05-20 bootstrap from `fgcoop-coe-v2.html`.*
