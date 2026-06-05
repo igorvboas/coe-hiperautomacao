@@ -2,17 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_execute
-last_updated: 2026-06-05
-last_activity: 2026-06-05 -- /gsd-plan-phase 15: research pulado (seed mecânico sobre padrões existentes), 1 plano / 3 tasks / 2 waves. plan-checker PASSED (0 blockers, 0 warnings; DATA-01 coberto; SC1/SC2/SC3 mapeados; rpa_score parity 64/64 validado empiricamente). Próximo: /gsd-execute-phase 15.
+status: executing
+last_updated: "2026-06-05T19:59:27.000Z"
+last_activity: 2026-06-05 -- Phase 15 Plan 01 artefatos escritos+commitados; aguardando apply manual da 0013
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 20
-  completed_plans: 57
-  percent: 67
-stopped_at: Phase 15 PLANEJADA (1 plano: migration 0013 write-only + teste cross-tenant + handoff de apply manual). Próximo: /gsd-execute-phase 15.
-resume_file: .planning/phases/15-seed-dados-workshop/15-01-PLAN.md
+  completed_plans: 19
+  percent: 86
 ---
 
 # Project State
@@ -22,14 +20,14 @@ resume_file: .planning/phases/15-seed-dados-workshop/15-01-PLAN.md
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 15 — Seed dos Dados Reais do Workshop I (Unidasul)
+**Current focus:** Phase 15 — seed-dados-workshop
 
 ## Current Position
 
-Phase: 14 (COMPLETA e VERIFICADA — aprovada pelo PO)
-Plan: Phase 14 COMPLETA 2/2 plans executados
-Status: Phase 14 complete (verifier 8/8, UAT humano aprovado) → próximo: Phase 15
-Last activity: 2026-06-05 — `/gsd-plan-phase 13`: research (HIGH conf, foco edição do modal) + pattern-map + 5 plans em 3 waves; plan-checker PASSED (0 blockers, 0 warnings, 5/5 VIEW IDs + 16/16 decisões cobertas). Waves: **W1** 13-01 (foundation: extrai `lib/opportunities/rpa.ts deriveRpaScore` + specs Wave 0) ‖ 13-04 (modal: colapsa em 8 abas + realinha Critérios/Benefícios/Score ao first-class + risco→Observação); **W2** 13-02 (KPI 9-cells + colunas FTE/RPA Fit + sort FTE, dep 01) ‖ 13-05 (modal editável modo global via recipe do WizardShell + `updateOpportunity`, dep 01+04, **autonomous:no** — termina em checkpoint:human-verify); **W3** 13-03 (kanban FTE/coluna + chips, dep 02). Artefatos em `.planning/phases/13-atualizacoes-tela/` (CONTEXT/RESEARCH/VALIDATION/PATTERNS/5×PLAN). Próximo: `/gsd-execute-phase 13`.
+Phase: 15 (seed-dados-workshop) — EXECUTING (bloqueado no apply manual da 0013)
+Plan: 1 of 1
+Status: Plan 15-01 artefatos completos (3/3 commits); AGUARDANDO apply humano write-only da 0013 no Supabase Cloud SQL Editor
+Last activity: 2026-06-05 -- Phase 15 Plan 01 artefatos escritos+commitados; aguardando apply manual da 0013
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -110,6 +108,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ### Pending Todos
 
+- **[BLOQUEIA Phase 15] Aplicar `supabase/migrations/0013_seed_unidasul_opportunities.sql` no Supabase Cloud SQL Editor** (Phase 15 Plan 01 — checkpoint:human-action write-only). Handoff: `.planning/phases/15-seed-dados-workshop/15-01-MIGRATION-HANDOFF.md`. Colar o arquivo inteiro no SQL Editor, rodar, e colar o resultado das 9 queries de verificação (esperado: 1 tenant Unidasul, 1 admin tenant_admin, 64 opps, 0 nulos em fonte/criterios/beneficios/fte_horas, 0 nulos em score/priority_level/rpa_score). `gen:types` opcional (migration não muda schema). Após o apply + verificação, marcar a fase completa.
 - **Aplicar `supabase/migrations/0006_seq_id_atomic.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 02 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-02-MIGRATION-HANDOFF.md`). Após apply, rodar `npm run gen:types` para regenerar `lib/database.types.ts`. Sem isso, o teste `tests/security/atomicity.test.ts` permanece em skip mode quando `.env.test` apontar para o projeto Cloud.
 - **Aplicar `supabase/migrations/0007_public_form_hardening.sql` no Supabase Cloud SQL Editor** (Phase 7.5 Plan 06 deliverable — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-06-MIGRATION-HANDOFF.md`). Cria `public_form_submissions` + funções `log_public_form_attempt`/`update_public_form_attempt` + recria `create_public_opportunity` hardened. Após apply, rodar `npm run gen:types` para remover os casts em `lib/public-form/log.ts`.
 - **Configurar 3 env vars no Vercel** (Phase 7.5 Plan 06 — formulário público anônimo):
@@ -129,7 +128,9 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-06-05 — `/gsd-discuss-phase 15` (Seed dos Dados Reais do Workshop I — Unidasul). Contexto capturado em `.planning/phases/15-seed-dados-workshop/15-CONTEXT.md` (+ DISCUSSION-LOG). 4 áreas discutidas, **6 decisões travadas (D-01..D-06):** (1) **Fonte** = `const DATA` em `_giba_wsi-dashboard.html:439` (64 registros já na shape v0.2, fonte canônica, sem arquivo externo). (2) **Acesso** = criar tenant Unidasul **+ admin user de login** (paridade com 0002), credenciais `admin.unidasul@pswdigital.com.br`/`0123456789` + UUID fixo próprio; `created_by` das 64 = esse admin. (3) **PII** = manter nomes/e-mails reais (dado do cliente piloto, isolado por RLS). (4) **Idempotência** = guard por count do tenant (pula insert se Unidasul já tem opps; seq_id é trigger-assigned, ON CONFLICT não protege). Confirmado o mapeamento de `criterios` (chaves camelCase já batem com o schema 0011 §89-97; só `lower()`+de-acento nos valores) e que o seed **NÃO** insere `seq_id`/`rpa_score`/`score`/`priority_level` (trigger/GENERATED/view). Migration write-only `0013` + handoff manual. Teste cross-tenant obrigatório (SC3/CLAUDE.md §1, padrão `tenant-isolation.test.ts`). **Nota runtime:** `gsd-sdk query` indisponível (binário só run/auto/init) — workflow manual (AskUserQuestion nativo; CONTEXT/LOG/STATE/commit manuais; pattern-mapper/scout feitos inline). **Próximo: `/gsd-plan-phase 15`.**
+Last session: 2026-06-05 — `/gsd-execute-phase 15` (sequential, main tree). **Plan 15-01 — artefatos escritos+commitados (3 commits, ~5min); PARADO no checkpoint:human-action (apply manual write-only da 0013).** Task 1 (`76cdbf0`, feat): `0013_seed_unidasul_opportunities.sql` — tenant Unidasul (UUID `55551da5-…`) + admin `admin.unidasul@pswdigital.com.br`/`0123456789` (UUID `bbbbbbbb-…`), espelha 0002; INSERT das **64** opps do Workshop I extraídas do `const DATA` (`_giba:439`) por script descartável `/tmp/gen_0013.js` (NÃO commitado, `JSON.parse` → 64 VALUES); colunas enumeradas como 0003, SEM `seq_id`/`rpa_score`/`score`/`priority_level` (CLAUDE.md §3); guard de idempotência por count (D-06, `raise notice`); `ferramenta` RPA→rpa / RPA+n8n→ambos, criterios sim/nao/parcial (de-acentuado), beneficios 1–5, tempo=frequency_bucket, fte=fte_bucket. Paridade validada programaticamente: **rpa_score 64/64**, score seq 0001 = 100, 0 valores uppercase no jsonb, 0 casts raw 'RPA'. Task 2 (`5a62f2b`, test): `tests/security/unidasul-isolation.test.ts` espelha `tenant-isolation.test.ts` (skipIf + lazy-init), semeia tenant Unidasul + 1 opp via service-role, specs SC3-a (`asAcme` SELECT → `[]`), sanity service-role (opp existe), SC3-b (count Unidasul = 0); mitiga T-15-01. `vitest run` exit 0 (3 skipped sem `.env.test`), `tsc --noEmit` clean. Task 3 (`aca6c19`, docs, checkpoint:human-action): `15-01-MIGRATION-HANDOFF.md` espelha 09-handoff — passo-a-passo SQL Editor + 9 queries de verificação SC1/SC2 + idempotência + rollback + notas PII/senha. **1 ajuste cosmético** (reformular frase do handoff p/ não conter o literal proibido pelo grep do acceptance criterion). **Fronteira write-only (CLAUDE.md): o agente NÃO aplicou a 0013** — o PO deve aplicar no SQL Editor e colar o resultado das queries. SUMMARY status `awaiting_human_apply`; ROADMAP/STATE marcam "aguardando apply". **Nota runtime:** `gsd-sdk query` indisponível (binário só run/auto/init) — STATE/ROADMAP/SUMMARY/commit manuais; `lib/ai/prompts.ts`+`N8N/`+`_giba_wsi-dashboard.html` preservados sem stage. **PRÓXIMO: PO aplica a 0013 + cola verificação → fase marcada completa.**
+
+Previous session: 2026-06-05 — `/gsd-discuss-phase 15` (Seed dos Dados Reais do Workshop I — Unidasul). Contexto capturado em `.planning/phases/15-seed-dados-workshop/15-CONTEXT.md` (+ DISCUSSION-LOG). 4 áreas discutidas, **6 decisões travadas (D-01..D-06):** (1) **Fonte** = `const DATA` em `_giba_wsi-dashboard.html:439` (64 registros já na shape v0.2, fonte canônica, sem arquivo externo). (2) **Acesso** = criar tenant Unidasul **+ admin user de login** (paridade com 0002), credenciais `admin.unidasul@pswdigital.com.br`/`0123456789` + UUID fixo próprio; `created_by` das 64 = esse admin. (3) **PII** = manter nomes/e-mails reais (dado do cliente piloto, isolado por RLS). (4) **Idempotência** = guard por count do tenant (pula insert se Unidasul já tem opps; seq_id é trigger-assigned, ON CONFLICT não protege). Confirmado o mapeamento de `criterios` (chaves camelCase já batem com o schema 0011 §89-97; só `lower()`+de-acento nos valores) e que o seed **NÃO** insere `seq_id`/`rpa_score`/`score`/`priority_level` (trigger/GENERATED/view). Migration write-only `0013` + handoff manual. Teste cross-tenant obrigatório (SC3/CLAUDE.md §1, padrão `tenant-isolation.test.ts`). **Nota runtime:** `gsd-sdk query` indisponível (binário só run/auto/init) — workflow manual (AskUserQuestion nativo; CONTEXT/LOG/STATE/commit manuais; pattern-mapper/scout feitos inline). **Próximo: `/gsd-plan-phase 15`.**
 
 Previous session: 2026-06-05 — **Phase 14 (View "Relatório") COMPLETA e VERIFICADA (2/2 plans, `/gsd-execute-phase 14`, sequential no main).** **Wave 1** 14-01 (núcleo): `lib/opportunities/report.ts` `buildReport` (agregação pura por área — count desc, "Sem Área" fallback, FTE null→0, prioridades via coluna computada `priority_level` D-06, RPA Ideal≥5/RPA+n8n≥3<5 D-07, `PALETTE` 18 cores), `components/opportunities/relatorio/pie.tsx` (`PieCard`/`PieChart` donut SVG portado de `_giba:818-850`, **zero-dep**, "Sem dados" em total 0), `relatorio.tsx` (Server Component: 7 cards + distribuição barras azul/verde + 2 donuts + empty state pt-BR; badge de fonte real via prop `sourceLabel`) [REPORT-02/03/04]. **Wave 2** (dep 01) 14-02 (wiring): view **📈 Relatório** na toolbar (VIEWS/View/parseView) + branch no `page.tsx` com fetch **não-filtrado** `fetchOpportunities()` do portfólio inteiro (D-01a; RLS-scoped, sem `tenant_id` manual; `sourceLabel=tenant.name`) [REPORT-01]. **6 commits feat + 2 SUMMARY + 1 verificação.** Gates: `tsc --noEmit` exit 0; suite **151 passed / 32 skipped / 0 failed** (sem regressão; fase não adicionou testes — UI em paridade). **gsd-verifier PASSED 8/8 truths** (`14-VERIFICATION.md`, status `human_needed`): REPORT-01..04 rastreados, non-negociáveis confirmados (§3 score não persistido — `report.ts` lê colunas computadas, sem `score.ts`/escrita; §1 RLS-only sem filtro cross-tenant T-14-04; zero-dep + server-safe). **3 itens de UAT humano (browser: paridade visual / ignore-filtros / isolamento runtime) APROVADOS pelo PO** ("view relatorio aprovado") — `14-HUMAN-UAT.md` status `passed`. **Nota runtime:** `gsd-sdk query` indisponível (binário só run/auto/init) — workflow manual (verifier via Agent tool; STATE/ROADMAP/REQUIREMENTS/UAT/commits manuais); `gsd:code-review` pulado (depende de gsd-sdk; cobertura pelo verifier, precedente P12/P13); `lib/ai/prompts.ts`+`N8N/`+`_giba_wsi-dashboard.html` preservados sem stage. **Próximo: `/gsd-discuss-phase 15` ou `/gsd-plan-phase 15`** (Seed dos Dados Reais do Workshop I — Unidasul).
 

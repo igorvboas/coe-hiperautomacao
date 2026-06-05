@@ -256,7 +256,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Migration write-only 0013 (tenant+admin Unidasul + 64 opportunities, guard de idempotência) + teste cross-tenant SC3 + handoff de apply manual [DATA-01]
+- [~] 15-01-PLAN.md — Migration write-only 0013 (tenant+admin Unidasul + 64 opportunities, guard de idempotência) + teste cross-tenant SC3 + handoff de apply manual [DATA-01] — **artefatos escritos+commitados (76cdbf0/5a62f2b/aca6c19); AGUARDANDO apply manual da 0013 no SQL Editor (checkpoint:human-action)** 2026-06-05
 
 ## Progresso v0.2
 
@@ -268,7 +268,7 @@ Plans:
 | 12. Registro de Riscos (UI do modal) | 2/2 | Complete    | 2026-06-05 |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 5/5 | Complete | 2026-06-05 |
 | 14. View "Relatório" | 2/2 | Complete | 2026-06-05 |
-| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/1 | Planned | - |
+| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/1 | Awaiting apply (artefatos prontos) | - |
 
 ## Ordem das Phases (v0.2)
 
