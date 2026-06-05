@@ -33,24 +33,16 @@ export function KpiBar({ kpis }: Props) {
     <div className="bg-white border-b border-bdr px-6 py-2.5 flex gap-3.5 items-center overflow-x-auto">
       <KpiCell value={kpis.total} label="Total" />
       <Divider />
-      <KpiCell value={kpis.personas} label="Personas" />
-      <KpiCell value={kpis.formularios} label="Formulários" />
+      <KpiCell value={kpis.byPriority.alta} label="🟢 Alta (≥70)" color="#22c55e" />
+      <KpiCell value={kpis.byPriority.media} label="🟡 Média (40-69)" color="#f59e0b" />
+      <KpiCell value={kpis.byPriority.baixa} label="🔴 Baixa (<40)" color="#ef4444" />
       <Divider />
       <KpiCell value={kpis.scoreMedio || '–'} label="Score Médio" />
+      <KpiCell value={`${kpis.fteTotal}h`} label="FTE Total/mês" color="#0ea5e9" />
       <Divider />
-      <KpiCell value={kpis.byPriority.alta} label="🟢 Alta" color="#22c55e" />
-      <KpiCell value={kpis.byPriority.media} label="🟡 Média" color="#f59e0b" />
-      <KpiCell value={kpis.byPriority.baixa} label="🔴 Baixa" color="#ef4444" />
-      <Divider />
-      <KpiCell value={kpis.byStatus.novo || '–'} label="Novo" color="#64748b" />
-      <KpiCell value={kpis.byStatus.em_analise || '–'} label="Em Análise" color="#8b5cf6" />
-      <KpiCell value={kpis.byStatus.desenvolvimento || '–'} label="Dev." color="#f97316" />
+      <KpiCell value={kpis.byStatus.novo || '–'} label="Novos" color="#64748b" />
       <KpiCell value={kpis.byStatus.producao || '–'} label="Produção" color="#22c55e" />
-      <KpiCell value={kpis.byStatus.concluido || '–'} label="Concluído" color="#10b981" />
-      <Divider />
-      <KpiCell value={kpis.byTool.rpa || '–'} label="→ RPA" />
-      <KpiCell value={kpis.byTool.n8n || '–'} label="→ n8n" />
-      <KpiCell value={kpis.byTool.ambos || '–'} label="→ RPA+n8n" />
+      <KpiCell value={kpis.byStatus.concluido || '–'} label="Concluídos" color="#10b981" />
     </div>
   );
 }

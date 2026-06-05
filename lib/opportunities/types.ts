@@ -53,13 +53,10 @@ export type RiskPriority = Database['public']['Enums']['risk_priority'];
  */
 export type OpportunityKpis = {
   total: number;
-  personas: number;
-  formularios: number;
   scoreMedio: number;
   /**
    * Soma arredondada de `fte_horas` de todas as oportunidades (D-03 / VIEW-01).
-   * KPI novo da Phase 13. `null` por linha conta como 0. O Plan 13-02 popula este
-   * campo em `computeKpis` e reescreve a KPI bar; o contrato vive em
+   * KPI da Phase 13. `null` por linha conta como 0. Contrato:
    * tests/opportunities/kpis.test.ts (Wave 0).
    */
   fteTotal: number;
@@ -68,10 +65,13 @@ export type OpportunityKpis = {
     media: number;
     baixa: number;
   };
-  byStatus: Record<OpportunityStatus, number>;
-  byTool: {
-    rpa: number;
-    n8n: number;
-    ambos: number;
+  /**
+   * Contagem só dos 3 status exibidos na KPI bar do mockup (D-02 / _giba:296-305).
+   * Status intermediários (em_analise/planejamento/...) NÃO entram na barra.
+   */
+  byStatus: {
+    novo: number;
+    producao: number;
+    concluido: number;
   };
 };

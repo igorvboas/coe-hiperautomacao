@@ -6,7 +6,6 @@ import type {
   OpportunityKpis,
   OpportunityPhase,
   OpportunityRisk,
-  OpportunityStatus,
 } from './types';
 import type { OpportunityFilters } from './filters';
 
@@ -241,36 +240,21 @@ export async function fetchRiskById(
  * Calcula os KPIs a partir do array — opera em memória.
  */
 export function computeKpis(opps: Opportunity[]): OpportunityKpis {
-  const byStatus: Record<OpportunityStatus, number> = {
-    novo: 0,
-    em_analise: 0,
-    planejamento: 0,
-    backlog: 0,
-    desenvolvimento: 0,
-    homologacao: 0,
-    producao: 0,
-    concluido: 0,
-  };
-  const byTool = { rpa: 0, n8n: 0, ambos: 0 };
+  // D-02: só os 3 status exibidos na KPI bar do mockup (_giba:296-305).
+  // Status intermediários (em_analise/planejamento/...) são ignorados aqui.
+  const byStatus = { novo: 0, producao: 0, concluido: 0 };
   const byPriority = { alta: 0, media: 0, baixa: 0 };
 
   let totalScore = 0;
   let scoreCount = 0;
-  let personas = 0;
-  let formularios = 0;
-  let fteTotal = 0; // soma de fte_horas (null → 0) — KPI novo D-03/VIEW-01
+  let fteTotal = 0; // soma de fte_horas (null → 0) — KPI D-03/VIEW-01
 
   for (const o of opps) {
-    if (o.source === 'persona') personas++;
-    else if (o.source === 'formulario') formularios++;
-
     fteTotal += o.fte_horas ?? 0;
 
-    if (o.status) byStatus[o.status] = (byStatus[o.status] ?? 0) + 1;
-
-    if (o.ferramenta === 'rpa') byTool.rpa++;
-    else if (o.ferramenta === 'n8n') byTool.n8n++;
-    else if (o.ferramenta === 'ambos') byTool.ambos++;
+    if (o.status === 'novo') byStatus.novo++;
+    else if (o.status === 'producao') byStatus.producao++;
+    else if (o.status === 'concluido') byStatus.concluido++;
 
     if (o.priority_level === 'alta') byPriority.alta++;
     else if (o.priority_level === 'media') byPriority.media++;
@@ -284,12 +268,9 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
 
   return {
     total: opps.length,
-    personas,
-    formularios,
     scoreMedio: scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0,
     fteTotal: Math.round(fteTotal),
-    byStatus,
-    byTool,
     byPriority,
+    byStatus,
   };
 }
