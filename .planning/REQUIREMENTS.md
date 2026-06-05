@@ -34,10 +34,10 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 
 ### REPORT — View "Relatório"
 
-- [ ] **REPORT-01**: Nova view "📈 Relatório" acessível pelo seletor de views da toolbar
-- [ ] **REPORT-02**: Cards de portfólio: total de oportunidades, FTE Total/mês, prioridade Alta/Média, RPA Ideal, RPA+n8n, nº de áreas
-- [ ] **REPORT-03**: Distribuição por área de negócio com barras de quantidade + FTE estimado
-- [ ] **REPORT-04**: Dois pie charts (SVG): oportunidades por área e FTE por área
+- [x] **REPORT-01**: Nova view "📈 Relatório" acessível pelo seletor de views da toolbar — Phase 14
+- [x] **REPORT-02**: Cards de portfólio: total de oportunidades, FTE Total/mês, prioridade Alta/Média, RPA Ideal, RPA+n8n, nº de áreas — Phase 14
+- [x] **REPORT-03**: Distribuição por área de negócio com barras de quantidade + FTE estimado — Phase 14
+- [x] **REPORT-04**: Dois pie charts (SVG): oportunidades por área e FTE por área — Phase 14
 
 ### WIZARD — Novo fluxo de criação
 

@@ -150,7 +150,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - [x] **Phase 11: Wizard de Fluxo Único (5 steps)** — Substitui o split persona/formulário por um wizard de 5 steps com critérios, benefícios, FTE e priorização de 5 fatores. (completed 2026-06-05)
 - [x] **Phase 12: Registro de Riscos (UI do modal)** — Aba "Risco" do modal: criar/editar/remover riscos com prioridade auto-calculada pela matriz impacto×probabilidade. (completed 2026-06-05)
 - [x] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo. (completed 2026-06-05)
-- [ ] **Phase 14: View "Relatório"** — Dashboard analítico: cards de portfólio, distribuição por área (barras qtd + FTE) e 2 pie charts SVG.
+- [x] **Phase 14: View "Relatório"** — Dashboard analítico: cards de portfólio, distribuição por área (barras qtd + FTE) e 2 pie charts SVG. (2026-06-05)
 - [ ] **Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)** — Importa as 64 oportunidades do Workshop I como seed de um tenant "Unidasul", isolado por tenant.
 
 ## Phase Details
@@ -241,8 +241,8 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   3. A view mostra a distribuição por área de negócio com barras de quantidade somada ao FTE estimado por área.
   4. A view renderiza dois pie charts SVG: oportunidades por área e FTE por área.
 **Plans**: 2 plans (planejados em 2026-06-05) — Wave 1: 14-01 (núcleo: agregação + SVG donut + Server Component Relatorio); Wave 2: 14-02 (wiring toolbar + page.tsx fetch não-filtrado, dep 01)
-- [ ] 14-01-PLAN.md — Núcleo do Relatório: `lib/opportunities/report.ts` (buildReport — agregação por área), `relatorio/pie.tsx` (PieCard donut SVG portado de _giba:818-850, zero-dep), `relatorio/relatorio.tsx` (Server Component: 7 cards + distribuição + 2 donuts + empty state) [REPORT-02, REPORT-03, REPORT-04]
-- [ ] 14-02-PLAN.md — Wiring: registra view 📈 Relatório na toolbar (VIEWS/View/parseView) + branch de render no page.tsx com fetch não-filtrado do portfólio (D-01a, RLS-scoped) [REPORT-01]
+- [x] 14-01-PLAN.md — Núcleo do Relatório: `lib/opportunities/report.ts` (buildReport — agregação por área), `relatorio/pie.tsx` (PieCard donut SVG portado de _giba:818-850, zero-dep), `relatorio/relatorio.tsx` (Server Component: 7 cards + distribuição + 2 donuts + empty state) [REPORT-02, REPORT-03, REPORT-04]
+- [x] 14-02-PLAN.md — Wiring: registra view 📈 Relatório na toolbar (VIEWS/View/parseView) + branch de render no page.tsx com fetch não-filtrado do portfólio (D-01a, RLS-scoped) [REPORT-01]
 **UI hint**: yes
 
 ### Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)
@@ -264,7 +264,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 | 11. Wizard de Fluxo Único (5 steps) | 3/3 | Complete    | 2026-06-05 |
 | 12. Registro de Riscos (UI do modal) | 2/2 | Complete    | 2026-06-05 |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 5/5 | Complete | 2026-06-05 |
-| 14. View "Relatório" | 0/? | Not started | - |
+| 14. View "Relatório" | 2/2 | Complete | 2026-06-05 |
 | 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/? | Not started | - |
 
 ## Ordem das Phases (v0.2)
