@@ -255,6 +255,27 @@ const baseSchema = z.object({
     })
     .strict()
     .partial()
+    // Defesa em profundidade: o CHECK `opportunities_criterios_chk` (0011) exige
+    // null OU as 8 chaves presentes (`?&`). Se um payload trouxer `criterios`
+    // parcial, recusar aqui com fieldError limpo em vez de deixar o INSERT
+    // estourar a constraint do banco ("violates check constraint"). null/ausente
+    // continua válido (personas/legado). Espelha a validação do wizard.
+    .refine(
+      (c) =>
+        (
+          [
+            'causaReclamacoes',
+            'totalmenteManual',
+            'regrasClaras',
+            'decisaoHumana',
+            'padronizacaoDocs',
+            'validacaoDados',
+            'schedulable',
+            'temDocumentacao',
+          ] as const
+        ).every((k) => c[k] != null),
+      { message: 'Responda todos os 8 critérios de RPA Fit antes de salvar.' }
+    )
     .optional(),
   // 8 benefícios first-class (escala 1–5, espelham a coluna jsonb de 0011)
   beneficios: z

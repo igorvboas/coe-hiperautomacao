@@ -99,6 +99,42 @@ describe('validateStep — Phase 11 (Identificação + Processo, pt-BR)', () => 
   });
 });
 
+describe('validateStep — criterios (exigir os 8; espelha CHECK do banco)', () => {
+  const ALL8 = {
+    causaReclamacoes: 'sim',
+    totalmenteManual: 'sim',
+    regrasClaras: 'sim',
+    decisaoHumana: 'nao',
+    padronizacaoDocs: 'sim',
+    validacaoDados: 'sim',
+    schedulable: 'sim',
+    temDocumentacao: 'sim',
+  } as const;
+
+  it('criterios ausente → ok:false (0 de 8 respondidos)', () => {
+    const result = validateStep('criterios', {});
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.criterios).toContain('8 faltando');
+    }
+  });
+
+  it('criterios parcial → ok:false com contagem de faltantes', () => {
+    const result = validateStep('criterios', {
+      criterios: { causaReclamacoes: 'sim', regrasClaras: 'nao' },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.criterios).toContain('6 faltando');
+    }
+  });
+
+  it('criterios com os 8 respondidos → ok:true', () => {
+    const result = validateStep('criterios', { criterios: { ...ALL8 } });
+    expect(result.ok).toBe(true);
+  });
+});
+
 describe('defaultFormData — Phase 11 (source fixo formulário)', () => {
   it('fixa source="formulario" (D-04)', () => {
     expect(defaultFormData().source).toBe('formulario');

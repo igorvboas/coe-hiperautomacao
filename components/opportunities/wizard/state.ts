@@ -29,6 +29,19 @@ export type StepId =
   | 'criterios'
   | 'beneficios';
 
+// As 8 chaves de `criterios` (camelCase, espelham schema.ts §245 e o CHECK
+// `opportunities_criterios_chk` de 0011). O banco exige null OU as 8 presentes.
+const CRITERIO_KEYS = [
+  'causaReclamacoes',
+  'totalmenteManual',
+  'regrasClaras',
+  'decisaoHumana',
+  'padronizacaoDocs',
+  'validacaoDados',
+  'schedulable',
+  'temDocumentacao',
+] as const;
+
 export type StepDef = {
   id: StepId;
   label: string;
@@ -200,6 +213,17 @@ export function validateStep(
     // Phase 11 (D-11 / WIZARD-04): Processo obrigatório (≥ 3 chars), pt-BR.
     if (!data.processo || data.processo.length < 3)
       errors.processo = 'Processo obrigatório';
+  }
+
+  if (step === 'criterios') {
+    // Decisão de produto: exigir os 8 critérios respondidos (sem parcial). O CHECK
+    // `opportunities_criterios_chk` (0011) recusa subconjunto — bloquear "Próximo"
+    // aqui dá feedback claro em vez de estourar a constraint no submit.
+    const c = data.criterios ?? {};
+    const missing = CRITERIO_KEYS.filter((k) => c[k] == null);
+    if (missing.length > 0) {
+      errors.criterios = `Responda todos os 8 critérios (${missing.length} faltando).`;
+    }
   }
 
   // Phase 7.6: branch de validação do step de Priorização removido — campos

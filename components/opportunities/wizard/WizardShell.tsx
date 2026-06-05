@@ -274,7 +274,7 @@ function renderStep(
     case 'contexto':
       return <ContextoStep data={data} onChange={patch} />;
     case 'criterios':
-      return <CriteriosStep data={data} onChange={patch} />;
+      return <CriteriosStep data={data} onChange={patch} errors={errors} />;
     case 'beneficios':
       return <BeneficiosStep data={data} onChange={patch} />;
     default:
