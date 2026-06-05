@@ -1,15 +1,12 @@
 export type TabId =
-  | 'perfil'
-  | 'desafios'
-  | 'coe'
   | 'processo'
   | 'criterios'
-  | 'beneficios'
   | 'automacao'
-  | 'observacao'
-  | 'risco'
+  | 'beneficios'
+  | 'score'
   | 'fases'
-  | 'score';
+  | 'risco'
+  | 'observacao';
 
 export type TabDef = {
   id: TabId;
