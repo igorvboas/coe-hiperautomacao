@@ -147,7 +147,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 
 - [x] **Phase 9: Schema Evolution + Score/Risk/Contract Foundation** ✅ — Migration `0011` aplicada (write-only): `opportunities` evoluída (7 col + `rpa_score` GENERATED + `tempo`→frequência), `opportunity_score()` 5 fatores, view recriada, backfill FGCoop (29, escopado ao tenant), `opportunity_risks` (tenant_id + RLS + priority via trigger). Contrato trocado p/ `_giba`, `fgcoop` deprecated. Validado por dry-run 11/11.
 - [x] **Phase 10: Backend — Queries, Validação e Paridade de Score** ✅ — Tipos pós-0011 (hand-derived, verificados vs catálogo vivo), Zod aditivo (criterios minúsculo, tempo→frequência, campos novos, mass-assignment preservado), whitelist ampliada, `riskInputSchema`. SCORE-04: fórmula única `lib/opportunities/score.ts` (cliente=backend, paridade validada ao vivo 100/88/59/36/67). Migration `0012` (RPC pública → frequência, dropa overload duplicado). tsc 0 erros, suíte 109 passed/0 failed.
-- [ ] **Phase 11: Wizard de Fluxo Único (5 steps)** — Substitui o split persona/formulário por um wizard de 5 steps com critérios, benefícios, FTE e priorização de 5 fatores.
+- [x] **Phase 11: Wizard de Fluxo Único (5 steps)** — Substitui o split persona/formulário por um wizard de 5 steps com critérios, benefícios, FTE e priorização de 5 fatores. (completed 2026-06-05)
 - [ ] **Phase 12: Registro de Riscos (UI do modal)** — Aba "Risco" do modal: criar/editar/remover riscos com prioridade auto-calculada pela matriz impacto×probabilidade.
 - [ ] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo.
 - [ ] **Phase 14: View "Relatório"** — Dashboard analítico: cards de portfólio, distribuição por área (barras qtd + FTE) e 2 pie charts SVG.
@@ -196,8 +196,8 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   4. Validações por step bloqueiam o avanço quando faltam campos obrigatórios (nome + área no step 1; processo no step 2), com mensagem clara em pt-BR.
 **Plans**: 3 plans (planejados em 2026-06-04, plan-checker PASSED 1ª passada) — Wave 1: 01 (fundação); Wave 2: 02 ‖ 03 (zero overlap)
 - [x] 11-01-PLAN.md — Fundação: `lib/opportunities/fte.ts` `deriveFteBucket` (horas→bucket, fonte única, teste de bordas) + `state.ts` fluxo único create (5 steps, sempre `source='formulario'`, sem Tipo/Classificação) + `validateStep` Identificação(nome+área)/Processo(processo) pt-BR [WIZARD-01, WIZARD-04]
-- [ ] 11-02-PLAN.md — Rewrite Critérios + Benefícios p/ modelo first-class v0.2: 8 chaves camelCase em `data.criterios`(sim/nao/parcial, click-to-cycle) e `data.beneficios`(1–5, barras) + captura de `fte_horas`; remove gravação em `formulario_extras` [WIZARD-03, WIZARD-04]
-- [ ] 11-03-PLAN.md — Processo: Frequência→select que alimenta `tempo` (fonte única, resolve redundância) + Ferramenta (default n8n); Priorização: 4 fatores manuais com pesos + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit (persiste o 5º fator) [WIZARD-01, WIZARD-02]
+- [x] 11-02-PLAN.md — Rewrite Critérios + Benefícios p/ modelo first-class v0.2: 8 chaves camelCase em `data.criterios`(sim/nao/parcial, click-to-cycle) e `data.beneficios`(1–5, barras) + captura de `fte_horas`; remove gravação em `formulario_extras` [WIZARD-03, WIZARD-04]
+- [x] 11-03-PLAN.md — Processo: Frequência→select que alimenta `tempo` (fonte única, resolve redundância) + Ferramenta (default n8n); Priorização: 4 fatores manuais com pesos + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit (persiste o 5º fator) [WIZARD-01, WIZARD-02]
 **UI hint**: yes
 
 ### Phase 12: Registro de Riscos (UI do modal)
@@ -252,7 +252,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 |-------|----------------|--------|-----------|
 | 9. Schema Evolution + Score/Risk/Contract Foundation | 3/3 | ✅ Done | 2026-06-04 |
 | 10. Backend — Queries, Validação e Paridade de Score | 4/4 | ✅ Done | 2026-06-04 |
-| 11. Wizard de Fluxo Único (5 steps) | 1/3 | In Progress|  |
+| 11. Wizard de Fluxo Único (5 steps) | 3/3 | Complete   | 2026-06-05 |
 | 12. Registro de Riscos (UI do modal) | 0/? | Not started | - |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |
 | 14. View "Relatório" | 0/? | Not started | - |
