@@ -19,22 +19,9 @@
 // Qualquer divergência do contrato quebra o build.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-
-type Criterios = Record<string, string> | null;
-
-/** Replica EXATA da expressão GENERATED de opportunities.rpa_score (0011 §5). */
-export function rpaScore(criterios: Criterios): number | null {
-  if (criterios == null) return null;
-  const v = (k: string) => criterios[k];
-  return (
-    (v('totalmenteManual') === 'sim' || v('totalmenteManual') === 'parcial' ? 1 : 0) +
-    (v('regrasClaras') === 'sim' ? 1 : 0) +
-    (v('decisaoHumana') === 'nao' ? 1 : 0) +
-    (v('padronizacaoDocs') === 'sim' ? 1 : 0) +
-    (v('validacaoDados') === 'sim' ? 1 : 0) +
-    (v('schedulable') === 'sim' ? 1 : 0)
-  );
-}
+// A regra agora vive em lib/ como fonte única (mirror do SQL GENERATED de 0011 §5).
+// Este spec passa a ser o portão de paridade (64/64 do _giba) da função extraída.
+import { deriveRpaScore as rpaScore } from '@/lib/opportunities/rpa';
 
 const allSim = {
   causaReclamacoes: 'sim',
