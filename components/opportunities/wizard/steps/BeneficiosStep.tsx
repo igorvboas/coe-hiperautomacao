@@ -7,41 +7,77 @@ type Props = {
   onChange: (patch: Partial<WizardFormData>) => void;
 };
 
+// Phase 11 / D-09: modelo first-class v0.2 — 8 benefícios em `data.beneficios`
+// top-level, chaves camelCase EXATAS do schema (schema.ts §260-273), escala 1–5.
+// A UX de barras 1–5 + cores é mantida (superior aos dropdowns do mockup).
 type BeneficioKey =
-  | 'reducao_tempo'
-  | 'eliminacao_erros'
+  | 'reducaoTempo'
+  | 'eliminacaoErros'
   | 'produtividade'
-  | 'qualidade_dados'
-  | 'reducao_custos'
-  | 'reducao_retrabalho'
+  | 'qualidadeDados'
+  | 'reducaoCustos'
+  | 'reducaoRetrabalho'
   | 'compliance'
-  | 'objetivos_estrategicos';
+  | 'objetivosEstrategicos';
 
 const BENEFICIOS: { key: BeneficioKey; label: string; color: string }[] = [
-  { key: 'reducao_tempo', label: 'Redução de Tempo', color: '#3b82f6' },
-  { key: 'eliminacao_erros', label: 'Eliminação de Erros', color: '#8b5cf6' },
+  { key: 'reducaoTempo', label: 'Redução de Tempo', color: '#3b82f6' },
+  { key: 'eliminacaoErros', label: 'Eliminação de Erros', color: '#8b5cf6' },
   { key: 'produtividade', label: 'Aumento de Produtividade', color: '#10b981' },
-  { key: 'qualidade_dados', label: 'Qualidade de Dados', color: '#f59e0b' },
-  { key: 'reducao_custos', label: 'Redução de Custos', color: '#ef4444' },
-  { key: 'reducao_retrabalho', label: 'Redução de Retrabalho', color: '#ec4899' },
+  { key: 'qualidadeDados', label: 'Qualidade de Dados', color: '#f59e0b' },
+  { key: 'reducaoCustos', label: 'Redução de Custos', color: '#ef4444' },
+  { key: 'reducaoRetrabalho', label: 'Redução de Retrabalho', color: '#ec4899' },
   { key: 'compliance', label: 'Compliance & Regulatório', color: '#06b6d4' },
-  { key: 'objetivos_estrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
+  { key: 'objetivosEstrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
 ];
 
 export function BeneficiosStep({ data, onChange }: Props) {
-  const beneficios = data.formulario_extras?.beneficios ?? {};
+  const beneficios = data.beneficios ?? {};
 
   function update(key: BeneficioKey, value: number) {
-    onChange({
-      formulario_extras: {
-        ...(data.formulario_extras ?? {}),
-        beneficios: { ...beneficios, [key]: value },
-      },
-    });
+    onChange({ beneficios: { ...beneficios, [key]: value } });
   }
+
+  // Phase 11 / D-01: o usuário digita APENAS fte_horas (h/mês). O bucket FTE
+  // (5º fator de score) é derivado depois no step Priorização (D-03, Plan 03) —
+  // NÃO derivar aqui (fonte única, sem campo manual de bucket).
+  function updateFteHoras(v: string) {
+    const trimmed = v.trim();
+    if (trimmed === '') {
+      onChange({ fte_horas: undefined });
+      return;
+    }
+    const n = Number(trimmed);
+    onChange({ fte_horas: Number.isFinite(n) ? n : undefined });
+  }
+
+  const fteHorasValue =
+    data.fte_horas === undefined || data.fte_horas === null
+      ? ''
+      : String(data.fte_horas);
 
   return (
     <div className="px-2 py-2">
+      <div className="mb-4">
+        <div className="mb-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">
+            FTE estimado (horas/mês)
+          </label>
+          <input
+            type="number"
+            min={0}
+            step="0.5"
+            value={fteHorasValue}
+            onChange={(e) => updateFteHoras(e.target.value)}
+            placeholder="ex.: 40"
+            className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15"
+          />
+        </div>
+        <div className="text-[10px] text-mut leading-relaxed">
+          Horas/mês economizadas pela automação — usado para classificar o impacto FTE.
+        </div>
+      </div>
+
       <div className="text-[11px] text-mut mb-3">
         Pontue de 1 a 5 cada benefício esperado. Sem pontuação = não considerar.
       </div>
