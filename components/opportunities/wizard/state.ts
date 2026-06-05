@@ -67,36 +67,58 @@ const STEPS_EDIT_AI_FIELDS: StepDef[] = [
   { id: 'priorizacao', label: 'Priorização', icon: '🎯' },
 ];
 
+// Phase 11 (D-04): fluxo ÚNICO de criação — 5 steps na ordem canônica do mockup
+// (`_giba_wsi-dashboard.html:1504-1597`). Sem Tipo/Classificação: a criação
+// SEMPRE grava `source='formulario'`. Os steps Critérios/Benefícios/Priorização
+// voltam ao create (haviam saído na 7.6 IA-only). O split persona/formulário e os
+// STEP_TIPO/STEP_CLASSIFICACAO/STEPS_PERSONA_EXTRA/STEPS_EDIT_AI_FIELDS continuam
+// vivos APENAS no mode='edit' (legado FGCoop read/edit-only — escopo Phase 13, D-05).
+const STEPS_CREATE: StepDef[] = [
+  { id: 'identificacao', label: 'Identificação', icon: '👤' },
+  { id: 'processo', label: 'Processo', icon: '📋' },
+  { id: 'criterios', label: 'Critérios', icon: '✅' },
+  { id: 'beneficios', label: 'Benefícios', icon: '📈' },
+  { id: 'priorizacao', label: 'Priorização', icon: '🎯' },
+];
+
 /**
  * Sequência de steps por modo+source.
- * - mode='create': Tipo → Classificação → Identificação → ... (sem Automação/Priorização — IA preenche)
- * - mode='edit':   Classificação → Identificação → ... → Automação → Priorização (admin pode corrigir IA)
+ * - mode='create': fluxo ÚNICO de 5 steps (Phase 11 / D-04) — independe de source,
+ *   sempre Identificação → Processo → Critérios → Benefícios → Priorização.
+ * - mode='edit':   Classificação → Identificação → ... → Automação → Priorização
+ *   (admin corrige IA / edita legado FGCoop — INTOCADO nesta fase, escopo Phase 13).
  */
 export function stepsFor(
   source: 'persona' | 'formulario' | undefined,
   mode: 'create' | 'edit'
 ): StepDef[] {
+  // Fluxo único de criação (D-04): 5 steps, independe de source.
+  if (mode === 'create') {
+    return STEPS_CREATE;
+  }
+  // mode='edit' — preservado exatamente como antes (escopo Phase 13).
   if (!source) {
-    return mode === 'create' ? [STEP_TIPO] : [];
+    return [];
   }
   const extras =
     source === 'persona' ? STEPS_PERSONA_EXTRA : STEPS_FORMULARIO_EXTRA;
-  const prefix =
-    mode === 'create'
-      ? [STEP_TIPO, STEP_CLASSIFICACAO]
-      : [STEP_CLASSIFICACAO];
-  const suffix = mode === 'edit' ? STEPS_EDIT_AI_FIELDS : [];
+  const prefix = [STEP_CLASSIFICACAO];
+  const suffix = STEPS_EDIT_AI_FIELDS;
   return [...prefix, ...STEPS_COMMON, ...extras, ...suffix];
 }
 
 export function defaultFormData(): WizardFormData {
   return {
+    // Phase 11 (D-04): criação SEMPRE grava formulário (split persona aposentado
+    // do create; permanece só p/ ler/editar legado FGCoop — D-05).
+    source: 'formulario',
     request_type: 'nova_oportunidade',
-    escopo_automacao: [''],
-    beneficios_esperados: [''],
+    // Phase 11 (D-08): escopo_automacao[]/beneficios_esperados[] saem do create
+    // (ficam null/vazios; preenchíveis por IA/edição depois — REALIGN-7.6 deferido).
     esforco: 'medio',
     complexidade: 'medio',
-    // tempo (frequência, 0011) não tem default no create — IA/priorização define.
+    // tempo (frequência, 0011) não tem default no create — Priorização define a
+    // partir da frequência do step Processo (fonte única).
     objetivo: 3,
     status: 'novo',
   };
@@ -161,17 +183,23 @@ export function validateStep(
   }
 
   if (step === 'identificacao') {
+    // Phase 11 (D-11 / WIZARD-04): Identificação valida nome + área + e-mail.
+    // A checagem de `processo` migrou para o step Processo (fluxo único 5 steps).
     if (!data.solicitante || data.solicitante.length < 2)
       errors.solicitante = 'Nome obrigatório';
     if (!data.area || data.area.length < 2) errors.area = 'Área obrigatória';
-    if (!data.processo || data.processo.length < 3)
-      errors.processo = 'Processo obrigatório';
     if (
       data.email &&
       data.email !== '' &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
     )
       errors.email = 'E-mail inválido';
+  }
+
+  if (step === 'processo') {
+    // Phase 11 (D-11 / WIZARD-04): Processo obrigatório (≥ 3 chars), pt-BR.
+    if (!data.processo || data.processo.length < 3)
+      errors.processo = 'Processo obrigatório';
   }
 
   // Phase 7.6: branch de validação do step de Priorização removido — campos
