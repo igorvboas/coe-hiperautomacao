@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: executing
-last_updated: "2026-06-05T00:33:23.385Z"
-last_activity: 2026-06-05 -- Phase 11 execution started
+status: ready_to_plan
+last_updated: 2026-06-05T09:00:00.000Z
+last_activity: 2026-06-05 -- Phase 12 context gathered
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 48
   percent: 29
+stopped_at: Phase 12 context gathered — ready to plan (resume: .planning/phases/12-registro-riscos-modal/12-CONTEXT.md)
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 11 — wizard-fluxo-unico
+**Current focus:** Phase 12 — registro de riscos (ui do modal)
 
 ## Current Position
 
-Phase: 11 (wizard-fluxo-unico) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 11
-Last activity: 2026-06-05 -- Phase 11 execution started
+Phase: 12
+Plan: Not started (context gathered)
+Status: Ready to plan
+Last activity: 2026-06-05 — `/gsd-discuss-phase 12`: 12-CONTEXT.md criado (8 decisões: aba lista + sub-rota interceptada p/ CRUD, prioridade só após salvar, router.refresh + confirmar exclusão, responsável texto livre, enums minúsculos + camada de labels).
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -62,7 +63,7 @@ Progress: [█████████░] 89%
 
 **Velocity:**
 
-- Total plans completed: 6
+- Total plans completed: 9
 - Average duration: 7.7min
 - Total execution time: ~46min
 
@@ -71,6 +72,7 @@ Progress: [█████████░] 89%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 7.5 | 6 | 46min | 7.7min |
+| 11 | 3 | - | - |
 
 **Recent Trend:**
 
