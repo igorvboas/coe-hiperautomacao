@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_plan
+status: ready_to_execute
 last_updated: 2026-06-05
-last_activity: 2026-06-05 -- /gsd-discuss-phase 15: 4 áreas discutidas (Fonte/Acesso/PII/Idempotência), todas decididas (D-01..D-06). CONTEXT.md + DISCUSSION-LOG criados. Próximo: /gsd-plan-phase 15.
+last_activity: 2026-06-05 -- /gsd-plan-phase 15: research pulado (seed mecânico sobre padrões existentes), 1 plano / 3 tasks / 2 waves. plan-checker PASSED (0 blockers, 0 warnings; DATA-01 coberto; SC1/SC2/SC3 mapeados; rpa_score parity 64/64 validado empiricamente). Próximo: /gsd-execute-phase 15.
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 19
+  total_plans: 20
   completed_plans: 57
   percent: 67
-stopped_at: Phase 15 CONTEXT capturado (4 decisões D-01..D-06). Próximo: /gsd-plan-phase 15.
-resume_file: .planning/phases/15-seed-dados-workshop/15-CONTEXT.md
+stopped_at: Phase 15 PLANEJADA (1 plano: migration 0013 write-only + teste cross-tenant + handoff de apply manual). Próximo: /gsd-execute-phase 15.
+resume_file: .planning/phases/15-seed-dados-workshop/15-01-PLAN.md
 ---
 
 # Project State
