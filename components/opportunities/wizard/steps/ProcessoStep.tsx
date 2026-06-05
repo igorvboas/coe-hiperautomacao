@@ -1,11 +1,41 @@
 'use client';
 
 import type { WizardFormData } from '../state';
-import { TextField } from './fields';
+import { TextField, SelectField } from './fields';
 
 type Props = {
   data: WizardFormData;
   onChange: (patch: Partial<WizardFormData>) => void;
+};
+
+type Frequency = 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'anual';
+
+// Frequência é a FONTE ÚNICA do fator de score `tempo` (diario..anual, 0011) —
+// não pedir frequência de novo na Priorização. Pesos visíveis nos rótulos
+// (alinhados a lib/opportunities/score.ts / _giba:483-490).
+const FREQUENCY_OPTIONS = [
+  { value: 'diario', label: 'Diário (+20)' },
+  { value: 'semanal', label: 'Semanal (+16)' },
+  { value: 'quinzenal', label: 'Quinzenal (+12)' },
+  { value: 'mensal', label: 'Mensal (+8)' },
+  { value: 'anual', label: 'Anual (+2)' },
+];
+
+// Ferramenta Sugerida (D-07), default n8n. Domínio = toolEnum.
+const TOOL_OPTIONS = [
+  { value: 'rpa', label: 'RPA' },
+  { value: 'n8n', label: 'n8n' },
+  { value: 'ambos', label: 'Ambos' },
+];
+
+// Rótulo legível espelhado em `frequencia` (texto) p/ compat de display — o
+// fator de score é `data.tempo`.
+const FREQUENCY_LABEL: Record<string, string> = {
+  diario: 'Diário',
+  semanal: 'Semanal',
+  quinzenal: 'Quinzenal',
+  mensal: 'Mensal',
+  anual: 'Anual',
 };
 
 export function ProcessoStep({ data, onChange }: Props) {
@@ -26,11 +56,22 @@ export function ProcessoStep({ data, onChange }: Props) {
   return (
     <div className="px-2 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-        <TextField
+        <SelectField
           label="Frequência"
-          value={data.frequencia ?? ''}
-          onChange={(v) => onChange({ frequencia: v })}
-          placeholder="Diária / Semanal / Mensal"
+          value={data.tempo}
+          onChange={(v) =>
+            // frequência é a fonte única do fator `tempo`; espelha rótulo em `frequencia` p/ display
+            onChange({ tempo: v as Frequency, frequencia: FREQUENCY_LABEL[v] ?? '' })
+          }
+          options={FREQUENCY_OPTIONS}
+        />
+        <SelectField
+          label="Ferramenta Sugerida"
+          value={data.ferramenta ?? 'n8n'}
+          onChange={(v) =>
+            onChange({ ferramenta: v as 'rpa' | 'n8n' | 'ambos' })
+          }
+          options={TOOL_OPTIONS}
         />
         <TextField
           label="Volume Médio"
