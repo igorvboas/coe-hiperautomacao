@@ -16,8 +16,8 @@ updated: 2026-06-05T04:45:00Z
 expected: Exatamente 5 steps na ordem Identificação → Processo → Critérios → Benefícios → Priorização, sem qualquer escolha Tipo/Classificação (persona/formulário). Ao finalizar, a oportunidade é criada e redireciona para /opportunities/{id}.
 result: [pending]
 
-### 2. Desmarcar um benefício já selecionado e então Finalizar (WR-01)
-expected: (Conhecido — bug WR-01) O submit é REJEITADO pelo Zod (benefício vira 0, schema exige min(1)) e o usuário vê erro. O happy path (cada benefício pontuado uma vez, sem desmarcar) finaliza normalmente.
+### 2. Desmarcar um benefício já selecionado e então Finalizar (WR-01 — CORRIGIDO)
+expected: (WR-01 corrigido em 2026-06-05) Desmarcar um benefício REMOVE a chave (não grava 0); o submit é aceito normalmente e a oportunidade é criada. Conferir também que o benefício desmarcado some do registro `beneficios` gravado.
 result: [pending]
 
 ### 3. Bucket FTE derivado + score em Priorização

@@ -10,7 +10,13 @@ findings:
   warning: 1
   info: 2
   total: 3
+resolved:
+  - WR-01
 ---
+
+> **Update 2026-06-05:** WR-01 fixed — deselect now removes the benefit key
+> (`update(key, null)` → `delete`) instead of writing `0`. tsc clean, 113/113
+> tests pass. IN-01 and IN-02 left as-is (Info, server-guarded / latent).
 
 # Code Review — Phase 11 (wizard-fluxo-unico)
 

@@ -34,8 +34,18 @@ const BENEFICIOS: { key: BeneficioKey; label: string; color: string }[] = [
 export function BeneficiosStep({ data, onChange }: Props) {
   const beneficios = data.beneficios ?? {};
 
-  function update(key: BeneficioKey, value: number) {
-    onChange({ beneficios: { ...beneficios, [key]: value } });
+  // WR-01: desmarcar REMOVE a chave (não grava 0). O schema exige escala 1–5
+  // (`min(1)` sob `.strict()`); gravar 0 fazia o submit ser rejeitado pelo Zod.
+  // `value == null` → desmarcar; o display (`v ?? '—'`) e `active = v === n` já
+  // tratam chave ausente.
+  function update(key: BeneficioKey, value: number | null) {
+    const nextBeneficios = { ...beneficios };
+    if (value == null) {
+      delete nextBeneficios[key];
+    } else {
+      nextBeneficios[key] = value;
+    }
+    onChange({ beneficios: nextBeneficios });
   }
 
   // Phase 11 / D-01: o usuário digita APENAS fte_horas (h/mês). O bucket FTE
@@ -94,7 +104,7 @@ export function BeneficiosStep({ data, onChange }: Props) {
                     <button
                       key={n}
                       type="button"
-                      onClick={() => update(b.key, active ? 0 : n)}
+                      onClick={() => update(b.key, active ? null : n)}
                       className={
                         'flex-1 py-1.5 rounded text-[11px] font-bold border transition-colors ' +
                         (active
