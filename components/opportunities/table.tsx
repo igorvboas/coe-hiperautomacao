@@ -11,6 +11,8 @@ import {
   ScoreDisplay,
   PriorityPill,
   SeqIdDisplay,
+  FteCell,
+  RpaFitBadge,
 } from './cells';
 import { getInitials } from '@/lib/opportunities/utils';
 import { buildQuery, parseFilters, type SortKey } from '@/lib/opportunities/filters';
@@ -29,6 +31,7 @@ const SORTABLE_COLS: Record<string, SortableColumn> = {
   processo: { asc: 'processo_asc', desc: 'processo_asc' },
   status: { asc: 'status_asc', desc: 'status_asc' },
   score: { asc: 'score_asc', desc: 'score_desc' },
+  fte: { asc: 'fte_asc', desc: 'fte_desc' },
 };
 
 export function OpportunityTable({ opportunities }: Props) {
@@ -104,7 +107,14 @@ export function OpportunityTable({ opportunities }: Props) {
               </ThSort>
               <Th>Freq.</Th>
               <Th>Pessoas</Th>
+              <ThSort
+                active={isActive('fte')}
+                onClick={() => toggleSort('fte')}
+              >
+                FTE/mês{arrowFor('fte')}
+              </ThSort>
               <Th>Complex.</Th>
+              <Th>RPA Fit</Th>
               <Th>Ferramenta</Th>
               <ThSort
                 active={isActive('status')}
@@ -169,7 +179,13 @@ export function OpportunityTable({ opportunities }: Props) {
                   </span>
                 </Td>
                 <Td>
+                  <FteCell fte={o.fte_horas} />
+                </Td>
+                <Td>
                   <ComplexityBadge value={o.complexidade} />
+                </Td>
+                <Td>
+                  <RpaFitBadge score={o.rpa_score} />
                 </Td>
                 <Td>
                   <ToolBadge tool={o.ferramenta} />
