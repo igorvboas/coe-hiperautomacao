@@ -240,7 +240,9 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   2. A view exibe cards de portfólio: total de oportunidades, FTE Total/mês, prioridade Alta/Média, RPA Ideal, RPA+n8n e nº de áreas.
   3. A view mostra a distribuição por área de negócio com barras de quantidade somada ao FTE estimado por área.
   4. A view renderiza dois pie charts SVG: oportunidades por área e FTE por área.
-**Plans**: TBD
+**Plans**: 2 plans (planejados em 2026-06-05) — Wave 1: 14-01 (núcleo: agregação + SVG donut + Server Component Relatorio); Wave 2: 14-02 (wiring toolbar + page.tsx fetch não-filtrado, dep 01)
+- [ ] 14-01-PLAN.md — Núcleo do Relatório: `lib/opportunities/report.ts` (buildReport — agregação por área), `relatorio/pie.tsx` (PieCard donut SVG portado de _giba:818-850, zero-dep), `relatorio/relatorio.tsx` (Server Component: 7 cards + distribuição + 2 donuts + empty state) [REPORT-02, REPORT-03, REPORT-04]
+- [ ] 14-02-PLAN.md — Wiring: registra view 📈 Relatório na toolbar (VIEWS/View/parseView) + branch de render no page.tsx com fetch não-filtrado do portfólio (D-01a, RLS-scoped) [REPORT-01]
 **UI hint**: yes
 
 ### Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)
