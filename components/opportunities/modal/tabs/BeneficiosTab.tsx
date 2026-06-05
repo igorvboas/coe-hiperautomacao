@@ -2,40 +2,63 @@ import type { Opportunity } from '@/lib/opportunities/types';
 
 type Props = { opportunity: Opportunity };
 
-type BeneficioDef = {
-  key: keyof NonNullable<NonNullable<Opportunity['formulario_extras']>['beneficios']>;
-  label: string;
-  color: string;
-};
+// D-11: lê a coluna first-class v0.2 `o.beneficios` (8 chaves camelCase, escala 1–5)
+// + `o.fte_horas` — autoridade: wizard BeneficiosStep.tsx:23-32. Substitui o modelo
+// legado `formulario_extras.beneficios`.
+type BeneficioKey =
+  | 'reducaoTempo'
+  | 'eliminacaoErros'
+  | 'produtividade'
+  | 'qualidadeDados'
+  | 'reducaoCustos'
+  | 'reducaoRetrabalho'
+  | 'compliance'
+  | 'objetivosEstrategicos';
 
-const BENEFICIOS: BeneficioDef[] = [
-  { key: 'reducao_tempo', label: 'Redução de Tempo', color: '#3b82f6' },
-  { key: 'eliminacao_erros', label: 'Eliminação de Erros', color: '#8b5cf6' },
+const BENEFICIOS: { key: BeneficioKey; label: string; color: string }[] = [
+  { key: 'reducaoTempo', label: 'Redução de Tempo', color: '#3b82f6' },
+  { key: 'eliminacaoErros', label: 'Eliminação de Erros', color: '#8b5cf6' },
   { key: 'produtividade', label: 'Aumento de Produtividade', color: '#10b981' },
-  { key: 'qualidade_dados', label: 'Qualidade de Dados', color: '#f59e0b' },
-  { key: 'reducao_custos', label: 'Redução de Custos', color: '#ef4444' },
-  { key: 'reducao_retrabalho', label: 'Redução de Retrabalho', color: '#ec4899' },
+  { key: 'qualidadeDados', label: 'Qualidade de Dados', color: '#f59e0b' },
+  { key: 'reducaoCustos', label: 'Redução de Custos', color: '#ef4444' },
+  { key: 'reducaoRetrabalho', label: 'Redução de Retrabalho', color: '#ec4899' },
   { key: 'compliance', label: 'Compliance & Regulatório', color: '#06b6d4' },
-  { key: 'objetivos_estrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
+  { key: 'objetivosEstrategicos', label: 'Objetivos Estratégicos', color: '#f97316' },
 ];
 
 export function BeneficiosTab({ opportunity: o }: Props) {
-  const beneficios = o.formulario_extras?.beneficios ?? {};
-  const rows = BENEFICIOS.map((b) => ({
-    ...b,
-    value: beneficios[b.key],
-  })).filter((r) => r.value != null);
+  // `beneficios` é Json|null na view; null (persona legada) → empty state pt-BR (D-08).
+  const beneficios = (o.beneficios ?? null) as Partial<Record<BeneficioKey, number>> | null;
+
+  const rows =
+    beneficios == null
+      ? []
+      : BENEFICIOS.map((b) => ({ ...b, value: beneficios[b.key] })).filter(
+          (r) => r.value != null,
+        );
+
+  const fteHoras = o.fte_horas;
 
   if (rows.length === 0) {
     return (
       <div className="px-5 py-8 text-center text-mut text-[12px]">
-        Sem benefícios pontuados neste formulário.
+        Benefícios ainda não pontuados para esta oportunidade.
       </div>
     );
   }
 
   return (
     <div className="px-5 py-4">
+      {fteHoras != null && (
+        <div className="mb-4 rounded-lg border border-bdr bg-slate-50 px-3 py-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-mut">
+            FTE estimado
+          </span>
+          <span className="text-[13px] font-extrabold text-txt tabular-nums">
+            {fteHoras} h/mês
+          </span>
+        </div>
+      )}
       <div className="space-y-2.5 mb-4">
         {rows.map((r) => {
           const v = r.value as number;
