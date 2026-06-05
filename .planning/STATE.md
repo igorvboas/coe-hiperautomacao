@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_plan
-last_updated: 2026-06-05T09:00:00.000Z
-last_activity: 2026-06-05 -- Phase 12 context gathered
+status: ready_to_execute
+last_updated: 2026-06-05T12:00:00.000Z
+last_activity: 2026-06-05 -- Phase 12 planejada (2 plans, plan-checker PASSED)
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 10
+  total_plans: 12
   completed_plans: 48
   percent: 29
-stopped_at: Phase 12 context gathered — ready to plan (resume: .planning/phases/12-registro-riscos-modal/12-CONTEXT.md)
+stopped_at: Phase 12 planejada — ready to execute (resume: .planning/phases/12-registro-riscos-modal/12-01-PLAN.md)
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 12
-Plan: Not started (context gathered)
-Status: Ready to plan
-Last activity: 2026-06-05 — `/gsd-discuss-phase 12`: 12-CONTEXT.md criado (8 decisões: aba lista + sub-rota interceptada p/ CRUD, prioridade só após salvar, router.refresh + confirmar exclusão, responsável texto livre, enums minúsculos + camada de labels).
+Plan: 2 plans em 2 waves (prontos)
+Status: Ready to execute
+Last activity: 2026-06-05 — `/gsd-plan-phase 12` (research + skip-ui): 2 plans, plan-checker PASSED após 1 revisão. Próximo: `/gsd-execute-phase 12`.
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -126,7 +126,9 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-06-04 — `/gsd-plan-phase 11` (skip-research + skip-ui, ambos confirmados pelo PO: mockup é o contrato visual + componentes já existem). **Phase 11 PLANEJADA — 3 plans em 2 waves, plan-checker PASSED na 1ª passada (zero blockers/warnings, 12 dimensões, validado contra código vivo).** Wave 1: 11-01 (fundação — `lib/opportunities/fte.ts` `deriveFteBucket` horas→bucket fonte única + teste de bordas; `state.ts` fluxo único create 5 steps sempre `source='formulario'` sem Tipo/Classificação; `validateStep` Identificação(nome+área)/Processo(processo) pt-BR) [WIZARD-01,04]. Wave 2 (dep 11-01, zero overlap de arquivos → paralelos): 11-02 (rewrite Critérios/Benefícios p/ first-class — 8 chaves camelCase em `data.criterios` sim/nao/parcial + `data.beneficios` 1–5 + `fte_horas`; remove `formulario_extras`) [WIZARD-03,04] ‖ 11-03 (Processo: Frequência→`tempo` fonte única + Ferramenta default n8n; Priorização: 4 fatores manuais + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit) [WIZARD-01,02]. **Achado do checker confirmado:** `actions.ts:359` já persiste `fte: data.prioridade_fte ?? null` mas o wizard nunca setava → 11-03 T3 fecha o gap usando a MESMA `deriveFteBucket` (display=persistência, impossível divergir). Escopo travado: NÃO toca edit mode / modal de detalhe (Phase 13); persona variant preservada no schema. 4/4 REQ-IDs cobertos. **Nota runtime:** `gsd-sdk query` indisponível nesta máquina (binário diferente) — workflow rodado manualmente (planner/checker via Agent tool, commit manual). Próximo: `/gsd-execute-phase 11`.
+Last session: 2026-06-05 — `/gsd-plan-phase 12` (research first + skip-ui, ambos confirmados pelo PO: mockup `_giba` é o contrato visual). **Phase 12 PLANEJADA — 2 plans em 2 waves, plan-checker PASSED após 1 revisão (1 blocker + 1 warning, ambos artifact-gaps fechados sem mexer na lógica dos plans).** **Achado de arquitetura decisivo (RESEARCH, HIGH confidence):** um slot de parallel route (`@modal`) rastreia só UMA subpágina ativa → NÃO dá pra empilhar um segundo intercept dentro do `@modal` sobre o modal de oportunidade (descarta D-02 literal "modal aninhado interceptado"). Escolhida **opção (c)**: form de risco = **Dialog client-side empilhado** (overlay hand-rolled `z-[60]` sobre o modal `z-50`, como `DeleteButton.tsx`; shadcn NÃO instalado), acionado por search param `?risco=new|<id>`, MAIS **rotas fullscreen reais não-interceptadas** `opportunities/[id]/riscos/{new,[riskId]/edit}/page.tsx` p/ deep-link (satisfaz o contrato comportamental de D-02). Guard explícito nos plans: NÃO criar `@riskModal`/intercept aninhado (acceptance criteria com grep). **Sem migration/schema:** trigger `trg_opportunity_risks_priority` é `before insert OR update` (0011:294 verificado) → editar impacto/probabilidade recalcula `priority` sozinho; RISK-02/03 são app-layer puro. **Pitfall 5:** `OpportunityDetail` é client component → `RiscoTab` não pode ser async RSC; `risks` buscados no RSC pai (`fetchRisksForOpportunity`, whitelist sem `select('*')`) e passados por props (espelha `phases`). Wave 1: 12-01 (camada de dados — query whitelisted `fetchRisksForOpportunity`/`fetchRiskById`, server actions create/update/deleteRisk via `riskInputSchema.strict()` + tenant/opportunity_id server-derived, módulo `risk-labels.ts` enum→PT, parity test já existente confirmado). Wave 2 (dep 12-01): 12-02 (RiscoTab→tabela estruturada `_giba:1198-1232`, RiskForm+RiskFormDialog, DeleteRiskButton com confirmação, 2 rotas fullscreen; termina em checkpoint `human-verify` blocking). 4/4 REQ-IDs cobertos (RISK-01/02/03/05; RISK-04 é Phase 9). VALIDATION.md criado (Nyquist; Wave 0 já satisfeita por `risk-priority-matrix.test.ts` + `opportunity-risks-isolation.test.ts`). **Nota runtime:** `gsd-sdk query <subcmd>` indisponível nesta máquina (binário só expõe run/auto/init) — workflow rodado manualmente (researcher/planner/checker via Agent tool; STATE/commit manuais; pattern-mapper falhou por socket error, non-blocking). Próximo: `/gsd-execute-phase 12`.
+
+Previous session: 2026-06-04 — `/gsd-plan-phase 11` (skip-research + skip-ui, ambos confirmados pelo PO: mockup é o contrato visual + componentes já existem). **Phase 11 PLANEJADA — 3 plans em 2 waves, plan-checker PASSED na 1ª passada (zero blockers/warnings, 12 dimensões, validado contra código vivo).** Wave 1: 11-01 (fundação — `lib/opportunities/fte.ts` `deriveFteBucket` horas→bucket fonte única + teste de bordas; `state.ts` fluxo único create 5 steps sempre `source='formulario'` sem Tipo/Classificação; `validateStep` Identificação(nome+área)/Processo(processo) pt-BR) [WIZARD-01,04]. Wave 2 (dep 11-01, zero overlap de arquivos → paralelos): 11-02 (rewrite Critérios/Benefícios p/ first-class — 8 chaves camelCase em `data.criterios` sim/nao/parcial + `data.beneficios` 1–5 + `fte_horas`; remove `formulario_extras`) [WIZARD-03,04] ‖ 11-03 (Processo: Frequência→`tempo` fonte única + Ferramenta default n8n; Priorização: 4 fatores manuais + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit) [WIZARD-01,02]. **Achado do checker confirmado:** `actions.ts:359` já persiste `fte: data.prioridade_fte ?? null` mas o wizard nunca setava → 11-03 T3 fecha o gap usando a MESMA `deriveFteBucket` (display=persistência, impossível divergir). Escopo travado: NÃO toca edit mode / modal de detalhe (Phase 13); persona variant preservada no schema. 4/4 REQ-IDs cobertos. **Nota runtime:** `gsd-sdk query` indisponível nesta máquina (binário diferente) — workflow rodado manualmente (planner/checker via Agent tool, commit manual). Próximo: `/gsd-execute-phase 11`.
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 11`. Contexto da Phase 11 (Wizard de Fluxo Único — 5 steps) capturado em `.planning/phases/11-wizard-fluxo-unico/11-CONTEXT.md` (+ DISCUSSION-LOG). Escopo travado: **só o wizard de CRIAÇÃO** (modal/edição 8-abas → Phase 13). 4 áreas discutidas, PO escolheu todas as recomendações → 11 decisões (D-01..D-11): (1) **FTE fonte única** — usuário digita só `fte_horas` (Benefícios); `prioridade_fte` (5º fator) **derivado** das faixas do mockup (<10/10-40/40-100/100-200/>200), exibido read-only+peso na Priorização (`ScorePreview` já tem prop `fte`). (2) **Fluxo único** — remove steps Tipo+Classificação, sempre `source='formulario'`; discriminator persona fica só p/ ler/editar legado FGCoop. (3) **Automação** — `ferramenta` vira select no step Processo (default n8n); `escopo_automacao[]`/`beneficios_esperados[]` saem do create (null; IA/edição depois) — REALIGN-7.6 segue deferido, só garante compat MODEL-10. (4) **Critérios/Benefícios** — reaproveitar componentes (click-to-cycle + barras 1–5) reescritos p/ modelo first-class (Critérios 10 UPPERCASE/formulario_extras → 8 camelCase lowercase; Benefícios → `beneficios` top-level). Discrição sinalizada ao planner: redundância `frequencia` (Processo) × `tempo` (fator score) — preferir alimentar `tempo` da frequência do Processo (fonte única). Próximo: `/gsd-plan-phase 11`.
 
