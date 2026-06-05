@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_execute
-next_action: execute-phase
-active_phase: 11
-next_phases: [12, 13, 14, 15]
+status: executing
+last_updated: "2026-06-05T00:33:23.385Z"
+last_activity: 2026-06-05 -- Phase 11 execution started
 progress:
   total_phases: 7
   completed_phases: 2
-  percent: 28
-carryover_from_v0.1:
-  pending_phases: ["7.6 — Enriquecimento por IA (realinhar aos novos campos)", "8 — Deploy (adiado — Future Requirements)"]
+  total_plans: 10
+  completed_plans: 7
+  percent: 29
 ---
 
 # Project State
@@ -21,14 +20,14 @@ carryover_from_v0.1:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Bootstrap do projeto — saindo do mockup HTML estático para sistema real (Next.js + Supabase + Vercel).
+**Current focus:** Phase 11 — wizard-fluxo-unico
 
 ## Current Position
 
-Phase: **9 — Schema Evolution + Score/Risk/Contract Foundation** (próxima a planejar; ainda não iniciada).
-Plan: —
-Status: **roadmap_ready**. Roadmap v0.2 criado pelo gsd-roadmapper (2026-06-04): 7 fases (9–15), 35/35 REQ-IDs mapeados, seção "Milestone v0.2 — Roadmap" anexada ao ROADMAP.md (v0.1 preservado). Traceability de REQUIREMENTS.md preenchida. Numeração continua a partir do v0.1 (Phase 9). Próximo: `/gsd-plan-phase 9`.
-Last activity: 2026-06-04 — `/gsd-new-milestone` iniciou o v0.2 (Evolução do Modelo a partir de `_giba_wsi-dashboard.html`). PROJECT.md atualizado com seção "Current Milestone: v0.2", 4 novas Key Decisions e seção Evolution. Decisões travadas com o PO: (1) novo milestone v0.2 (não inserir na v0.1); (2) `_giba` é evolução GLOBAL do produto — aposenta `fgcoop-coe-v2.html` como contrato; (3) pesquisa de ecossistema pulada (delta totalmente especificado pelo HTML). Pesquisa do delta concluída: todos os campos novos (`fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo`, `riscos[]`) confirmados ausentes no mockup antigo; fórmula de score nova mapeada (`calcScore` _giba:483-490, 5 fatores × 20); matriz de risco mapeada (_giba:1180-1185); wizard 5-steps mapeado (_giba:1504-1597); view Relatório mapeada (_giba:853-928).
+Phase: 11 (wizard-fluxo-unico) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 11
+Last activity: 2026-06-05 -- Phase 11 execution started
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -38,7 +37,6 @@ Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em *
 
 Progress: [█████████░] 89%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
-
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
 
@@ -63,6 +61,7 @@ Progress: [█████████░] 89%
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 6
 - Average duration: 7.7min
 - Total execution time: ~46min
@@ -74,6 +73,7 @@ Progress: [█████████░] 89%
 | 7.5 | 6 | 46min | 7.7min |
 
 **Recent Trend:**
+
 - Last 6 plans: 07.5-01 (8min), 07.5-03 (5min), 07.5-05 (5min), 07.5-02 (8min), 07.5-04 (3min), 07.5-06 (17min)
 - Trend: ↗ Plan 06 maior (17min) — esperado: 8 tasks vs ~3-4 nos plans anteriores, install de 2 runtime deps, mudanças em 12 arquivos (5 novos helpers + Server Action refactor + UI + config + 2 test files + alias config). Plan single maior do MVP. 1 deviation Rule 3 (server-only alias) absorvida sem replan.
 
@@ -138,6 +138,7 @@ Resume file: `.planning/phases/11-wizard-fluxo-unico/11-01-PLAN.md` (3 plans pro
 Update 2026-06-04 (mesma sessão) — **Phase 10 COMPLETA** (`/gsd-execute-phase 10`, execução inline). 4 plans, gsd-verifier **passed 4/4 must-haves**. Gate: `tsc --noEmit` 0 erros; `vitest` 109 passed/0 failed/32 skipped (skipIf integração). **SCORE-04 validado AO VIVO** contra `opportunity_score()` (casos 100/88/59/36/67 — cliente=backend). Commits 36e4e69 (10-02 fórmula única+paridade), bd979e4 (10-01 tipos+0012), 9bdb027 (10-03 schema+cascata), 3aa438a (10-04 testes+AI-COMPAT), + fix do overload duplicado.
 
 **Decisões/descobertas-chave (registradas nos SUMMARYs):**
+
 1. **Regen de tipos (D-04) não foi possível pelos caminhos do plano** — MCP "Auton - DB" aponta para OUTRO projeto (`yzjlhezmvdkwdhibyvwh`, sem as tabelas do CoE); `gen:types` sem privilégio em `vxgthycrjetniejsjmee` (sem SUPABASE_ACCESS_TOKEN). `lib/database.types.ts` foi **hand-derived do 0011 + verificado contra o catálogo vivo** via introspecção rodada pelo PO. (O arquivo já era hand-maintained.) **TODO:** rodar `gen:types` quando houver token (deve ser no-op de verificação).
 2. **Migration `0012` aplicada** (RPC pública `create_public_opportunity` → `frequency_bucket`). Descoberta no apply: existiam **2 overloads** (18 + 21 params com defaults) → `42725 is not unique`; a app chama o de 21 (de 0009), que ainda tinha o mapeamento antigo. 0012 revisada **dropa o de 18 e recria o de 21** com frequência. Confirmado: 1 overload, sem cast `time_bucket`.
 3. **Cascata de domínio descoberta** (tempo duração→frequência além dos testes): ScoreTab.tsx (3ª cópia da fórmula v0.1), wizard/state.ts + PriorizacaoStep.tsx, `lib/ai/enrichment.ts` (NÃO sobrescreve mais `tempo` — **REALIGN-7.6** deferido), `actions.ts` PublicSubmitInput.tempo + fallback. Todos corrigidos minimamente (sem antecipar o wizard da P11).
