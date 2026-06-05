@@ -17,12 +17,13 @@ type Props = {
   tenantSlug: string | null;
 };
 
-type View = 'table' | 'cards' | 'kanban';
+type View = 'table' | 'cards' | 'kanban' | 'relatorio';
 
 const VIEWS: { id: View; icon: string; label: string }[] = [
   { id: 'table', icon: '☰', label: 'Tabela' },
   { id: 'cards', icon: '⊞', label: 'Cards' },
   { id: 'kanban', icon: '📊', label: 'Kanban' },
+  { id: 'relatorio', icon: '📈', label: 'Relatório' },
 ];
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -37,7 +38,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 function parseView(raw: string | null): View {
-  if (raw === 'cards' || raw === 'kanban') return raw;
+  if (raw === 'cards' || raw === 'kanban' || raw === 'relatorio') return raw;
   return 'table';
 }
 
