@@ -7,64 +7,54 @@ type Props = {
   onChange: (patch: Partial<WizardFormData>) => void;
 };
 
-type CriterioValor = 'SIM' | 'NAO' | 'PARCIAL';
+// Phase 11 / D-09: modelo first-class v0.2 — 8 critérios em `data.criterios`
+// top-level, chaves camelCase EXATAS do schema (schema.ts §245-258) e valores
+// do criterioEnum em minúsculo ('sim' | 'nao' | 'parcial'). A UX click-to-cycle
+// é mantida (superior aos dropdowns do mockup).
+type CriterioValor = 'sim' | 'nao' | 'parcial';
 
 type CriterioKey =
-  | 'regras_claras'
-  | 'totalmente_manual'
-  | 'processo_uniforme'
-  | 'digitacao_manual'
-  | 'causa_reclamacoes'
-  | 'padronizacao_docs'
-  | 'validacao_dados'
+  | 'causaReclamacoes'
+  | 'totalmenteManual'
+  | 'regrasClaras'
+  | 'decisaoHumana'
+  | 'padronizacaoDocs'
+  | 'validacaoDados'
   | 'schedulable'
-  | 'tem_documentacao'
-  | 'decisao_humana';
+  | 'temDocumentacao';
 
 const CRITERIOS: { key: CriterioKey; label: string }[] = [
-  { key: 'regras_claras', label: 'Processo baseado em regras claras' },
-  { key: 'totalmente_manual', label: 'Totalmente Manual' },
-  { key: 'processo_uniforme', label: 'Processo uniforme / mesmo fluxo sempre' },
-  { key: 'digitacao_manual', label: 'Digitação ou movimentação manual de dados' },
-  { key: 'causa_reclamacoes', label: 'Causa reclamações quando falha' },
-  { key: 'padronizacao_docs', label: 'Padronização em documentos (PDFs, formulários)' },
-  { key: 'validacao_dados', label: 'Validação ou conferência de dados simples' },
+  { key: 'causaReclamacoes', label: 'Causa reclamações quando falha' },
+  { key: 'totalmenteManual', label: 'Totalmente Manual' },
+  { key: 'regrasClaras', label: 'Processo baseado em regras claras' },
+  { key: 'decisaoHumana', label: 'Necessidade de decisão humana frequente' },
+  { key: 'padronizacaoDocs', label: 'Padronização em documentos (PDFs, formulários)' },
+  { key: 'validacaoDados', label: 'Validação ou conferência de dados simples' },
   { key: 'schedulable', label: 'Pode ser programado para horários específicos' },
-  { key: 'tem_documentacao', label: 'Possui documentação do processo' },
-  { key: 'decisao_humana', label: 'Necessidade de decisão humana frequente' },
+  { key: 'temDocumentacao', label: 'Possui documentação do processo' },
 ];
 
-const ORDER: CriterioValor[] = ['SIM', 'NAO', 'PARCIAL'];
-
 function next(v: CriterioValor | undefined): CriterioValor {
-  if (v === 'SIM') return 'NAO';
-  if (v === 'NAO') return 'PARCIAL';
-  return 'SIM';
+  if (v === 'sim') return 'nao';
+  if (v === 'nao') return 'parcial';
+  return 'sim';
 }
 
 function visual(v: CriterioValor | undefined) {
-  if (v === 'SIM') return { icon: '✅', label: 'Sim', cls: 'bg-green-50 text-green-800 border-green-300' };
-  if (v === 'NAO') return { icon: '❌', label: 'Não', cls: 'bg-red-50 text-red-800 border-red-300' };
-  if (v === 'PARCIAL') return { icon: '⚠️', label: 'Parcial', cls: 'bg-yellow-50 text-yellow-900 border-yellow-300' };
+  if (v === 'sim') return { icon: '✅', label: 'Sim', cls: 'bg-green-50 text-green-800 border-green-300' };
+  if (v === 'nao') return { icon: '❌', label: 'Não', cls: 'bg-red-50 text-red-800 border-red-300' };
+  if (v === 'parcial') return { icon: '⚠️', label: 'Parcial', cls: 'bg-yellow-50 text-yellow-900 border-yellow-300' };
   return { icon: '⚪', label: '—', cls: 'bg-slate-50 text-mut border-slate-200' };
 }
 
 export function CriteriosStep({ data, onChange }: Props) {
-  const criterios = data.formulario_extras?.criterios ?? {};
+  const criterios = data.criterios ?? {};
 
   function toggle(key: CriterioKey) {
     const current = criterios[key];
     const nextV = next(current);
-    onChange({
-      formulario_extras: {
-        ...(data.formulario_extras ?? {}),
-        criterios: { ...criterios, [key]: nextV },
-      },
-    });
+    onChange({ criterios: { ...criterios, [key]: nextV } });
   }
-
-  // Suprime warning de ORDER não-usado direto (left for documentation)
-  void ORDER;
 
   return (
     <div className="px-2 py-2">
