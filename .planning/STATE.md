@@ -3,15 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
 status: ready_to_plan
-last_updated: 2026-06-05T13:05:35.789Z
-last_activity: 2026-06-05 -- Phase 12 Plan 01 completo (camada de dados/mutação de riscos)
+last_updated: 2026-06-05
+last_activity: 2026-06-05 -- Phase 13 contexto capturado (discuss-phase: KPI/Tabela/Modal+edição/Kanban)
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
   completed_plans: 50
-  percent: 43
-stopped_at: Phase 12 complete (2/2) — ready to discuss Phase 13
+  percent: 50
+stopped_at: Phase 13 context gathered — ready to plan (/gsd-plan-phase 13)
+resume_file: .planning/phases/13-atualizacoes-tela/13-CONTEXT.md
 ---
 
 # Project State
@@ -27,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 Phase: 13
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-05
+Status: Ready to plan (contexto capturado)
+Last activity: 2026-06-05 — `/gsd-discuss-phase 13`: 4 áreas discutidas (KPI bar paridade total; tabela +FTE/mês +RPA Fit mantendo coluna Fonte; modal colapsa em 8 abas únicas E vira editável em modo global reusando `updateOpportunity`; kanban FTE por coluna + chip/badge nos cards). Resolveu pendência da Phase 12 (campo legado `risco`→Observação). CONTEXT.md + DISCUSSION-LOG.md em `.planning/phases/13-atualizacoes-tela/` (commit). Próximo: `/gsd-plan-phase 13`.
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
