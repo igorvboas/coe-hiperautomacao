@@ -253,7 +253,10 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   1. Existe um tenant "Unidasul" e as 64 oportunidades do Workshop I aparecem associadas a ele (migration de dados isolada por tenant).
   2. As oportunidades importadas trazem os novos campos preenchidos (fonte = "Workshop I", critérios, benefícios, FTE), e o score/`priority_level`/`rpaScore` calculam corretamente sobre elas.
   3. Um usuário de outro tenant não enxerga nenhuma das 64 oportunidades da Unidasul (verificação cruzada de RLS).
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Migration write-only 0013 (tenant+admin Unidasul + 64 opportunities, guard de idempotência) + teste cross-tenant SC3 + handoff de apply manual [DATA-01]
 
 ## Progresso v0.2
 
@@ -265,7 +268,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 | 12. Registro de Riscos (UI do modal) | 2/2 | Complete    | 2026-06-05 |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 5/5 | Complete | 2026-06-05 |
 | 14. View "Relatório" | 2/2 | Complete | 2026-06-05 |
-| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/? | Not started | - |
+| 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/1 | Planned | - |
 
 ## Ordem das Phases (v0.2)
 
