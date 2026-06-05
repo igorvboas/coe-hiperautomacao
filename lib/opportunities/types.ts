@@ -34,6 +34,19 @@ export type AiEnrichmentStatus = Opportunity['ai_enrichment_status'];
 export type OpportunityPhase =
   Database['public']['Tables']['opportunity_phases']['Row'];
 
+// ─── Phase 12: Registro de Riscos ───────────────────────────────────────
+// Linha estruturada de `opportunity_risks` (0011). `priority` é trigger-set
+// (set_risk_priority(), matriz impacto×probabilidade) — nunca input manual.
+// Reexportado para o front da aba Risco e do formulário de risco.
+export type OpportunityRisk =
+  Database['public']['Tables']['opportunity_risks']['Row'];
+
+export type RiskType = Database['public']['Enums']['risk_type'];
+export type RiskImpact = Database['public']['Enums']['risk_impact'];
+export type RiskProbability = Database['public']['Enums']['risk_probability'];
+export type RiskStatus = Database['public']['Enums']['risk_status'];
+export type RiskPriority = Database['public']['Enums']['risk_priority'];
+
 /**
  * Buckets de KPI usados pela KPI bar.
  * Calculado a partir do array de Opportunity no Server Component.

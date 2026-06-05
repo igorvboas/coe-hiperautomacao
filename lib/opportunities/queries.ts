@@ -5,6 +5,7 @@ import type {
   Opportunity,
   OpportunityKpis,
   OpportunityPhase,
+  OpportunityRisk,
   OpportunityStatus,
 } from './types';
 import type { OpportunityFilters } from './filters';
@@ -42,6 +43,16 @@ const OPPORTUNITY_COLUMNS =
 const PHASE_COLUMNS =
   'id, opportunity_id, tenant_id, phase_key, ' +
   'started_at, finished_at, created_at, updated_at';
+
+/**
+ * Whitelist para `opportunity_risks` (0011) — mesma motivação de HARDEN-E-06
+ * (sem `select('*')`). `priority` é trigger-set (set_risk_priority(), matriz
+ * impacto×probabilidade) — leitura apenas, nunca input. Nenhuma coluna sensível.
+ */
+const RISK_COLUMNS =
+  'id, opportunity_id, tenant_id, descricao, tipo, responsavel, ' +
+  'impacto, probabilidade, status, resposta, descricao_impacto, ' +
+  'priority, created_by, created_at, updated_at';
 
 /**
  * Busca todas as oportunidades visíveis pro tenant do usuário logado.
@@ -170,6 +181,60 @@ export async function fetchPhasesForOpportunity(
   }
 
   return data ?? [];
+}
+
+/**
+ * Busca os riscos estruturados de uma oportunidade (`opportunity_risks`, 0011).
+ * RLS protege por tenant — não precisa passar tenant_id.
+ *
+ * Ordenação: `created_at asc` no DB. O rank semântico de severidade
+ * (`critica > alta > media > baixa`) NÃO é dado por `.order('priority')` —
+ * ordenar pelo enum é alfabético (`alta, baixa, critica, media`), não por
+ * severidade (Pitfall 6 da RESEARCH). Se a UI precisar ordenar por prioridade,
+ * o Plan 12-02 aplica o rank no client.
+ *
+ * @param opportunityId id da oportunidade dona dos riscos.
+ */
+export async function fetchRisksForOpportunity(
+  opportunityId: string
+): Promise<OpportunityRisk[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_risks')
+    .select(RISK_COLUMNS)
+    .eq('opportunity_id', opportunityId)
+    .order('created_at', { ascending: true })
+    .returns<OpportunityRisk[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar riscos: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Busca um risco por id (usado pela rota fullscreen de edição no Plan 12-02).
+ * RLS filtra implicitamente. Retorna null se não existir / não autorizado.
+ */
+export async function fetchRiskById(
+  riskId: string
+): Promise<OpportunityRisk | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_risks')
+    .select(RISK_COLUMNS)
+    .eq('id', riskId)
+    .maybeSingle()
+    .returns<OpportunityRisk>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar risco: ${error.message}`);
+  }
+
+  return data;
 }
 
 /**
