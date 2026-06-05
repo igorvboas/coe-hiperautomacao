@@ -149,7 +149,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - [x] **Phase 10: Backend — Queries, Validação e Paridade de Score** ✅ — Tipos pós-0011 (hand-derived, verificados vs catálogo vivo), Zod aditivo (criterios minúsculo, tempo→frequência, campos novos, mass-assignment preservado), whitelist ampliada, `riskInputSchema`. SCORE-04: fórmula única `lib/opportunities/score.ts` (cliente=backend, paridade validada ao vivo 100/88/59/36/67). Migration `0012` (RPC pública → frequência, dropa overload duplicado). tsc 0 erros, suíte 109 passed/0 failed.
 - [x] **Phase 11: Wizard de Fluxo Único (5 steps)** — Substitui o split persona/formulário por um wizard de 5 steps com critérios, benefícios, FTE e priorização de 5 fatores. (completed 2026-06-05)
 - [x] **Phase 12: Registro de Riscos (UI do modal)** — Aba "Risco" do modal: criar/editar/remover riscos com prioridade auto-calculada pela matriz impacto×probabilidade. (completed 2026-06-05)
-- [ ] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo.
+- [x] **Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)** — KPI FTE Total/mês, novas colunas e ordenação na tabela, FTE somado no kanban e modal com 8 abas alinhadas ao novo modelo. (completed 2026-06-05)
 - [ ] **Phase 14: View "Relatório"** — Dashboard analítico: cards de portfólio, distribuição por área (barras qtd + FTE) e 2 pie charts SVG.
 - [ ] **Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)** — Importa as 64 oportunidades do Workshop I como seed de um tenant "Unidasul", isolado por tenant.
 
@@ -228,7 +228,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 - [x] 13-02-PLAN.md — KPI bar 9 KPIs (FTE Total + Novos/Produção/Concluídos) + tabela colunas FTE/mês+RPA Fit (mantém Fonte) + sort por FTE; `FteCell`/`RpaFitBadge`/`rpaTier` em cells.tsx [VIEW-01, VIEW-02, VIEW-03] ✅ 2026-06-05
 - [x] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04] ✅ 2026-06-05
 - [x] 13-04-PLAN.md — Modal display: colapsa 2 conjuntos em 1 de 8 abas, realinha Critérios/Benefícios/Score ao first-class v0.2, move `risco` legado → Observação; Perfil/Desafios/CoE desligados [VIEW-05] ✅ 2026-06-05
-- [~] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; termina em checkpoint human-verify [VIEW-05] — **código completo (2 tasks, commits 15f4f28+86bb78c); human-verify PENDENTE** 2026-06-05
+- [x] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; checkpoint human-verify APROVADO pelo PO (commits 15f4f28+86bb78c+7555049) [VIEW-05] ✅ 2026-06-05
 **UI hint**: yes
 
 ### Phase 14: View "Relatório"
@@ -261,7 +261,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 | 10. Backend — Queries, Validação e Paridade de Score | 4/4 | ✅ Done | 2026-06-04 |
 | 11. Wizard de Fluxo Único (5 steps) | 3/3 | Complete    | 2026-06-05 |
 | 12. Registro de Riscos (UI do modal) | 2/2 | Complete    | 2026-06-05 |
-| 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |
+| 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 5/5 | Complete | 2026-06-05 |
 | 14. View "Relatório" | 0/? | Not started | - |
 | 15. Seed dos Dados Reais do Workshop I (Unidasul) | 0/? | Not started | - |
 

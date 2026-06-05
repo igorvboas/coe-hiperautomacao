@@ -52,7 +52,7 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 - [x] **VIEW-02**: Tabela inclui colunas Frequência, Pessoas, Complexidade, FTE/mês e RPA Fit
 - [x] **VIEW-03**: Ordenação disponível por FTE e pelo novo score
 - [x] **VIEW-04**: Kanban (Gestão à Vista) soma e exibe FTE por coluna de status
-- [ ] **VIEW-05**: Modal exibe as 8 abas alinhadas ao novo modelo (Processo/Critérios/Automação/Benefícios/Score/Fases/Risco/Observação)
+- [x] **VIEW-05**: Modal exibe as 8 abas alinhadas ao novo modelo (Processo/Critérios/Automação/Benefícios/Score/Fases/Risco/Observação) + edição global (Editar/Salvar/Cancelar) com derivados read-only
 
 ### DATA — Dados reais Workshop I
 
