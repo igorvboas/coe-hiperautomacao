@@ -194,7 +194,10 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   2. O step "Critérios" coleta os 8 critérios com valores SIM/NÃO/PARCIAL; o step "Benefícios" coleta os 8 benefícios em escala 1–5 mais a estimativa de FTE em horas/mês.
   3. O step "Priorização" coleta os 5 fatores de score, incluindo o bucket de FTE, com os pesos visíveis ao usuário, e exibe o score resultante.
   4. Validações por step bloqueiam o avanço quando faltam campos obrigatórios (nome + área no step 1; processo no step 2), com mensagem clara em pt-BR.
-**Plans**: TBD
+**Plans**: 3 plans (planejados em 2026-06-04, plan-checker PASSED 1ª passada) — Wave 1: 01 (fundação); Wave 2: 02 ‖ 03 (zero overlap)
+- [ ] 11-01-PLAN.md — Fundação: `lib/opportunities/fte.ts` `deriveFteBucket` (horas→bucket, fonte única, teste de bordas) + `state.ts` fluxo único create (5 steps, sempre `source='formulario'`, sem Tipo/Classificação) + `validateStep` Identificação(nome+área)/Processo(processo) pt-BR [WIZARD-01, WIZARD-04]
+- [ ] 11-02-PLAN.md — Rewrite Critérios + Benefícios p/ modelo first-class v0.2: 8 chaves camelCase em `data.criterios`(sim/nao/parcial, click-to-cycle) e `data.beneficios`(1–5, barras) + captura de `fte_horas`; remove gravação em `formulario_extras` [WIZARD-03, WIZARD-04]
+- [ ] 11-03-PLAN.md — Processo: Frequência→select que alimenta `tempo` (fonte única, resolve redundância) + Ferramenta (default n8n); Priorização: 4 fatores manuais com pesos + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit (persiste o 5º fator) [WIZARD-01, WIZARD-02]
 **UI hint**: yes
 
 ### Phase 12: Registro de Riscos (UI do modal)
@@ -249,7 +252,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 |-------|----------------|--------|-----------|
 | 9. Schema Evolution + Score/Risk/Contract Foundation | 3/3 | ✅ Done | 2026-06-04 |
 | 10. Backend — Queries, Validação e Paridade de Score | 4/4 | ✅ Done | 2026-06-04 |
-| 11. Wizard de Fluxo Único (5 steps) | 0/? | Not started | - |
+| 11. Wizard de Fluxo Único (5 steps) | 0/3 | Ready to execute | - |
 | 12. Registro de Riscos (UI do modal) | 0/? | Not started | - |
 | 13. Atualizações de Tela (KPI/Tabela/Kanban/Modal) | 0/? | Not started | - |
 | 14. View "Relatório" | 0/? | Not started | - |
