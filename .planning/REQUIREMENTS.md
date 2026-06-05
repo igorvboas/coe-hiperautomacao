@@ -26,9 +26,9 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 
 ### RISK — Registro de Riscos
 
-- [ ] **RISK-01**: Usuário cadastra um risco de uma oportunidade com descrição, tipo (Impedimento/Risco/Oportunidade), responsável (PSW/UnidaSul), impacto, probabilidade, status (Novo/Gerenciado/Mitigado/Ocorrido), resposta ao risco e descrição do impacto
-- [ ] **RISK-02**: Prioridade do risco (Crítica/Alta/Média/Baixa) é **auto-calculada** pela matriz impacto×probabilidade (`_giba:1180-1185`)
-- [ ] **RISK-03**: Usuário edita e remove riscos de uma oportunidade
+- [x] **RISK-01**: Usuário cadastra um risco de uma oportunidade com descrição, tipo (Impedimento/Risco/Oportunidade), responsável (PSW/UnidaSul), impacto, probabilidade, status (Novo/Gerenciado/Mitigado/Ocorrido), resposta ao risco e descrição do impacto — Phase 12-01: camada de dados `createRisk` (Zod + tenant server-derived); UI de cadastro em 12-02
+- [x] **RISK-02**: Prioridade do risco (Crítica/Alta/Média/Baixa) é **auto-calculada** pela matriz impacto×probabilidade (`_giba:1180-1185`) — Phase 12-01: trigger `set_risk_priority()` é a autoridade; query lê `priority` GENERATED, nunca no payload; parity test 16/16
+- [x] **RISK-03**: Usuário edita e remove riscos de uma oportunidade — Phase 12-01: `updateRisk`/`deleteRisk` (escopo `.eq('tenant_id', profile.tenant_id)`); UI em 12-02
 - [ ] **RISK-04**: Riscos são isolados por tenant — nova tabela `opportunity_risks` com `tenant_id` + RLS (policy padrão)
 - [ ] **RISK-05**: Aba "Risco" do modal lista os riscos em tabela (ID Rxxx, descrição, tipo, responsável, impacto, probabilidade, prioridade, status, ações)
 
@@ -41,10 +41,10 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 
 ### WIZARD — Novo fluxo de criação
 
-- [ ] **WIZARD-01**: Wizard único de 5 steps — Identificação → Processo → Critérios → Benefícios → Priorização (substitui o split persona/formulario)
-- [ ] **WIZARD-02**: Step "Priorização" coleta os 5 fatores de score, incluindo o bucket de FTE, com os pesos visíveis ao usuário
-- [ ] **WIZARD-03**: Step "Benefícios" coleta os 8 benefícios (escala 1–5) + estimativa de FTE em horas/mês
-- [ ] **WIZARD-04**: Step "Critérios" coleta os 8 critérios (SIM/NÃO/PARCIAL); validações por step (nome+área obrigatórios; processo obrigatório)
+- [x] **WIZARD-01**: Wizard único de 5 steps — Identificação → Processo → Critérios → Benefícios → Priorização (substitui o split persona/formulario)
+- [x] **WIZARD-02**: Step "Priorização" coleta os 5 fatores de score, incluindo o bucket de FTE, com os pesos visíveis ao usuário
+- [x] **WIZARD-03**: Step "Benefícios" coleta os 8 benefícios (escala 1–5) + estimativa de FTE em horas/mês
+- [x] **WIZARD-04**: Step "Critérios" coleta os 8 critérios (SIM/NÃO/PARCIAL); validações por step (nome+área obrigatórios; processo obrigatório)
 
 ### VIEW — Atualizações das telas existentes
 
