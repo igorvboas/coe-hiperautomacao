@@ -140,9 +140,18 @@ export function defaultFormData(): WizardFormData {
 /**
  * Converte uma `Opportunity` (row do banco) em `WizardFormData` editável.
  * Trata null → '' (string vazia) ou [] (array vazio) pra compat com inputs.
+ *
+ * Phase 13 (Plan 05 / D-12/D-15): este é o SEED da edição global do modal —
+ * o payload de `updateOpportunity` deriva direto daqui. Duas garantias críticas:
+ *   1. `fte_horas` é semeado (era omitido antes) — sem isto o bucket FTE derivado
+ *      nunca recalcula ao editar e o submit perde a coluna `fte`.
+ *   2. APENAS o extras correspondente ao `source` entra (persona XOR formulário).
+ *      O `opportunityInputSchema` é discriminatedUnion `.strict()`: semear ambos
+ *      faz a variante `persona` rejeitar `formulario_extras` como `unrecognized_keys`.
+ *      As demais coerções camelCase (criterios/beneficios) seguem first-class.
  */
 export function opportunityToFormData(opp: Opportunity): WizardFormData {
-  return {
+  const base: WizardFormData = {
     source: opp.source,
     request_type: opp.request_type ?? 'nova_oportunidade',
     solicitante: opp.solicitante,
@@ -172,9 +181,22 @@ export function opportunityToFormData(opp: Opportunity): WizardFormData {
     notas: opp.notas ?? '',
     observacao: opp.observacao ?? '',
     risco: opp.risco ?? '',
-    persona_extras: opp.persona_extras ?? undefined,
-    formulario_extras: opp.formulario_extras ?? undefined,
+    // v0.2 first-class — necessários para a edição global do modal (Phase 13):
+    fte_horas: opp.fte_horas ?? undefined,
+    criterios:
+      (opp.criterios as WizardFormData['criterios']) ?? undefined,
+    beneficios:
+      (opp.beneficios as WizardFormData['beneficios']) ?? undefined,
   };
+
+  // Apenas o extras da variante (discriminatedUnion .strict() — XOR).
+  if (opp.source === 'persona') {
+    base.persona_extras = opp.persona_extras ?? undefined;
+  } else {
+    base.formulario_extras = opp.formulario_extras ?? undefined;
+  }
+
+  return base;
 }
 
 /**
