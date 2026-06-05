@@ -83,6 +83,12 @@ export async function fetchOpportunities(
     case 'score_asc':
       q = q.order('score', { ascending: true }).order('seq_id', { ascending: true });
       break;
+    case 'fte_desc':
+      q = q.order('fte_horas', { ascending: false, nullsFirst: false });
+      break;
+    case 'fte_asc':
+      q = q.order('fte_horas', { ascending: true, nullsFirst: false });
+      break;
     case 'seq_asc':
       q = q.order('seq_id', { ascending: true });
       break;

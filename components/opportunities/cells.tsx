@@ -1,4 +1,10 @@
 import type { Opportunity } from '@/lib/opportunities/types';
+import { rpaTier } from '@/lib/opportunities/cells';
+
+// rpaTier (fn pura, _giba:520-525) vive em lib/opportunities/cells.ts — fonte
+// única importável também pelos specs puros. Reexportado aqui para os consumidores
+// de UI (tabela/kanban) que já importam de './cells'.
+export { rpaTier };
 
 // =============================================================================
 // SourceBadge — persona / formulario
@@ -91,6 +97,43 @@ export function ComplexityBadge({ value }: { value: Opportunity['complexidade'] 
       {m.label}
     </span>
   );
+}
+
+// =============================================================================
+// RpaFitBadge — badge por faixa de rpa_score (D-05 / _giba:520-525)
+//   rs >= 5 → ⭐ RPA Ideal (n/6)   (âmbar)
+//   rs >= 3 → ✓  RPA+n8n (n/6)     (índigo)
+//   else    → n8n (n/6)            (cinza)
+// Reusa rpaTier (lib/opportunities/cells — fonte única do rótulo/ícone) e
+// mapeia o tom da faixa para as cores inline do mockup.
+// =============================================================================
+function rpaColors(rs: number): { bg: string; fg: string } {
+  if (rs >= 5) return { bg: '#fef3c7', fg: '#92400e' };
+  if (rs >= 3) return { bg: '#e0e7ff', fg: '#3730a3' };
+  return { bg: '#f1f5f9', fg: '#64748b' };
+}
+
+export function RpaFitBadge({ score }: { score: number | null }) {
+  if (score == null) return <span className="text-mut text-xs">—</span>;
+  const tier = rpaTier(score);
+  const colors = rpaColors(score);
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+      style={{ backgroundColor: colors.bg, color: colors.fg }}
+    >
+      {tier.icon ? `${tier.icon} ` : ''}
+      {tier.label}
+    </span>
+  );
+}
+
+// =============================================================================
+// FteCell — FTE em h/mês (D-05). null → travessão.
+// =============================================================================
+export function FteCell({ fte }: { fte: number | null }) {
+  if (fte == null) return <span className="text-mut text-xs">—</span>;
+  return <span className="text-[12px] tabular-nums">{Math.round(fte)}h</span>;
 }
 
 // =============================================================================
