@@ -4,15 +4,15 @@ milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
 status: phase_complete
 last_updated: 2026-06-05
-last_activity: 2026-06-05 -- Phase 13 COMPLETA (5/5 plans); human-verify do 13-05 APROVADO pelo PO; gsd-verifier PASSED 11/11 must-haves; VIEW-01..05 ✅
+last_activity: 2026-06-05 -- Phase 14 CONTEXT gerado (/gsd-discuss-phase 14): 4 gray areas resolvidas (portfólio inteiro, svgPie do mockup, Server Component, empty state dedicado). Pronto p/ /gsd-plan-phase 14.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 17
   completed_plans: 55
   percent: 57
-stopped_at: Phase 13 COMPLETA e verificada (11/11). Próximo: Phase 14 (View "Relatório").
-resume_file: .planning/phases/14-view-relatorio/ (não existe ainda — /gsd-discuss-phase 14 ou /gsd-plan-phase 14)
+stopped_at: Phase 14 context gathered. Próximo: /gsd-plan-phase 14.
+resume_file: .planning/phases/14-relatorio/14-CONTEXT.md
 ---
 
 # Project State
