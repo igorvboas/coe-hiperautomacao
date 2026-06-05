@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: ready_to_plan
+status: ready_to_execute
 last_updated: 2026-06-05
-last_activity: 2026-06-05 -- Phase 13 contexto capturado (discuss-phase: KPI/Tabela/Modal+edição/Kanban)
+last_activity: 2026-06-05 -- Phase 13 planejada (5 plans, 3 waves; checker PASSED 0 blockers)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 12
+  total_plans: 17
   completed_plans: 50
   percent: 50
-stopped_at: Phase 13 context gathered — ready to plan (/gsd-plan-phase 13)
-resume_file: .planning/phases/13-atualizacoes-tela/13-CONTEXT.md
+stopped_at: Phase 13 planned (5 plans) — ready to execute (/gsd-execute-phase 13)
+resume_file: .planning/phases/13-atualizacoes-tela/13-01-PLAN.md
 ---
 
 # Project State
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 13
-Plan: Not started
-Status: Ready to plan (contexto capturado)
-Last activity: 2026-06-05 — `/gsd-discuss-phase 13`: 4 áreas discutidas (KPI bar paridade total; tabela +FTE/mês +RPA Fit mantendo coluna Fonte; modal colapsa em 8 abas únicas E vira editável em modo global reusando `updateOpportunity`; kanban FTE por coluna + chip/badge nos cards). Resolveu pendência da Phase 12 (campo legado `risco`→Observação). CONTEXT.md + DISCUSSION-LOG.md em `.planning/phases/13-atualizacoes-tela/` (commit). Próximo: `/gsd-plan-phase 13`.
+Plan: 0/5 (planejado, não iniciado)
+Status: Ready to execute
+Last activity: 2026-06-05 — `/gsd-plan-phase 13`: research (HIGH conf, foco edição do modal) + pattern-map + 5 plans em 3 waves; plan-checker PASSED (0 blockers, 0 warnings, 5/5 VIEW IDs + 16/16 decisões cobertas). Waves: **W1** 13-01 (foundation: extrai `lib/opportunities/rpa.ts deriveRpaScore` + specs Wave 0) ‖ 13-04 (modal: colapsa em 8 abas + realinha Critérios/Benefícios/Score ao first-class + risco→Observação); **W2** 13-02 (KPI 9-cells + colunas FTE/RPA Fit + sort FTE, dep 01) ‖ 13-05 (modal editável modo global via recipe do WizardShell + `updateOpportunity`, dep 01+04, **autonomous:no** — termina em checkpoint:human-verify); **W3** 13-03 (kanban FTE/coluna + chips, dep 02). Artefatos em `.planning/phases/13-atualizacoes-tela/` (CONTEXT/RESEARCH/VALIDATION/PATTERNS/5×PLAN). Próximo: `/gsd-execute-phase 13`.
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
