@@ -7,6 +7,7 @@ import {
   updateOpportunity,
 } from '@/lib/opportunities/actions';
 import type { OpportunityInput } from '@/lib/opportunities/schema';
+import { deriveFteBucket } from '@/lib/opportunities/fte';
 import {
   defaultFormData,
   stepsFor,
@@ -115,7 +116,16 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
 
     startTransition(async () => {
       if (mode === 'create') {
-        const result = await createOpportunity(data as OpportunityInput);
+        // Deriva o 5º fator (bucket FTE) de fte_horas — fonte única (D-01), mesma
+        // fn do display em Priorização → impossível divergir preview × persistência.
+        // Sem isto, actions.ts persiste `fte: data.prioridade_fte` como null.
+        const fteH = data.fte_horas;
+        const payload = {
+          ...data,
+          prioridade_fte:
+            fteH != null ? deriveFteBucket(Number(fteH)) : undefined,
+        };
+        const result = await createOpportunity(payload as OpportunityInput);
         if (!result.ok) {
           setSubmitError(result.error);
           return;
