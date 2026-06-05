@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import type { Opportunity, OpportunityPhase } from '@/lib/opportunities/types';
+import type {
+  Opportunity,
+  OpportunityPhase,
+  OpportunityRisk,
+} from '@/lib/opportunities/types';
 import { ModalHeader } from './Header';
 import { TabsNav } from './TabsNav';
 import type { TabDef, TabId } from './types';
@@ -42,9 +46,10 @@ const TABS_FORMULARIO: TabDef[] = [
 type Props = {
   opportunity: Opportunity;
   phases: OpportunityPhase[];
+  risks: OpportunityRisk[];
 };
 
-export function OpportunityDetail({ opportunity, phases }: Props) {
+export function OpportunityDetail({ opportunity, phases, risks }: Props) {
   const isPersona = opportunity.source === 'persona';
   const tabs = isPersona ? TABS_PERSONA : TABS_FORMULARIO;
   const defaultTab: TabId = isPersona ? 'perfil' : 'processo';
@@ -56,13 +61,18 @@ export function OpportunityDetail({ opportunity, phases }: Props) {
       <ModalHeader opportunity={opportunity} />
       <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       <div className="max-h-[60vh] overflow-y-auto">
-        {renderTab(activeTab, opportunity, phases)}
+        {renderTab(activeTab, opportunity, phases, risks)}
       </div>
     </>
   );
 }
 
-function renderTab(tab: TabId, opp: Opportunity, phases: OpportunityPhase[]) {
+function renderTab(
+  tab: TabId,
+  opp: Opportunity,
+  phases: OpportunityPhase[],
+  risks: OpportunityRisk[],
+) {
   switch (tab) {
     // tabs comuns (Plan 04-01)
     case 'automacao':
@@ -92,7 +102,7 @@ function renderTab(tab: TabId, opp: Opportunity, phases: OpportunityPhase[]) {
     case 'observacao':
       return <ObservacaoTab opportunity={opp} />;
     case 'risco':
-      return <RiscoTab opportunity={opp} />;
+      return <RiscoTab opportunity={opp} risks={risks} />;
 
     default:
       return null;

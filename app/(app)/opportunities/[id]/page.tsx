@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   fetchOpportunityById,
   fetchPhasesForOpportunity,
+  fetchRisksForOpportunity,
 } from '@/lib/opportunities/queries';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
 
@@ -18,7 +19,10 @@ export default async function OpportunityDetailPage({
   const { id } = await params;
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) notFound();
-  const phases = await fetchPhasesForOpportunity(id);
+  const [phases, risks] = await Promise.all([
+    fetchPhasesForOpportunity(id),
+    fetchRisksForOpportunity(id),
+  ]);
 
   return (
     <div className="px-6 py-4">
@@ -32,7 +36,11 @@ export default async function OpportunityDetailPage({
           </Link>
         </div>
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <OpportunityDetail opportunity={opportunity} phases={phases} />
+          <OpportunityDetail
+            opportunity={opportunity}
+            phases={phases}
+            risks={risks}
+          />
         </div>
       </div>
     </div>

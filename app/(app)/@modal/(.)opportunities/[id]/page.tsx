@@ -1,6 +1,7 @@
 import {
   fetchOpportunityById,
   fetchPhasesForOpportunity,
+  fetchRisksForOpportunity,
 } from '@/lib/opportunities/queries';
 import { ModalShell } from '@/components/opportunities/modal/ModalShell';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
@@ -22,11 +23,18 @@ export default async function OpportunityModalPage({
   const { id } = await params;
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) return null;
-  const phases = await fetchPhasesForOpportunity(id);
+  const [phases, risks] = await Promise.all([
+    fetchPhasesForOpportunity(id),
+    fetchRisksForOpportunity(id),
+  ]);
 
   return (
     <ModalShell>
-      <OpportunityDetail opportunity={opportunity} phases={phases} />
+      <OpportunityDetail
+        opportunity={opportunity}
+        phases={phases}
+        risks={risks}
+      />
     </ModalShell>
   );
 }

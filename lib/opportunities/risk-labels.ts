@@ -78,6 +78,23 @@ export const PRIORITY_BADGE_CLASS: Record<RiskPriority, string> = {
   baixa: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
 } as const;
 
+/**
+ * Label de prioridade resiliente a `null`. A coluna `priority` é GENERATED pelo
+ * trigger `set_risk_priority()` (before insert OR update) → na prática nunca é
+ * null após persistir, mas o tipo Row a declara `RiskPriority | null`. Em vez de
+ * propagar o branch por toda a UI, centralizamos o fallback aqui: null exibe "—".
+ */
+export function priorityLabel(p: RiskPriority | null): string {
+  return p ? PRIORITY_LABEL[p] : '—';
+}
+
+/** Classe de badge de prioridade resiliente a `null` (ver priorityLabel). */
+export function priorityBadgeClass(p: RiskPriority | null): string {
+  return p
+    ? PRIORITY_BADGE_CLASS[p]
+    : 'bg-slate-100 text-slate-600 border border-slate-300';
+}
+
 // ─── Sugestões de Responsável (D-08) — hints, não dropdown fixo ───────────────
 // Tenant-agnóstico: texto livre com sugestões via <datalist>. Não hardcodar
 // valores de um tenant específico como obrigatórios.

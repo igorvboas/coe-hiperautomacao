@@ -1,26 +1,49 @@
-import type { Opportunity } from '@/lib/opportunities/types';
+'use client';
 
-type Props = { opportunity: Opportunity };
+import { usePathname, useRouter } from 'next/navigation';
+import type { Opportunity, OpportunityRisk } from '@/lib/opportunities/types';
+import { RiskTable } from '../risk/RiskTable';
+import { RiskFormDialog } from '../risk/RiskFormDialog';
 
-export function RiscoTab({ opportunity: o }: Props) {
-  const value = (o.risco ?? '').trim();
-  const isEmpty = value.length === 0;
+type Props = {
+  opportunity: Opportunity;
+  risks: OpportunityRisk[];
+};
+
+/**
+ * Aba "Risco" do modal (D-01/D-03, RISK-05). Client component que recebe `risks`
+ * por props do RSC pai (Pitfall 5 — não pode ser async RSC dentro de
+ * OpportunityDetail 'use client'). Renderiza o cabeçalho "⚠️ Registro de Riscos",
+ * a tabela estruturada e o botão "+ Adicionar Risco". O campo legado de texto
+ * livre `risco` foi REMOVIDO (D-03). O CRUD usa o dialog empilhado dirigido pelo
+ * search param ?risco (montado uma vez aqui, resolve `initial` a partir de `risks`).
+ */
+export function RiscoTab({ opportunity, risks }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  function openCreate() {
+    router.push(`${pathname}?risco=new`);
+  }
 
   return (
     <div className="px-5 py-4">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-        Risco
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[12px] font-bold text-pri">
+          ⚠️ Registro de Riscos — {risks.length} registro(s)
+        </span>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="bg-pri hover:bg-pril text-white rounded-lg px-3 py-1.5 text-[11px] font-bold"
+        >
+          + Adicionar Risco
+        </button>
       </div>
-      {isEmpty ? (
-        <p className="text-[12px] text-mut italic">
-          Nenhum risco registrado. Use o botão{' '}
-          <span className="font-semibold">Editar</span> para preencher.
-        </p>
-      ) : (
-        <div className="text-[12px] leading-relaxed text-txt whitespace-pre-wrap">
-          {value}
-        </div>
-      )}
+
+      <RiskTable opportunity={opportunity} risks={risks} />
+
+      <RiskFormDialog opportunityId={opportunity.id} risks={risks} />
     </div>
   );
 }
