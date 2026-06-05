@@ -18,15 +18,23 @@ export function KanbanColumn({ status, label, icon, color, opportunities }: Prop
     data: { status },
   });
 
+  // Σ FTE/mês da coluna (D-16 / _giba:704,734). null-safe.
+  const fteSum = Math.round(
+    opportunities.reduce((s, o) => s + (o.fte_horas ?? 0), 0),
+  );
+
   return (
     <div className="bg-slate-50 border border-bdr rounded-xl w-[220px] flex-shrink-0 flex flex-col overflow-hidden">
       <div
         className="px-3 py-2 flex items-center justify-between border-b border-bdr"
         style={{ background: `${color}15` }}
       >
-        <div className="text-[11px] font-bold flex items-center gap-1.5">
-          <span>{icon}</span>
-          <span style={{ color }}>{label}</span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold flex items-center gap-1.5">
+            <span>{icon}</span>
+            <span style={{ color }}>{label}</span>
+          </div>
+          <div className="text-[10px] text-mut mt-0.5">⏱️ {fteSum}h FTE/mês</div>
         </div>
         <div
           className="rounded-full px-2 text-[10px] font-bold"
