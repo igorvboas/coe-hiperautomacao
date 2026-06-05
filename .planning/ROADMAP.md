@@ -223,7 +223,12 @@ Listado em PROJECT.md → Out of Scope. Resumo:
   2. A tabela exibe as colunas Frequência, Pessoas, Complexidade, FTE/mês e RPA Fit; a ordenação oferece classificar por FTE e pelo novo score.
   3. No kanban (Gestão à Vista), cada coluna de status mostra o FTE somado das oportunidades naquela coluna.
   4. O modal de detalhe exibe as 8 abas alinhadas ao novo modelo (Processo / Critérios / Automação / Benefícios / Score / Fases / Risco / Observação).
-**Plans**: TBD
+**Plans**: 5 plans (planejados em 2026-06-05) — Wave 1: 01 (fundação/testes) ‖ 04 (modal display 8 abas); Wave 2: 02 (KPI+tabela, dep 01) ‖ 05 (modal editável, dep 01+04); Wave 3: 03 (kanban, dep 02)
+- [ ] 13-01-PLAN.md — Fundação Wave 0: extrai `lib/opportunities/rpa.ts` `deriveRpaScore` (do teste existente) + specs de contrato (kpis/rpa-badge/filters) [VIEW-01, VIEW-03]
+- [ ] 13-02-PLAN.md — KPI bar 9 KPIs (FTE Total + Novos/Produção/Concluídos) + tabela colunas FTE/mês+RPA Fit (mantém Fonte) + sort por FTE; `FteCell`/`RpaFitBadge`/`rpaTier` em cells.tsx [VIEW-01, VIEW-02, VIEW-03]
+- [ ] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04]
+- [ ] 13-04-PLAN.md — Modal display: colapsa 2 conjuntos em 1 de 8 abas, realinha Critérios/Benefícios/Score ao first-class v0.2, move `risco` legado → Observação; Perfil/Desafios/CoE desligados [VIEW-05]
+- [ ] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; termina em checkpoint human-verify [VIEW-05]
 **UI hint**: yes
 
 ### Phase 14: View "Relatório"
