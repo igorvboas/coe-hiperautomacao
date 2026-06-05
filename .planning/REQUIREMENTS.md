@@ -51,7 +51,7 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 - [x] **VIEW-01**: KPI bar inclui FTE Total/mês + contadores Novos/Produção/Concluídos
 - [x] **VIEW-02**: Tabela inclui colunas Frequência, Pessoas, Complexidade, FTE/mês e RPA Fit
 - [x] **VIEW-03**: Ordenação disponível por FTE e pelo novo score
-- [ ] **VIEW-04**: Kanban (Gestão à Vista) soma e exibe FTE por coluna de status
+- [x] **VIEW-04**: Kanban (Gestão à Vista) soma e exibe FTE por coluna de status
 - [ ] **VIEW-05**: Modal exibe as 8 abas alinhadas ao novo modelo (Processo/Critérios/Automação/Benefícios/Score/Fases/Risco/Observação)
 
 ### DATA — Dados reais Workshop I

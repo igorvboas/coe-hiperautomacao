@@ -226,7 +226,7 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 **Plans**: 5 plans (planejados em 2026-06-05) — Wave 1: 01 (fundação/testes) ‖ 04 (modal display 8 abas); Wave 2: 02 (KPI+tabela, dep 01) ‖ 05 (modal editável, dep 01+04); Wave 3: 03 (kanban, dep 02)
 - [x] 13-01-PLAN.md — Fundação Wave 0: extrai `lib/opportunities/rpa.ts` `deriveRpaScore` (do teste existente) + specs de contrato (kpis/rpa-badge/filters) [VIEW-01, VIEW-03] ✅ 2026-06-05
 - [x] 13-02-PLAN.md — KPI bar 9 KPIs (FTE Total + Novos/Produção/Concluídos) + tabela colunas FTE/mês+RPA Fit (mantém Fonte) + sort por FTE; `FteCell`/`RpaFitBadge`/`rpaTier` em cells.tsx [VIEW-01, VIEW-02, VIEW-03] ✅ 2026-06-05
-- [ ] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04]
+- [x] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04] ✅ 2026-06-05
 - [x] 13-04-PLAN.md — Modal display: colapsa 2 conjuntos em 1 de 8 abas, realinha Critérios/Benefícios/Score ao first-class v0.2, move `risco` legado → Observação; Perfil/Desafios/CoE desligados [VIEW-05] ✅ 2026-06-05
 - [ ] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; termina em checkpoint human-verify [VIEW-05]
 **UI hint**: yes
