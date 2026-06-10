@@ -70,7 +70,7 @@ export type PhaseKey =
   | 'producao'
   | 'concluido';
 
-export type TenantRole = 'member' | 'tenant_admin';
+export type TenantRole = 'member' | 'tenant_admin' | 'platform_admin';
 
 export type OpportunityRequestType =
   | 'nova_oportunidade'
@@ -202,6 +202,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'profiles_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      invited_emails: {
+        Row: {
+          id: string;
+          email: string;
+          tenant_id: string;
+          role: Exclude<TenantRole, 'platform_admin'>;
+          invited_by: string | null;
+          created_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          tenant_id: string;
+          role?: Exclude<TenantRole, 'platform_admin'>;
+          invited_by?: string | null;
+          created_at?: string;
+          used_at?: string | null;
+        };
+        Update: Partial<{
+          email: string;
+          tenant_id: string;
+          role: Exclude<TenantRole, 'platform_admin'>;
+          used_at: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'invited_emails_tenant_id_fkey';
             columns: ['tenant_id'];
             referencedRelation: 'tenants';
             referencedColumns: ['id'];
