@@ -498,3 +498,56 @@ export async function updateOpportunity(
   revalidatePath(`/opportunities/${id}`);
   return { ok: true };
 }
+
+// =============================================================================
+// updateObservacao — edição inline do campo livre `observacao` (aba Observação)
+// -----------------------------------------------------------------------------
+// Update de UM único campo — permite anotar a observação direto na aba sem entrar
+// no modo de edição global do modal. `risco` (nota livre) NÃO é tocado aqui: o
+// registro de riscos é estruturado na aba Risco (`opportunity_risks`).
+//
+// Defesa em profundidade (idem updateOpportunity): escopo explícito por
+// `tenant_id` do usuário autenticado, sobre o RLS. Limite de 2000 chars espelha
+// o schema (`baseSchema.observacao`).
+// =============================================================================
+export type UpdateObservacaoResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function updateObservacao(
+  id: string,
+  observacao: string
+): Promise<UpdateObservacaoResult> {
+  if (observacao.length > 2000) {
+    return { ok: false, error: 'Observação excede 2000 caracteres.' };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sessão expirada.' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single();
+  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+
+  const trimmed = observacao.trim();
+  const { error } = await supabase
+    .from('opportunities')
+    .update({ observacao: trimmed || null })
+    .eq('id', id)
+    .eq('tenant_id', profile.tenant_id);
+
+  if (error) {
+    return { ok: false, error: `Erro ao salvar observação: ${error.message}` };
+  }
+
+  revalidatePath('/opportunities');
+  revalidatePath(`/opportunities/${id}`);
+  return { ok: true };
+}

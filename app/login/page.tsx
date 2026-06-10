@@ -25,7 +25,7 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-base font-bold">CoE Hiperautomação</h1>
-              <p className="text-xs opacity-75">Gestão de Automações · FGCoop</p>
+              <p className="text-xs opacity-75">Gestão de Automações · PSW</p>
             </div>
           </div>
         </div>

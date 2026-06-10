@@ -30,6 +30,11 @@ export const OpportunityEnrichedFieldsSchema = z.object({
   complexidade: z.enum(['baixo', 'medio', 'alto']),
   tempo: z.enum(['pequeno', 'medio', 'grande']),
   objetivo: z.number().int().min(1).max(5),
+  // FTE estimado em horas/mês economizadas pela automação — interpretado dos
+  // campos de processo (frequência × volume × tempo de execução × nº de pessoas,
+  // todos texto livre). É a FONTE do 5º fator de score: o enrichment deriva o
+  // bucket `fte` via deriveFteBucket(fte_horas). `0` quando indeterminável.
+  fte_horas: z.number().min(0).max(100000),
 });
 
 export type OpportunityEnrichedFields = z.infer<typeof OpportunityEnrichedFieldsSchema>;

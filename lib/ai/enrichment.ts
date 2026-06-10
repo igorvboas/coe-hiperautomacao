@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { serviceRoleClient } from '@/lib/supabase/server';
 import { OpportunityEnrichedFieldsSchema } from './schema';
 import { buildEnrichmentPrompt, type EnrichmentInput } from './prompts';
+import { deriveFteBucket } from '@/lib/opportunities/fte';
 import type { Database } from '@/lib/database.types';
 
 // =============================================================================
@@ -157,6 +158,11 @@ export async function enrichOpportunity(
         // 1:1 entre duração e frequência — então o enrichment NÃO sobrescreve `tempo`
         // até a IA ser realinhada (REALIGN-7.6). Os outros 8 campos seguem normais.
         objetivo: enriched.objetivo,
+        // FTE: a IA estima horas/mês (fonte) e o bucket `fte` (5º fator de score)
+        // é derivado via deriveFteBucket — mesma fn do wizard/modal, fonte única
+        // horas→bucket. Sem isto, `fte` ficava NULL e o fator caía no fallback.
+        fte_horas: enriched.fte_horas,
+        fte: deriveFteBucket(enriched.fte_horas),
         ai_enrichment_status: 'enriched',
         ai_enriched_at: new Date().toISOString(),
         ai_enrichment_error: null,

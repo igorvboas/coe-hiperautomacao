@@ -48,46 +48,12 @@ export function BeneficiosStep({ data, onChange }: Props) {
     onChange({ beneficios: nextBeneficios });
   }
 
-  // Phase 11 / D-01: o usuário digita APENAS fte_horas (h/mês). O bucket FTE
-  // (5º fator de score) é derivado depois no step Priorização (D-03, Plan 03) —
-  // NÃO derivar aqui (fonte única, sem campo manual de bucket).
-  function updateFteHoras(v: string) {
-    const trimmed = v.trim();
-    if (trimmed === '') {
-      onChange({ fte_horas: undefined });
-      return;
-    }
-    const n = Number(trimmed);
-    onChange({ fte_horas: Number.isFinite(n) ? n : undefined });
-  }
-
-  const fteHorasValue =
-    data.fte_horas === undefined || data.fte_horas === null
-      ? ''
-      : String(data.fte_horas);
+  // FTE estimado (h/mês) saiu do create: é calculado pela automação a partir de
+  // pessoas envolvidas × tempo de execução, não input do usuário. `fte_horas`
+  // continua no schema (opcional) e é preenchido pelo enrichment / mode='edit'.
 
   return (
     <div className="px-2 py-2">
-      <div className="mb-4">
-        <div className="mb-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">
-            FTE estimado (horas/mês)
-          </label>
-          <input
-            type="number"
-            min={0}
-            step="0.5"
-            value={fteHorasValue}
-            onChange={(e) => updateFteHoras(e.target.value)}
-            placeholder="ex.: 40"
-            className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15"
-          />
-        </div>
-        <div className="text-[10px] text-mut leading-relaxed">
-          Horas/mês economizadas pela automação — usado para classificar o impacto FTE.
-        </div>
-      </div>
-
       <div className="text-[11px] text-mut mb-3">
         Pontue de 1 a 5 cada benefício esperado. Sem pontuação = não considerar.
       </div>

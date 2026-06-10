@@ -99,6 +99,7 @@ const ENRICHED = {
   complexidade: 'medio' as const,
   tempo: 'pequeno' as const,
   objetivo: 4,
+  fte_horas: 55,
 };
 
 const TENANT_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -161,6 +162,9 @@ describe('enrichOpportunity', () => {
     // domínio antigo (duração) e a coluna virou frequency_bucket (0011). Sem map 1:1.
     expect(updateCall.tempo).toBeUndefined();
     expect(updateCall.objetivo).toBe(4);
+    // FTE: a IA estima horas/mês (fonte) e o bucket `fte` é derivado (55h → 'medio').
+    expect(updateCall.fte_horas).toBe(55);
+    expect(updateCall.fte).toBe('medio');
     expect(updateCall.ai_enrichment_status).toBe('enriched');
     expect(updateCall.ai_enriched_at).toBeTypeOf('string');
     expect(updateCall.ai_enrichment_error).toBeNull();

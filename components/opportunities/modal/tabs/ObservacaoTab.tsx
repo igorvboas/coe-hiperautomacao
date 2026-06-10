@@ -1,48 +1,106 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Opportunity } from '@/lib/opportunities/types';
+import { updateObservacao } from '@/lib/opportunities/actions';
+import { TextareaField } from '@/components/opportunities/wizard/steps/fields';
 
 type Props = { opportunity: Opportunity };
 
-// D-10: a aba Observação acomoda DOIS campos legados de texto livre — `observacao`
-// e `risco` (nota livre da 0009, ≠ tabela estruturada `opportunity_risks`, que vive
-// na aba Risco/Phase 12). Cada bloco mostra seu valor ou seu próprio empty state pt-BR.
+// Aba Observação: campo livre `observacao` com edição INLINE (botão próprio de
+// Editar/Salvar) — independente do modo de edição global do modal. O campo
+// `risco` (nota livre legada) foi removido: o registro de riscos é estruturado
+// na aba Risco (`opportunity_risks`).
 export function ObservacaoTab({ opportunity: o }: Props) {
-  return (
-    <div className="px-5 py-4 space-y-5">
-      <FreeTextBlock label="Observação" value={o.observacao} />
-      <FreeTextBlock
-        label="Risco (nota livre)"
-        value={o.risco}
-        hint="Nota livre legada — o registro estruturado de riscos fica na aba Risco."
-      />
-    </div>
-  );
-}
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(o.observacao ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-function FreeTextBlock({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string | null;
-  hint?: string;
-}) {
-  const text = (value ?? '').trim();
-  const isEmpty = text.length === 0;
+  const saved = (o.observacao ?? '').trim();
+  const isEmpty = saved.length === 0;
+
+  function onEdit() {
+    setValue(o.observacao ?? '');
+    setError(null);
+    setEditing(true);
+  }
+
+  function onCancel() {
+    setError(null);
+    setEditing(false);
+  }
+
+  function onSave() {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateObservacao(o.id, value);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setEditing(false);
+      router.refresh();
+    });
+  }
 
   return (
-    <div>
-      <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-        {label}
+    <div className="px-5 py-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-mut">
+          Observação
+        </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-txt text-[11px] font-semibold border border-bdr inline-flex items-center gap-1"
+          >
+            ✏️ Editar
+          </button>
+        )}
       </div>
-      {isEmpty ? (
+
+      {editing ? (
+        <div>
+          <TextareaField
+            label=""
+            value={value}
+            onChange={setValue}
+            rows={5}
+            placeholder="Anote observações sobre esta oportunidade…"
+          />
+          {error && (
+            <div className="text-[11px] text-red-700 mt-1">{error}</div>
+          )}
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={pending}
+              className="px-3 py-1.5 bg-acc hover:opacity-90 text-white text-[12px] font-bold rounded-lg disabled:opacity-50"
+            >
+              {pending ? 'Salvando...' : '💾 Salvar'}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={pending}
+              className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-txt text-[12px] font-semibold rounded-lg disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : isEmpty ? (
         <p className="text-[12px] text-mut italic">Nada registrado.</p>
       ) : (
         <div className="text-[12px] leading-relaxed text-txt whitespace-pre-wrap">
-          {text}
+          {saved}
         </div>
       )}
-      {hint && <p className="text-[10px] text-mut mt-1.5">{hint}</p>}
     </div>
   );
 }

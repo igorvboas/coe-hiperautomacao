@@ -21,12 +21,9 @@ const FREQUENCY_OPTIONS = [
   { value: 'anual', label: 'Anual (+2)' },
 ];
 
-// Ferramenta Sugerida (D-07), default n8n. Domínio = toolEnum.
-const TOOL_OPTIONS = [
-  { value: 'rpa', label: 'RPA' },
-  { value: 'n8n', label: 'n8n' },
-  { value: 'ambos', label: 'Ambos' },
-];
+// Ferramenta Sugerida saiu do create: é entregável da automação (predito por IA
+// a partir do contexto da demanda), não input do usuário. `ferramenta` continua
+// no schema (toolEnum, opcional) e é preenchida pelo enrichment / mode='edit'.
 
 // Rótulo legível espelhado em `frequencia` (texto) p/ compat de display — o
 // fator de score é `data.tempo`.
@@ -64,14 +61,6 @@ export function ProcessoStep({ data, onChange }: Props) {
             onChange({ tempo: v as Frequency, frequencia: FREQUENCY_LABEL[v] ?? '' })
           }
           options={FREQUENCY_OPTIONS}
-        />
-        <SelectField
-          label="Ferramenta Sugerida"
-          value={data.ferramenta ?? 'n8n'}
-          onChange={(v) =>
-            onChange({ ferramenta: v as 'rpa' | 'n8n' | 'ambos' })
-          }
-          options={TOOL_OPTIONS}
         />
         <TextField
           label="Volume Médio"

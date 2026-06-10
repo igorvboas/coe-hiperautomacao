@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   Opportunity,
@@ -18,6 +18,7 @@ import { calcScore, priorityLevel } from '@/lib/opportunities/score';
 import { deriveFteBucket } from '@/lib/opportunities/fte';
 import { deriveRpaScore } from '@/lib/opportunities/rpa';
 import { ModalHeader } from './Header';
+import { EnrichingOverlay } from './EnrichingOverlay';
 import { TabsNav } from './TabsNav';
 import type { TabDef, TabId } from './types';
 import { AutomacaoTab } from './tabs/AutomacaoTab';
@@ -88,6 +89,46 @@ export function OpportunityDetail({ opportunity, phases, risks }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // IA ainda processando → o corpo do modal mostra um loader em vez de dados de
+  // placeholder (score/automação/critérios com defaults que mudam em segundos).
+  const isPending = opportunity.ai_enrichment_status === 'pending';
+
+  // Safety net: NUNCA prender o usuário no loader. Enrichment só roda para
+  // oportunidades criadas pelo app (after() em createOpportunity). Linhas de
+  // seed / legadas ficam 'pending' para sempre (nada as enriquece), e um after()
+  // morto por cold start também deixaria 'pending' órfão. Se após ~20s o status
+  // ainda é 'pending', desistimos de esperar e mostramos os dados que JÁ existem
+  // na row (que para seed/legado estão completos e corretos).
+  const [waitedTooLong, setWaitedTooLong] = useState(false);
+  const enriching = isPending && !waitedTooLong;
+
+  // Polling enquanto enriquece: router.refresh() re-busca a row no servidor. Ao
+  // sair de 'pending' (ou ao desistir) o efeito limpa o intervalo e o modal
+  // repinta com os campos já populados. Sem isto, o loader giraria sem parar.
+  useEffect(() => {
+    if (!enriching) return;
+    const id = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(id);
+  }, [enriching, router]);
+
+  // Timeout do safety net: marca waitedTooLong após 20s de 'pending'. Se a row
+  // sair de 'pending' antes (enrichment real concluído), o cleanup cancela.
+  useEffect(() => {
+    if (!isPending) return;
+    const id = setTimeout(() => setWaitedTooLong(true), 20000);
+    return () => clearTimeout(id);
+  }, [isPending]);
+
+  // Re-sincroniza o form quando a row muda no servidor (ex.: fim do enriquecimento)
+  // e não estamos editando — evita que o modo edição abra com os defaults pré-IA
+  // stale capturados no mount. Em edição o form é preservado (onCancel já reseta).
+  useEffect(() => {
+    if (!editMode) {
+      setForm(opportunityToFormData(opportunity));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opportunity.updated_at, opportunity.ai_enriched_at]);
 
   function patch(p: Partial<WizardFormData>) {
     setForm((d) => ({ ...d, ...p }));
@@ -171,6 +212,7 @@ export function OpportunityDetail({ opportunity, phases, risks }: Props) {
       <ModalHeader
         opportunity={opportunity}
         editMode={editMode}
+        enriching={enriching}
         pending={pending}
         submitError={submitError}
         liveScore={liveScore}
@@ -179,20 +221,30 @@ export function OpportunityDetail({ opportunity, phases, risks }: Props) {
         onSave={onSave}
         onCancel={onCancel}
       />
-      <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
-      <div className="max-h-[60vh] overflow-y-auto">
-        {renderTab({
-          tab: activeTab,
-          opp: opportunity,
-          phases,
-          risks,
-          editMode,
-          form,
-          patch,
-          errors,
-          liveRpaScore,
-        })}
-      </div>
+      {enriching ? (
+        <EnrichingOverlay />
+      ) : (
+        <>
+          <TabsNav
+            tabs={MODAL_TABS}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
+          <div className="max-h-[60vh] overflow-y-auto">
+            {renderTab({
+              tab: activeTab,
+              opp: opportunity,
+              phases,
+              risks,
+              editMode,
+              form,
+              patch,
+              errors,
+              liveRpaScore,
+            })}
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -321,20 +373,16 @@ function renderTab(args: {
         </div>
       );
     case 'observacao':
-      // D-10: dois campos legados de texto livre — observacao + risco (≠ tabela
-      // opportunity_risks). Ambos já semeados por opportunityToFormData.
+      // Texto livre `observacao`. O campo legado `risco` (nota livre) foi removido
+      // da UI — o registro de riscos é estruturado na aba Risco (opportunity_risks).
+      // `form.risco` não é mais editável aqui; updateOpportunity preserva o valor
+      // existente (semeado por opportunityToFormData), sem perda de dados.
       return (
         <div className="px-5 py-4">
           <TextareaField
             label="Observação"
             value={form.observacao ?? ''}
             onChange={(v) => patch({ observacao: v })}
-            rows={4}
-          />
-          <TextareaField
-            label="Risco (nota livre)"
-            value={form.risco ?? ''}
-            onChange={(v) => patch({ risco: v })}
             rows={4}
           />
         </div>

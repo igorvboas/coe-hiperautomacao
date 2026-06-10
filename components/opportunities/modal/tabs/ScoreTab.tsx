@@ -1,16 +1,12 @@
 import type { Opportunity } from '@/lib/opportunities/types';
-import { scoreColor } from '@/lib/opportunities/utils';
 import { calcScore, priorityLevel } from '@/lib/opportunities/score';
 import { PriorityPill } from '@/components/opportunities/cells';
 
-type Props = { opportunity: Opportunity };
-
-// D-11 / Pitfall 3: breakdown REAL de 5 fatores via a fórmula única
-// (`lib/opportunities/score.ts` — SCORE-04 parity-tested). Os pesos abaixo
-// espelham LITERALMENTE calcScore / `_giba:483-490` (mesmos mapas/fallbacks),
-// usados só para detalhar a contribuição de cada fator. O TOTAL exibido prefere
-// `o.score`/`o.priority_level` da view (DB-authoritative) — sem terceira cópia
-// da fórmula (T-13-04b).
+// Layout espelha `renderScoreTab` do mockup (_giba:1125-1141): `.score-grid` com
+// a linha total (gradiente) NO TOPO + os 5 fatores como cards, FTE em largura
+// total. Os pesos abaixo replicam LITERALMENTE calcScore (SCORE-04, parity-tested)
+// só para detalhar a contribuição de cada fator. O TOTAL prefere `o.score` da view
+// (DB-authoritative); calcScore serve de verificação de paridade da fórmula.
 const EFFORT_VALUES: Record<string, number> = { baixo: 8, medio: 14, alto: 20 };
 const COMPLEX_VALUES: Record<string, number> = { baixo: 20, medio: 13, alto: 6 }; // INVERTIDO
 const TIME_VALUES: Record<string, number> = { diario: 20, semanal: 16, quinzenal: 12, mensal: 8, anual: 2 };
@@ -23,6 +19,8 @@ const TIME_FALLBACK = 16;
 const OBJ_FALLBACK = 12;
 const FTE_FALLBACK = 12;
 
+type Props = { opportunity: Opportunity };
+
 export function ScoreTab({ opportunity: o }: Props) {
   const esforcoPts = o.esforco ? (EFFORT_VALUES[o.esforco] ?? EFFORT_FALLBACK) : 0;
   const complexPts = o.complexidade ? (COMPLEX_VALUES[o.complexidade] ?? COMPLEX_FALLBACK) : 0;
@@ -30,7 +28,6 @@ export function ScoreTab({ opportunity: o }: Props) {
   const objetivoPts = o.objetivo ? (OBJ_VALUES[o.objetivo] ?? OBJ_FALLBACK) : 0;
   const ftePts = o.fte ? (FTE_VALUES[o.fte] ?? FTE_FALLBACK) : 0;
 
-  // Total DB-authoritative; calcScore como verificação de paridade da fórmula.
   const computed = calcScore({
     esforco: o.esforco ?? undefined,
     complexidade: o.complexidade ?? undefined,
@@ -41,72 +38,54 @@ export function ScoreTab({ opportunity: o }: Props) {
   const score = o.score ?? computed;
   const level = o.priority_level ?? priorityLevel(score);
 
-  const color = scoreColor(score);
-  const pctScore = Math.min(100, Math.max(0, score));
-
   return (
-    <div className="px-5 py-4">
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <ComponentCard label="Esforço" value={labelEsforco(o.esforco)} points={esforcoPts} max={20} />
-        <ComponentCard label="Complexidade" value={labelEsforco(o.complexidade)} points={complexPts} max={20} />
-        <ComponentCard label="Tempo (frequência)" value={labelTempo(o.tempo)} points={tempoPts} max={20} />
-        <ComponentCard label="Objetivo" value={o.objetivo ? `${o.objetivo}/5` : '—'} points={objetivoPts} max={20} />
-        <ComponentCard label="FTE (impacto)" value={labelFte(o.fte)} points={ftePts} max={20} />
-      </div>
-
-      <div
-        className="rounded-xl p-4 text-white flex items-center gap-4"
-        style={{
-          background: `linear-gradient(90deg, var(--color-pri), var(--color-pril))`,
-        }}
-      >
-        <div className="text-3xl font-extrabold leading-none" style={{ color: '#fff' }}>
-          {score}
-        </div>
-        <div className="flex-1">
-          <div className="text-[10px] opacity-80 mb-1">Score Final</div>
-          <div className="bg-white/25 rounded-full h-2.5 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${pctScore}%`, background: '#fff' }}
-            />
+    <div className="px-5 py-[18px]">
+      <div className="grid grid-cols-2 gap-2.5">
+        {/* Total — linha completa em gradiente, no topo (`.sc-row.full`) */}
+        <div className="col-span-2 rounded-lg bg-gradient-to-br from-pril to-pri text-white text-center px-4 py-3.5">
+          <div className="text-[11px] text-white/70 mb-1">Score Total (máx 100)</div>
+          <div className="text-[36px] font-extrabold leading-none">{score}</div>
+          <div className="mt-2 flex justify-center">
+            <PriorityPill level={level} />
           </div>
         </div>
-        <div className="flex-shrink-0">
-          <PriorityPill level={level} />
-        </div>
+
+        <FactorRow label="Esforço / Viabilidade (20 pts)" value={labelEsforco(o.esforco)} points={esforcoPts} />
+        <FactorRow label="Complexidade (20 pts)" value={labelEsforco(o.complexidade)} points={complexPts} />
+        <FactorRow label="Frequência / Retorno (20 pts)" value={labelTempo(o.tempo)} points={tempoPts} />
+        <FactorRow label="Alinhamento Estratégico (20 pts)" value={o.objetivo ? `${o.objetivo}/5` : '—'} points={objetivoPts} />
+        <FactorRow full label="FTE — Impacto em Horas (20 pts)" value={labelFte(o.fte)} points={ftePts} />
       </div>
 
       <div className="mt-3 text-[11px] text-mut bg-slate-50 rounded-lg px-3 py-2">
-        💡 Score = soma dos 5 fatores (esforço, complexidade, tempo, objetivo e FTE), máximo 100.
+        💡 Score = soma dos 5 fatores (esforço, complexidade, frequência, objetivo
+        e FTE), máximo 100.
       </div>
-
-      {/* color é referência pro design system — usado se quiser tematizar acima */}
-      <div className="hidden" data-score-color={color} />
     </div>
   );
 }
 
-type ComponentCardProps = {
+function FactorRow({
+  label,
+  value,
+  points,
+  full,
+}: {
   label: string;
   value: string;
   points: number;
-  max: number;
-};
-
-function ComponentCard({ label, value, points, max }: ComponentCardProps) {
-  const pct = max > 0 ? (points / max) * 100 : 0;
+  full?: boolean;
+}) {
+  const pct = (points / 20) * 100;
   return (
-    <div className="bg-white border border-bdr rounded-lg p-3">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
-        {label}
+    <div className={`bg-bg rounded-lg px-3.5 py-2.5 ${full ? 'col-span-2' : ''}`}>
+      <div className="text-[11px] text-mut mb-1">{label}</div>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-[14px] font-extrabold text-txt">{value}</span>
+        <span className="text-[11px] text-mut tabular-nums">+{points} / 20</span>
       </div>
-      <div className="text-sm font-extrabold text-txt mb-2">{value}</div>
-      <div className="bg-slate-200 rounded-full h-1.5 overflow-hidden">
+      <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
         <div className="h-full bg-pri rounded-full" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="text-[10px] text-mut mt-1 text-right">
-        +{points} / {max}
       </div>
     </div>
   );

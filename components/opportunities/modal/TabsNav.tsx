@@ -9,8 +9,10 @@ type Props = {
 };
 
 export function TabsNav({ tabs, activeTab, onChange }: Props) {
+  // `.tabs` do mockup (_giba:150-156): faixa #f8fafc, padding lateral 16px,
+  // botões 12px, aba ativa = cor pri + borda inferior 3px pri.
   return (
-    <div className="flex border-b border-bdr bg-slate-50 overflow-x-auto">
+    <div className="flex gap-0.5 px-4 border-b border-bdr bg-slate-50 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((t) => {
         const isActive = t.id === activeTab;
         return (
@@ -19,10 +21,10 @@ export function TabsNav({ tabs, activeTab, onChange }: Props) {
             key={t.id}
             onClick={() => onChange(t.id)}
             className={
-              'px-3.5 py-2.5 text-[11px] font-semibold whitespace-nowrap border-b-2 flex items-center gap-1.5 transition-colors ' +
+              'px-3.5 py-2.5 text-[12px] font-semibold whitespace-nowrap border-b-[3px] -mb-px flex items-center gap-1.5 transition-colors ' +
               (isActive
-                ? 'text-pri border-pri bg-white'
-                : 'text-mut border-transparent hover:bg-slate-100')
+                ? 'text-pri border-pri'
+                : 'text-mut border-transparent hover:text-pri')
             }
           >
             <span>{t.icon}</span>
