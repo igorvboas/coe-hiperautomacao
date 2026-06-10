@@ -79,7 +79,7 @@ export function OpportunityTable({ opportunities }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-pri text-white">
+            <tr className="bg-slate-50 border-b border-bdr">
               <ThSort
                 active={isActive('id')}
                 onClick={() => toggleSort('id')}
@@ -136,7 +136,7 @@ export function OpportunityTable({ opportunities }: Props) {
             {opportunities.map((o) => (
               <tr
                 key={o.id}
-                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 transition-colors"
+                className="border-b border-bdr last:border-b-0 hover:bg-slate-50 transition-colors"
               >
                 <Td>
                   <SeqIdDisplay seqId={o.seq_id} />
@@ -202,9 +202,9 @@ export function OpportunityTable({ opportunities }: Props) {
                 <Td>
                   <Link
                     href={`/opportunities/${o.id}`}
-                    className="inline-block px-2.5 py-1 bg-pri hover:bg-pril text-white text-[10px] font-semibold rounded transition-colors"
+                    className="text-[12px] font-semibold text-primary hover:underline"
                   >
-                    Abrir
+                    Ver
                   </Link>
                 </Td>
               </tr>
@@ -218,7 +218,7 @@ export function OpportunityTable({ opportunities }: Props) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-2.5 py-2 text-left text-[10px] uppercase tracking-wider font-bold whitespace-nowrap">
+    <th className="px-2.5 py-2.5 text-left text-[11px] uppercase tracking-wider font-bold text-mut whitespace-nowrap">
       {children}
     </th>
   );
@@ -239,8 +239,8 @@ function ThSort({
         type="button"
         onClick={onClick}
         className={
-          'w-full text-left px-2.5 py-2 text-[10px] uppercase tracking-wider font-bold whitespace-nowrap hover:bg-pril ' +
-          (active ? 'bg-pril' : '')
+          'w-full text-left px-2.5 py-2.5 text-[11px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors hover:bg-slate-100 ' +
+          (active ? 'bg-slate-100 text-txt' : 'text-mut')
         }
       >
         {children}

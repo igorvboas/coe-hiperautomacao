@@ -65,6 +65,7 @@ export async function fetchOpportunities(
   const supabase = await createClient();
   let q = supabase.from('opportunities_with_score').select(OPPORTUNITY_COLUMNS);
 
+  if (filters.tenant) q = q.eq('tenant_id', filters.tenant);
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
@@ -254,6 +255,7 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
   let totalScore = 0;
   let scoreCount = 0;
   let fteTotal = 0; // soma de fte_horas (null → 0) — KPI D-03/VIEW-01
+  let emAnalise = 0; // card "Em Análise" da lista (v0.3)
 
   for (const o of opps) {
     fteTotal += o.fte_horas ?? 0;
@@ -261,6 +263,7 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
     if (o.status === 'novo') byStatus.novo++;
     else if (o.status === 'producao') byStatus.producao++;
     else if (o.status === 'concluido') byStatus.concluido++;
+    else if (o.status === 'em_analise') emAnalise++;
 
     if (o.priority_level === 'alta') byPriority.alta++;
     else if (o.priority_level === 'media') byPriority.media++;
@@ -274,6 +277,7 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
 
   return {
     total: opps.length,
+    emAnalise,
     scoreMedio: scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0,
     fteTotal: Math.round(fteTotal),
     byPriority,

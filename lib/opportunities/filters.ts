@@ -31,6 +31,11 @@ export type OpportunityFilters = {
   priority?: PriorityFilter;
   status?: OpportunityStatus;
   sort?: SortKey;
+  /** Filtro de empresa — `tenant_id` JÁ RESOLVIDO (a URL carrega o slug em
+   *  `?empresa=`, resolvido server-side; NUNCA expõe UUID). Só efetivo para
+   *  platform_admin; para membros o RLS já restringe. Setado pela página, não
+   *  por parseFilters. */
+  tenant?: string;
 };
 
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
@@ -82,6 +87,8 @@ export function parseFilters(
     priority: pickEnum(get('priority'), PRIORITY_VALUES),
     status: pickEnum(get('status'), STATUS_VALUES),
     sort: pickEnum(get('sort'), SORT_VALUES),
+    // `tenant` (id) é resolvido na página a partir de `?empresa=<slug>` —
+    // nunca lido como UUID direto da URL.
   };
 }
 

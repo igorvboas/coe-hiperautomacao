@@ -53,6 +53,9 @@ export type RiskPriority = Database['public']['Enums']['risk_priority'];
  */
 export type OpportunityKpis = {
   total: number;
+  /** Contagem de status 'em_analise' — card "Em Análise" da lista (v0.3).
+   *  Top-level (fora de byStatus) para não quebrar o contrato D-03/VIEW-01. */
+  emAnalise: number;
   scoreMedio: number;
   /**
    * Soma arredondada de `fte_horas` de todas as oportunidades (D-03 / VIEW-01).
