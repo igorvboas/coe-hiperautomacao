@@ -25,6 +25,22 @@ export async function fetchPublicTenantBySlug(
 }
 
 /**
+ * Resolve um slug de empresa → tenant_id, para o filtro do seletor de empresa
+ * (platform_admin). Usa o client autenticado: o RLS de `tenants` garante que só
+ * o platform_admin vê slugs de outros tenants (membro comum → null se alheio).
+ * Mantém o UUID FORA da URL — a URL carrega só o slug legível.
+ */
+export async function fetchTenantIdBySlug(slug: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('tenants')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/**
  * Retorna o tenant + slug do usuário autenticado corrente.
  * Usado em páginas autenticadas que precisam do slug pra montar URLs públicas.
  */

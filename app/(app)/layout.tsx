@@ -1,68 +1,52 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentProfile } from '@/lib/auth/roles';
+import { Sidebar } from '@/components/shell/Sidebar';
 
 export default async function AppLayout({
   children,
   modal,
 }: LayoutProps<'/'>) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/login');
-
-  // Carrega profile + tenant via RLS — só vê o próprio profile + seu tenant
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, full_name, email, role, tenant_id, tenants(name, slug)')
-    .eq('id', user.id)
-    .single();
+  const profile = await getCurrentProfile();
 
   if (!profile) {
-    // Sessão válida mas sem profile = inconsistência (trigger handle_new_user falhou)
+    // Sem sessão ou profile inconsistente → volta pro login.
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/login');
   }
 
-  // Supabase aninha relacionamentos como objeto (single FK) ou array — extrai com segurança
-  const tenantsField = profile.tenants as
-    | { name: string; slug: string }
-    | { name: string; slug: string }[]
-    | null;
-  const tenant = Array.isArray(tenantsField) ? tenantsField[0] : tenantsField;
-  const tenantName = tenant?.name ?? '(sem tenant)';
+  const isAdmin = profile.role === 'platform_admin';
+
+  // Admin precisa da lista de empresas para o seletor (RLS cross-tenant).
+  // Usa SLUG (não id) — é o que vai pra URL (?empresa=<slug>), sem expor UUID.
+  let tenants: { slug: string; name: string }[] = [];
+  if (isAdmin) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('tenants')
+      .select('slug, name')
+      .order('name');
+    tenants = data ?? [];
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
-      <header className="bg-gradient-to-br from-pri to-pril text-white px-6 py-3 flex items-center justify-between shadow">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center font-black text-sm">
-            FG
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold truncate">CoE Hiperautomação</h1>
-            <p className="text-xs opacity-75 truncate hidden sm:block">
-              {tenantName}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 text-xs">
-          <span className="opacity-90 hidden sm:inline truncate max-w-[200px]">
-            {profile.full_name ?? profile.email}
-          </span>
-          <form action="/logout" method="post">
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg font-semibold transition-colors"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
-      </header>
-      <main className="flex-1">{children}</main>
+    <div className="min-h-screen flex bg-bg">
+      <Suspense fallback={<div className="w-60 shrink-0 bg-nav" />}>
+        <Sidebar
+          profile={{
+            fullName: profile.fullName,
+            email: profile.email,
+            role: profile.role,
+            tenantName: profile.tenantName,
+          }}
+          tenants={tenants}
+        />
+      </Suspense>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 min-w-0">{children}</main>
+      </div>
       {modal}
     </div>
   );

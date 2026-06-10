@@ -1,19 +1,32 @@
 @import "tailwindcss";
 
-/* Paleta CoE Hiperautomação — derivada do mockup fgcoop-coe-v2.html */
+/* Paleta CoE Hiperautomação — v0.3: ver .planning/design/UI-IDENTITY.md
+   (sidebar navy + primário verde). Tokens legados pri/pril/acc mantidos. */
 @theme {
-  /* primárias */
+  /* primárias (legado — login, gradientes existentes) */
   --color-pri: #1a3c6e;
   --color-pril: #2a5298;
   --color-acc: #00a878;
 
+  /* ações v0.3 */
+  --color-primary: #16a34a;        /* verde — botão primário, deltas ↑ */
+  --color-primary-hover: #15803d;
+  --color-dark: #1e293b;           /* botão escuro — "Ações", "Próximo" */
+
+  /* navegação (sidebar) */
+  --color-nav: #16213e;            /* fundo navy profundo */
+  --color-nav-2: #1f2d4d;          /* topo do gradiente */
+  --color-nav-fg: #cbd5e1;         /* item inativo */
+  --color-nav-muted: #94a3b8;      /* labels/secções */
+  --color-nav-active: #2a3a5e;     /* fundo do item ativo */
+
   /* superfícies */
-  --color-bg: #f0f4f8;
+  --color-bg: #f8fafc;
   --color-wh: #ffffff;
-  --color-bdr: #dde3ec;
+  --color-bdr: #e2e8f0;
 
   /* texto */
-  --color-txt: #1e2a3a;
+  --color-txt: #0f172a;
   --color-mut: #64748b;
 
   /* badges de ferramenta */
@@ -30,8 +43,8 @@
 body {
   background: var(--color-bg);
   color: var(--color-txt);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-family: var(--font-inter), 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
 }
 
 /* Evita zoom automático no iOS quando o input tem font-size < 16px */
