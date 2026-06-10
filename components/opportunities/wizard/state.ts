@@ -80,24 +80,26 @@ const STEPS_EDIT_AI_FIELDS: StepDef[] = [
   { id: 'priorizacao', label: 'Priorização', icon: '🎯' },
 ];
 
-// Phase 11 (D-04): fluxo ÚNICO de criação — 5 steps na ordem canônica do mockup
-// (`_giba_wsi-dashboard.html:1504-1597`). Sem Tipo/Classificação: a criação
-// SEMPRE grava `source='formulario'`. Os steps Critérios/Benefícios/Priorização
-// voltam ao create (haviam saído na 7.6 IA-only). O split persona/formulário e os
-// STEP_TIPO/STEP_CLASSIFICACAO/STEPS_PERSONA_EXTRA/STEPS_EDIT_AI_FIELDS continuam
-// vivos APENAS no mode='edit' (legado FGCoop read/edit-only — escopo Phase 13, D-05).
+// Fluxo ÚNICO de criação — 5 steps (Classificação + 4). O step Priorização saiu do create: seus
+// fatores de score (esforço, complexidade, alinhamento estratégico) e o impacto
+// FTE são entregáveis da automação (preditos por IA), não input do usuário. O
+// PriorizacaoStep.tsx continua vivo em mode='edit' (STEPS_EDIT_AI_FIELDS) para o
+// admin corrigir os valores da IA. A criação SEMPRE grava `source='formulario'`;
+// o split persona/formulário e os STEP_TIPO/STEP_CLASSIFICACAO/STEPS_PERSONA_EXTRA
+// continuam vivos APENAS no mode='edit' (legado FGCoop read/edit-only — Phase 13).
 const STEPS_CREATE: StepDef[] = [
+  STEP_CLASSIFICACAO, // 5 tipos de solicitação (request_type) — 1º passo
   { id: 'identificacao', label: 'Identificação', icon: '👤' },
   { id: 'processo', label: 'Processo', icon: '📋' },
   { id: 'criterios', label: 'Critérios', icon: '✅' },
   { id: 'beneficios', label: 'Benefícios', icon: '📈' },
-  { id: 'priorizacao', label: 'Priorização', icon: '🎯' },
 ];
 
 /**
  * Sequência de steps por modo+source.
- * - mode='create': fluxo ÚNICO de 5 steps (Phase 11 / D-04) — independe de source,
- *   sempre Identificação → Processo → Critérios → Benefícios → Priorização.
+ * - mode='create': fluxo ÚNICO de 5 steps — independe de source, sempre
+ *   Classificação → Identificação → Processo → Critérios → Benefícios
+ *   (Priorização saiu: é IA-only).
  * - mode='edit':   Classificação → Identificação → ... → Automação → Priorização
  *   (admin corrige IA / edita legado FGCoop — INTOCADO nesta fase, escopo Phase 13).
  */
@@ -105,7 +107,7 @@ export function stepsFor(
   source: 'persona' | 'formulario' | undefined,
   mode: 'create' | 'edit'
 ): StepDef[] {
-  // Fluxo único de criação (D-04): 5 steps, independe de source.
+  // Fluxo único de criação: 4 steps, independe de source.
   if (mode === 'create') {
     return STEPS_CREATE;
   }
@@ -219,7 +221,7 @@ export function validateStep(
 
   if (step === 'identificacao') {
     // Phase 11 (D-11 / WIZARD-04): Identificação valida nome + área + e-mail.
-    // A checagem de `processo` migrou para o step Processo (fluxo único 5 steps).
+    // A checagem de `processo` migrou para o step Processo (fluxo único).
     if (!data.solicitante || data.solicitante.length < 2)
       errors.solicitante = 'Nome obrigatório';
     if (!data.area || data.area.length < 2) errors.area = 'Área obrigatória';

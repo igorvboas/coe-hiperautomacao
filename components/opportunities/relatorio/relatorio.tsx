@@ -24,8 +24,8 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
   // cards/seções zeradas.
   if (report.totalCount === 0) {
     return (
-      <div className="rounded-[10px] bg-white border border-bdr p-10 text-center text-mut shadow">
-        <div className="text-base font-bold text-pri mb-2">
+      <div className="rounded-xl bg-wh border border-bdr p-12 text-center text-mut shadow-sm">
+        <div className="text-base font-bold text-txt mb-2">
           📈 Nenhuma oportunidade ainda
         </div>
         <p>
@@ -47,31 +47,32 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     color: a.color,
   }));
 
+  // KPIs de cabeçalho (alinhados ao painel 4 da referência). Calculados das
+  // próprias oportunidades — sem fabricar deltas que não temos.
+  const concluido = opportunities.filter((o) => o.status === 'concluido').length;
+  const taxaConclusao = report.totalCount
+    ? Math.round((concluido / report.totalCount) * 100)
+    : 0;
+  const scored = opportunities.filter((o) => typeof o.score === 'number');
+  const scoreMedio = scored.length
+    ? Math.round(scored.reduce((a, o) => a + (o.score ?? 0), 0) / scored.length)
+    : 0;
+
   return (
-    <div>
-      {/* ── Seção 1 — Resumo do Portfólio (REPORT-02) ── */}
-      <section className="bg-white rounded-[10px] p-[18px] shadow mb-4">
-        <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
-          📊 Resumo do Portfólio{sourceLabel ? ` — ${sourceLabel}` : ''}
-        </h3>
-        <div
-          className="grid gap-2.5 mb-4"
-          style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}
-        >
-          <SummaryCard value={`${report.totalCount}`} label="Total Oport." color="var(--color-pri)" />
-          <SummaryCard value={`${report.totalFte}h`} label="FTE Total/mês" color="#8b5cf6" />
-          <SummaryCard value={`${report.prioAlta}`} label="Prioridade Alta" color="#22c55e" />
-          <SummaryCard value={`${report.prioMedia}`} label="Prioridade Média" color="#f59e0b" />
-          <SummaryCard value={`${report.rpaIdeal}`} label="RPA Ideal" color="#92400e" />
-          <SummaryCard value={`${report.rpaHybrid}`} label="RPA + n8n" color="#3730a3" />
-          <SummaryCard value={`${report.areas.length}`} label="Áreas" color="var(--color-pri)" />
-        </div>
-      </section>
+    <div className="flex flex-col gap-6">
+      {/* ── Seção 1 — KPIs do Portfólio ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard value={`${report.totalCount}`} label="Total de Oportunidades" sub={`${report.areas.length} áreas`} />
+        <SummaryCard value={`${taxaConclusao}%`} label="Taxa de Conclusão" sub={`${concluido} concluídas`} />
+        <SummaryCard value={`${scoreMedio}`} label="Score Médio" sub={`${report.prioAlta} de prioridade alta`} />
+        <SummaryCard value={`${report.totalFte}h`} label="FTE Total / mês" sub={`${report.rpaIdeal} RPA ideal`} />
+      </div>
 
       {/* ── Seção 2 — Distribuição por Área (REPORT-03) ── */}
-      <section className="bg-white rounded-[10px] p-[18px] shadow mb-4">
-        <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
-          📊 Distribuição por Área de Negócio — Oportunidades & FTE Estimado
+      <section className="bg-wh rounded-xl border border-bdr shadow-sm p-5">
+        <h3 className="text-[14px] font-bold text-txt mb-4 pb-2 border-b border-bdr">
+          Distribuição por Área de Negócio
+          {sourceLabel ? ` — ${sourceLabel}` : ''}
         </h3>
 
         {/* Header */}
@@ -160,11 +161,11 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
       </section>
 
       {/* ── Seção 3 — Dois donuts (REPORT-04) ── */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <PieCard slices={pieCount} title="🔵 Oportunidades por Área" valueSuffix="op." />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <PieCard slices={pieCount} title="Oportunidades por Área" valueSuffix="op." />
         <PieCard
           slices={pieFte}
-          title="⏱️ FTE Estimado por Área (h/mês)"
+          title="FTE Estimado por Área (h/mês)"
           valueSuffix="h"
         />
       </div>
@@ -175,20 +176,19 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
 function SummaryCard({
   value,
   label,
-  color,
+  sub,
 }: {
   value: string;
   label: string;
-  color: string;
+  sub?: string;
 }) {
   return (
-    <div className="text-center bg-white border border-bdr rounded-[10px] p-3">
-      <div className="text-xl font-extrabold leading-none" style={{ color }}>
+    <div className="bg-wh rounded-xl border border-bdr p-5 shadow-sm">
+      <div className="text-[12px] font-medium text-mut">{label}</div>
+      <div className="mt-3 text-[28px] font-bold text-txt leading-none tabular-nums">
         {value}
       </div>
-      <div className="text-[9px] text-mut mt-0.5 uppercase tracking-wider">
-        {label}
-      </div>
+      {sub && <div className="mt-1.5 text-[12px] text-mut">{sub}</div>}
     </div>
   );
 }

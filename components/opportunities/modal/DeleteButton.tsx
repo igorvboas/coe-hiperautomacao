@@ -49,7 +49,7 @@ export function DeleteButton({ opportunityId, label }: Props) {
         type="button"
         onClick={open}
         title="Excluir oportunidade"
-        className="px-2.5 py-1 rounded-full bg-red-500/30 hover:bg-red-500/50 text-white text-[11px] font-bold border border-red-300/40 inline-flex items-center gap-1"
+        className="px-3.5 py-1.5 rounded-lg bg-wh hover:bg-red-50 text-red-600 text-[12px] font-semibold border border-bdr hover:border-red-200 inline-flex items-center gap-1 transition-colors"
       >
         🗑️ Excluir
       </button>

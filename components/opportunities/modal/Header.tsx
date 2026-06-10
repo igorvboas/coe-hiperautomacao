@@ -4,13 +4,15 @@ import type { Opportunity } from '@/lib/opportunities/types';
 import { getInitials, scoreColor } from '@/lib/opportunities/utils';
 import { StatusSelector } from './StatusSelector';
 import { DeleteButton } from './DeleteButton';
-import { EditButton } from './EditButton';
 import { AiEnrichmentBadge } from './AiEnrichmentBadge';
 
 type Props = {
   opportunity: Opportunity;
   // ── Edição global do modal (Phase 13, D-12) ───────────────────────────────
   editMode: boolean;
+  // IA ainda enriquecendo: oculta as ações de edição e mostra '…' no score
+  // (não vazar score/prioridade pré-IA que mudam ao final do enriquecimento).
+  enriching?: boolean;
   pending: boolean;
   submitError: string | null;
   // Derivados ao vivo (read-only — D-15). Em modo edição o círculo mostra estes;
@@ -22,21 +24,17 @@ type Props = {
   onCancel: () => void;
 };
 
-const PRIORITY_LABEL: Record<'alta' | 'media' | 'baixa', string> = {
-  alta: 'Alta',
-  media: 'Média',
-  baixa: 'Baixa',
-};
-
 /**
- * Header do detail (modal e fullscreen): gradient azul + avatar + nome + status
- * dropdown + score circle. Phase 13 (D-12): dirige UM fluxo global de
- * Editar/Salvar/Cancelar. O score circle recalcula AO VIVO em modo edição
- * (read-only, D-15) e mostra o valor DB-authoritative em modo leitura.
+ * Header do detail (modal e fullscreen) — espelha `.mo-head` do mockup
+ * (`_giba_wsi-dashboard.html:386-410`): gradiente azul, avatar empilhado acima
+ * do nome/processo/área à esquerda, círculo de score à direita, e uma LINHA DE
+ * BOTÕES abaixo (status · Editar/Salvar/Cancelar · Excluir). O score recalcula
+ * ao vivo em modo edição; em leitura mostra o valor DB-authoritative.
  */
 export function ModalHeader({
   opportunity: o,
   editMode,
+  enriching = false,
   pending,
   submitError,
   liveScore,
@@ -45,102 +43,119 @@ export function ModalHeader({
   onSave,
   onCancel,
 }: Props) {
-  const role =
-    o.source === 'persona'
-      ? `${o.subarea ?? ''} · ${o.area}`.replace(/^ · /, '').replace(/ · $/, '')
-      : o.processo;
-
-  // Em edição: score derivado ao vivo (read-only). Em leitura: total DB-authoritative.
-  const displayScore = editMode ? liveScore : o.score;
+  // Enriquecendo: score/prioridade ainda não são confiáveis → mostra '…' neutro.
+  // Em edição: score derivado ao vivo (read-only). Em leitura: DB-authoritative.
+  const displayScore = enriching ? '…' : editMode ? liveScore : o.score;
   const displayPriority = editMode ? livePriority : o.priority_level;
-  const color = scoreColor(displayScore);
+  const color = enriching
+    ? 'var(--color-mut)'
+    : scoreColor(displayScore as number);
+  const PRIORITY_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' } as const;
+
+  // Botão da linha de ações — v0.3 header flat (ver UI-IDENTITY.md). Editar/
+  // Cancelar = outline claro; Salvar = primário verde.
+  const mhbtn =
+    'px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors inline-flex items-center gap-1 disabled:opacity-50';
+  const mhbtnOutline = `${mhbtn} bg-wh border-bdr text-txt hover:bg-bg`;
 
   return (
-    <div className="bg-gradient-to-br from-pri to-pril text-white pl-5 pr-12 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-black text-[15px] flex-shrink-0">
-            {getInitials(o.solicitante)}
+    <div className="bg-wh border-b border-bdr pl-6 pr-12 py-5">
+      <div className="flex items-start gap-3.5">
+        <div className="w-[48px] h-[48px] rounded-full bg-nav text-white flex items-center justify-center font-bold text-[16px] shrink-0">
+          {getInitials(o.solicitante)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[18px] font-bold text-txt truncate">
+            #{String(o.seq_id).padStart(4, '0')} · {o.processo}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-bold text-base truncate">
-              #{String(o.seq_id).padStart(4, '0')} · {o.solicitante}
-            </div>
-            <div className="text-xs opacity-85 truncate mt-0.5">{role}</div>
-            <div className="text-[11px] opacity-70 truncate mt-0.5">
+          <div className="text-[13px] text-mut truncate mt-0.5">
+            {o.solicitante}
+          </div>
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[12px] text-mut">
+            <span className="truncate">
               🏢 {o.area}
               {o.subarea && o.subarea !== o.area ? ` · ${o.subarea}` : ''}
-            </div>
-            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              <StatusSelector opportunityId={o.id} currentStatus={o.status} />
-              <AiEnrichmentBadge
-                status={o.ai_enrichment_status}
-                error={o.ai_enrichment_error}
-              />
-            </div>
+            </span>
+            <AiEnrichmentBadge
+              status={o.ai_enrichment_status}
+              error={o.ai_enrichment_error}
+            />
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* D-12: UM fluxo global Editar ↔ Salvar/Cancelar (in-modal).
-              EditButton.tsx (rota /edit) permanece separado p/ D-14. */}
-          {!editMode ? (
-            <button
-              type="button"
-              onClick={onEdit}
-              title="Editar oportunidade"
-              className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1"
-            >
-              ✏️ Editar
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onSave}
-                disabled={pending}
-                title="Salvar alterações"
-                className="px-2.5 py-1 rounded-full bg-acc hover:opacity-90 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
-              >
-                {pending ? 'Salvando...' : '💾 Salvar'}
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={pending}
-                title="Cancelar edição"
-                className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
-              >
-                ✕ Cancelar
-              </button>
-            </>
-          )}
-          {!editMode && <EditButton opportunityId={o.id} />}
-          <DeleteButton
-            opportunityId={o.id}
-            label={`#${String(o.seq_id).padStart(4, '0')} · ${o.solicitante}`}
-          />
+
+        {/* Score à direita — anel colorido sobre fundo branco */}
+        <div className="flex flex-col items-center shrink-0">
           <div
-            className="w-14 h-14 rounded-full border-[3px] flex flex-col items-center justify-center bg-white/10"
-            style={{ borderColor: `${color}99` }}
+            className="w-[52px] h-[52px] rounded-full border-[3px] flex items-center justify-center bg-wh"
+            style={{ borderColor: color }}
             title={
-              displayPriority
-                ? `Prioridade: ${PRIORITY_LABEL[displayPriority]}`
-                : undefined
+              enriching
+                ? 'Score sendo calculado pela IA…'
+                : displayPriority
+                  ? `Prioridade: ${PRIORITY_LABEL[displayPriority]}`
+                  : undefined
             }
           >
-            <div className="text-lg font-black leading-none" style={{ color }}>
+            <div
+              className="text-[19px] font-extrabold leading-none"
+              style={{ color }}
+            >
               {displayScore}
             </div>
-            <div className="text-[8px] opacity-75 uppercase tracking-wide">
-              score
-            </div>
+          </div>
+          <div className="text-[9px] text-mut uppercase tracking-wide mt-1">
+            score
           </div>
         </div>
       </div>
 
+      {/* Linha de botões */}
+      <div className="mt-4 flex items-center gap-2 flex-wrap">
+        <StatusSelector opportunityId={o.id} currentStatus={o.status} />
+
+        {enriching ? null : !editMode ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            title="Editar oportunidade"
+            className={mhbtnOutline}
+          >
+            ✏️ Editar
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={pending}
+              title="Salvar alterações"
+              className={`${mhbtn} bg-primary hover:bg-primary-hover text-white border-primary`}
+            >
+              {pending ? 'Salvando...' : '💾 Salvar'}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={pending}
+              title="Cancelar edição"
+              className={mhbtnOutline}
+            >
+              ✕ Cancelar
+            </button>
+          </>
+        )}
+
+        {!editMode && (
+          <DeleteButton
+            opportunityId={o.id}
+            label={`#${String(o.seq_id).padStart(4, '0')} · ${o.solicitante}`}
+          />
+        )}
+      </div>
+
       {/* Erro de submit (pt-BR) — só em edição (D-12). */}
       {editMode && submitError && (
-        <div className="mt-2 px-3 py-1.5 rounded-lg bg-red-900/40 border border-red-300/40 text-[11px] text-red-50">
+        <div className="mt-2 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-700">
           {submitError}
         </div>
       )}

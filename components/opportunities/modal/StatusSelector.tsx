@@ -47,17 +47,17 @@ export function StatusSelector({ opportunityId, currentStatus }: Props) {
         value={optimisticStatus}
         onChange={onChange}
         disabled={pending}
-        className="px-2.5 py-1 rounded-full bg-white/20 border-2 border-white/40 text-white text-[11px] font-bold disabled:opacity-60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/60"
+        className="px-2.5 py-1.5 rounded-lg bg-wh border border-bdr text-txt text-[12px] font-semibold disabled:opacity-60 cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         aria-label="Alterar status"
       >
         {STATUS_OPTIONS.map((s) => (
-          <option key={s.value} value={s.value} className="text-pri">
+          <option key={s.value} value={s.value}>
             {s.icon} {s.label}
           </option>
         ))}
       </select>
       {error && (
-        <div className="text-[10px] text-red-200 bg-red-900/40 rounded px-1.5 py-0.5">
+        <div className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
           {error}
         </div>
       )}

@@ -92,8 +92,8 @@ export function PieCard({
   const total = slices.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div className="bg-white rounded-[10px] p-4 shadow">
-      <div className="text-xs font-bold text-pri mb-2.5 text-center">
+    <div className="bg-wh rounded-xl border border-bdr shadow-sm p-5">
+      <div className="text-[14px] font-bold text-txt mb-4 pb-2 border-b border-bdr">
         {title}
       </div>
       <div className="flex gap-3 items-start">

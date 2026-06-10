@@ -52,17 +52,17 @@ export function ModalShell({ children }: Props) {
       role="dialog"
       aria-modal="true"
       onMouseDown={onOverlayClick}
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/55 backdrop-blur-[3px] sm:p-5 overflow-y-auto"
     >
       <div
         ref={panelRef}
-        className="relative sm:my-8 w-full max-w-3xl bg-white sm:rounded-2xl shadow-2xl overflow-hidden min-h-screen sm:min-h-0"
+        className="relative sm:my-8 w-full max-w-[780px] bg-white sm:rounded-[14px] shadow-2xl overflow-hidden min-h-screen sm:min-h-0"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-base font-bold flex items-center justify-center"
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-base font-bold flex items-center justify-center"
         >
           ✕
         </button>

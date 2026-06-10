@@ -7,7 +7,6 @@ import {
   updateOpportunity,
 } from '@/lib/opportunities/actions';
 import type { OpportunityInput } from '@/lib/opportunities/schema';
-import { deriveFteBucket } from '@/lib/opportunities/fte';
 import {
   defaultFormData,
   stepsFor,
@@ -116,16 +115,10 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
 
     startTransition(async () => {
       if (mode === 'create') {
-        // Deriva o 5º fator (bucket FTE) de fte_horas — fonte única (D-01), mesma
-        // fn do display em Priorização → impossível divergir preview × persistência.
-        // Sem isto, actions.ts persiste `fte: data.prioridade_fte` como null.
-        const fteH = data.fte_horas;
-        const payload = {
-          ...data,
-          prioridade_fte:
-            fteH != null ? deriveFteBucket(Number(fteH)) : undefined,
-        };
-        const result = await createOpportunity(payload as OpportunityInput);
+        // FTE/score são entregáveis da automação — o create não coleta fte_horas
+        // nem os fatores de score. `prioridade_fte` (5º fator) fica indefinido e o
+        // enrichment por IA preenche `fte` depois do INSERT.
+        const result = await createOpportunity(data as OpportunityInput);
         if (!result.ok) {
           setSubmitError(result.error);
           return;
@@ -157,16 +150,16 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
       className="fixed inset-0 z-50 bg-black/55 flex"
     >
       <div className="ml-auto w-full max-w-[760px] h-full bg-white flex flex-col shadow-2xl">
-        <header className="bg-gradient-to-br from-pri to-pril text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <header className="bg-wh border-b border-bdr px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center text-base">
+            <div className="w-9 h-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-base">
               {mode === 'edit' ? '✏️' : '➕'}
             </div>
             <div>
-              <h2 className="text-[15px] font-extrabold">
+              <h2 className="text-[15px] font-bold text-txt">
                 {mode === 'edit' ? 'Editar Oportunidade' : 'Nova Oportunidade'}
               </h2>
-              <p className="text-[11px] opacity-75">
+              <p className="text-[12px] text-mut">
                 {mode === 'edit'
                   ? 'Atualize os dados e salve.'
                   : 'Preencha os passos para cadastrar.'}
@@ -177,7 +170,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
             type="button"
             onClick={() => router.back()}
             aria-label="Fechar"
-            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-base font-bold flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-base font-bold flex items-center justify-center"
           >
             ✕
           </button>
@@ -215,7 +208,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
               <button
                 type="button"
                 onClick={prev}
-                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-txt text-[12px] font-semibold rounded-lg"
+                className="px-3 py-1.5 bg-wh border border-bdr hover:bg-bg text-txt text-[12px] font-semibold rounded-lg"
               >
                 ← Anterior
               </button>
@@ -225,7 +218,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
                 type="button"
                 onClick={next}
                 disabled={!data.source}
-                className="px-3 py-1.5 bg-pri hover:bg-pril text-white text-[12px] font-semibold rounded-lg disabled:opacity-50"
+                className="px-4 py-1.5 bg-dark hover:bg-slate-700 text-white text-[12px] font-semibold rounded-lg disabled:opacity-50"
               >
                 Próximo →
               </button>
@@ -235,7 +228,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
                 type="button"
                 onClick={onSubmit}
                 disabled={pending}
-                className="px-4 py-1.5 bg-acc hover:opacity-90 text-white text-[13px] font-bold rounded-lg disabled:opacity-50"
+                className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-[13px] font-bold rounded-lg disabled:opacity-50"
               >
                 {pending
                   ? 'Salvando...'

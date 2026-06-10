@@ -1,8 +1,8 @@
 // =============================================================================
-// state.ts — unit tests (Phase 11 wizard fluxo único — 5 steps)
+// state.ts — unit tests (wizard fluxo único — 5 steps)
 // =============================================================================
-// Trava o novo contrato de criação (D-04/D-08/D-11):
-//   - mode='create' = fluxo ÚNICO de 5 steps, independe de source.
+// Trava o contrato de criação:
+//   - mode='create' = fluxo ÚNICO de 5 steps (Classificação + 4), independe de source.
 //   - defaultFormData() fixa source='formulario'.
 //   - validateStep: Identificação(nome+área+email) / Processo(processo) pt-BR.
 //
@@ -23,15 +23,19 @@ import { opportunityInputSchema } from '@/lib/opportunities/schema';
 import { deriveFteBucket } from '@/lib/opportunities/fte';
 import type { Opportunity } from '@/lib/opportunities/types';
 
+// Create agora começa por Classificação (request_type: os 5 tipos de
+// solicitação). Priorização segue FORA do create: seus fatores de score e o
+// impacto FTE são entregáveis da automação (IA). Create = 5 steps; Priorização
+// e o split persona/formulário ('tipo') vivem só em mode='edit'.
 const CREATE_STEPS = [
+  'classificacao',
   'identificacao',
   'processo',
   'criterios',
   'beneficios',
-  'priorizacao',
 ];
 
-describe('stepsFor — Phase 11 fluxo único de criação', () => {
+describe('stepsFor — fluxo único de criação', () => {
   it('WIZARD-01: formulario create → 5 steps na ordem canônica', () => {
     expect(stepsFor('formulario', 'create').map((s) => s.id)).toEqual(
       CREATE_STEPS
@@ -46,14 +50,15 @@ describe('stepsFor — Phase 11 fluxo único de criação', () => {
     expect(stepsFor(undefined, 'create').map((s) => s.id)).toEqual(CREATE_STEPS);
   });
 
-  it('cross-check: nenhum step do create tem id "tipo" nem "classificacao"', () => {
+  it('cross-check: create começa por "classificacao" e não tem "tipo" nem "priorizacao"', () => {
     const ids = [
       ...stepsFor('formulario', 'create'),
       ...stepsFor('persona', 'create'),
       ...stepsFor(undefined, 'create'),
     ].map((s) => s.id);
+    expect(ids).toContain('classificacao');
     expect(ids).not.toContain('tipo');
-    expect(ids).not.toContain('classificacao');
+    expect(ids).not.toContain('priorizacao');
   });
 });
 
