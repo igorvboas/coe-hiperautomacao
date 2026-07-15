@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Infraestrutura n8n</title>
+<style>
+  /* ============== DESIGN TOKENS ============== */
+  :root {
+    --bg: #F7F8FA;
+    --card: #FFFFFF;
+    --ink: #0F172A;
+    --ink-mid: #334155;
+    --muted: #64748B;
+    --muted-light: #94A3B8;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --teal: #0F766E;
+    --teal-bright: #14B8A6;
+    --teal-soft: #ECFDF5;
+    --orange: #C2410C;
+    --orange-soft: #FFF7ED;
+    --red: #B91C1C;
+    --red-soft: #FEF2F2;
+    --green: #15803D;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  /* ============== LAYOUT ============== */
+  .page { max-width: 1400px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  .header { margin-bottom: 40px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+    color: var(--teal); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .header h1 {
+    font-size: 36px; font-weight: 700; letter-spacing: -0.02em;
+    margin: 0 0 8px; color: var(--ink);
+  }
+  .header p {
+    font-size: 15px; color: var(--muted); margin: 0; max-width: 680px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 460px;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr; }
+    .results { position: static !important; }
+  }
+
+  /* ============== FORM ============== */
+  .form-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .section-num {
+    width: 24px; height: 24px;
+    background: var(--ink); color: white;
+    border-radius: 6px; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  }
+  .section-title { font-size: 16px; font-weight: 600; color: var(--ink); margin: 0; }
+  .section-sub { font-size: 13px; color: var(--muted); margin: 6px 0 20px 36px; }
+
+  .field-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 13px; font-weight: 500; color: var(--ink-mid);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .field .hint {
+    font-size: 11px; color: var(--muted-light); font-weight: 400;
+  }
+  .field input[type="number"], .field select {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border-strong); border-radius: 8px;
+    font-family: var(--font-mono); font-size: 14px; color: var(--ink);
+    background: white; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input[type="number"]:focus, .field select:focus {
+    outline: none; border-color: var(--teal-bright);
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
+  }
+  .field select { font-family: var(--font-sans); }
+  .field .unit {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted-light); font-size: 12px; font-family: var(--font-mono);
+    pointer-events: none;
+  }
+  .input-with-unit { position: relative; }
+  .input-with-unit input { padding-right: 48px; }
+
+  .toggle-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg);
+  }
+  .toggle-row input { width: 18px; height: 18px; cursor: pointer; }
+  .toggle-row label { font-size: 13px; color: var(--ink-mid); cursor: pointer; margin: 0; }
+
+  /* ============== RESULTS PANEL ============== */
+  .results {
+    position: sticky; top: 24px;
+    background: var(--ink); color: white;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .results-header { padding: 20px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .results-eyebrow {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+    color: var(--teal-bright); text-transform: uppercase;
+  }
+  .results-title {
+    font-size: 18px; font-weight: 600; margin: 4px 0 0; color: white;
+  }
+
+  .summary-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .summary-cell { padding: 16px 24px; }
+  .summary-cell:first-child { border-right: 1px solid rgba(255,255,255,0.08); }
+  .summary-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    color: var(--muted-light); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .summary-value {
+    font-size: 16px; font-weight: 600; color: var(--teal-bright);
+  }
+  .summary-sub {
+    font-size: 11px; color: var(--muted-light); margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+
+  .component-list { padding: 8px 0; }
+  .component {
+    padding: 14px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .component:last-child { border-bottom: none; }
+  .component-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .component-name {
+    font-size: 13px; font-weight: 600; color: white;
+  }
+  .component-count {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--teal-bright); font-weight: 500;
+  }
+  .component-specs {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--muted-light);
+  }
+  .component-formula {
+    font-family: var(--font-mono); font-size: 10px;
+    color: rgba(255,255,255,0.35); margin-top: 4px;
+  }
+  .component.disabled { opacity: 0.4; }
+
+  .totals {
+    background: rgba(20,184,166,0.08);
+    padding: 18px 24px;
+    border-top: 1px solid rgba(20,184,166,0.2);
+  }
+  .totals-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  }
+  .total-item .label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    color: var(--muted-light); text-transform: uppercase;
+  }
+  .total-item .value {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 600;
+    color: white; margin-top: 2px;
+  }
+  .total-item .value .small {
+    font-size: 13px; color: var(--muted-light); margin-left: 4px;
+  }
+
+  /* ============== WARNINGS ============== */
+  .warnings { padding: 20px 24px; background: rgba(0,0,0,0.2); }
+  .warnings-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+    color: var(--orange); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .warning {
+    font-size: 12px; color: rgba(255,255,255,0.85);
+    padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06);
+    line-height: 1.5;
+  }
+  .warning:first-of-type { border-top: none; padding-top: 0; }
+  .warning::before {
+    content: "▸ "; color: var(--orange); font-weight: 600;
+  }
+
+  /* ============== FOOTER ============== */
+  .methodology {
+    margin-top: 40px; padding: 24px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .methodology h3 {
+    font-size: 14px; font-weight: 600; margin: 0 0 12px;
+    color: var(--ink); display: flex; align-items: center; gap: 8px;
+  }
+  .methodology h3::before {
+    content: ""; display: block; width: 4px; height: 16px;
+    background: var(--teal-bright); border-radius: 2px;
+  }
+  .methodology p {
+    font-size: 13px; color: var(--muted); margin: 0 0 8px;
+    line-height: 1.6;
+  }
+  .methodology code {
+    font-family: var(--font-mono); font-size: 12px;
+    background: var(--bg); padding: 1px 6px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--teal);
+  }
+
+  /* number animation */
+  .summary-value, .component-count, .component-specs, .total-item .value {
+    transition: color 0.2s;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="header">
+    <div class="eyebrow">Engenharia de Plataforma</div>
+    <h1>Calculadora de Infraestrutura n8n</h1>
+    <p>Informe a volumetria estimada (greenfield) ou observada (brownfield) e veja uma proposta inicial de recursos para provisionar. Os cálculos seguem a metodologia da apresentação técnica e atualizam em tempo real.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ========== FORM (LEFT) ========== -->
+    <div>
+
+      <!-- SECTION 1: Volumetria -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-num">01</div>
+          <h2 class="section-title">Volumetria de execução</h2>
+        </div>
+        <p class="section-sub">A base do dimensionamento de workers.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label>Execuções/dia no pico <span class="hint">total no maior dia</span></label>
+            <div class="input-with-unit">
+              <input type="number" id="peakExecDay" value="30000" min="1" step="100">
+              <span class="unit">exec</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Execuções concorrentes no pico <span class="hint">simultâneas</span></label>
+            <div class="input-with-unit">
+              <input type="number" id="peakConcurrent" value="60" min="1" step="1">
+              <span class="unit">exec</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Duração média de execução</label>
+            <div class="input-with-unit">
+              <input type="number" id="avgDuration" value="3" min="0.1" step="0.1">
+              <span class="unit">seg</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>P95 de duração <span class="hint">cauda lenta</span></label>
+            <div class="input-with-unit">
+              <input type="number" id="p95Duration" value="12" min="0.1" step="0.1">
+              <span class="unit">seg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Perfil dos workflows -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-num">02</div>
+          <h2 class="section-title">Perfil dos workflows</h2>
+        </div>
+        <p class="section-sub">Define o consumo de RAM e CPU por execução.</p>
+
+        <div class="field-grid">
+          <div class="field field-full">
+            <label>Tipo predominante de workflow</label>
+            <select id="profile">
+              <option value="api-light">Integração API-to-API (payloads pequenos)</option>
+              <option value="mixed" selected>Misto (API + alguma transformação)</option>
+              <option value="etl-files">ETL / arquivos / dados volumosos</option>
+              <option value="ai-llm">IA / LLM (OpenAI, Claude, embeddings)</option>
+              <option value="code-custom">Code nodes customizados (JS/Python pesado)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Payload médio entre nós</label>
+            <div class="input-with-unit">
+              <input type="number" id="avgPayload" value="120" min="1" step="10">
+              <span class="unit">KB</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Payload máximo previsto</label>
+            <div class="input-with-unit">
+              <input type="number" id="maxPayload" value="5" min="0.1" step="0.5">
+              <span class="unit">MB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Webhooks -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-num">03</div>
+          <h2 class="section-title">Webhooks e triggers</h2>
+        </div>
+        <p class="section-sub">Define se a camada de webhook processors é necessária.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label>% de execuções via webhook</label>
+            <div class="input-with-unit">
+              <input type="number" id="webhookPct" value="70" min="0" max="100" step="5">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Requisições/segundo no pico</label>
+            <div class="input-with-unit">
+              <input type="number" id="peakRPS" value="8" min="0" step="1">
+              <span class="unit">req/s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: Operacional -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-num">04</div>
+          <h2 class="section-title">Operacional e crescimento</h2>
+        </div>
+        <p class="section-sub">Define banco, retenção e topologia.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label>Workflows ativos esperados</label>
+            <div class="input-with-unit">
+              <input type="number" id="workflows" value="120" min="1" step="1">
+              <span class="unit">wf</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Retenção de execuções</label>
+            <div class="input-with-unit">
+              <input type="number" id="retentionDays" value="14" min="1" step="1">
+              <span class="unit">dias</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Usuários concorrentes no editor</label>
+            <div class="input-with-unit">
+              <input type="number" id="editorUsers" value="5" min="0" step="1">
+              <span class="unit">users</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Margem de segurança aplicada</label>
+            <div class="input-with-unit">
+              <input type="number" id="safetyMargin" value="35" min="0" max="100" step="5">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="toggle-row">
+              <input type="checkbox" id="needsHA">
+              <label for="needsHA">Exige alta disponibilidade (HA) — múltiplos mains, sem ponto único de falha. <em style="color: var(--muted-light);">requer licença Enterprise</em></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========== RESULTS PANEL (RIGHT, STICKY) ========== -->
+    <aside class="results" id="results">
+      <div class="results-header">
+        <div class="results-eyebrow">Proposta inicial</div>
+        <h2 class="results-title">Recursos estimados</h2>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="summary-label">Modo recomendado</div>
+          <div class="summary-value" id="r-mode">Queue Mode</div>
+          <div class="summary-sub" id="r-mode-reason">volume justifica</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">Tier</div>
+          <div class="summary-value" id="r-tier">Média prod</div>
+          <div class="summary-sub" id="r-tier-sub">10k+ exec/dia</div>
+        </div>
+      </div>
+
+      <div class="component-list">
+        <div class="component" id="comp-main">
+          <div class="component-head">
+            <div class="component-name">Main</div>
+            <div class="component-count">×1</div>
+          </div>
+          <div class="component-specs" id="r-main-specs">2 vCPU · 2,0 GB</div>
+          <div class="component-formula">UI · API · scheduler · webhooks se sem processor dedicado</div>
+        </div>
+
+        <div class="component" id="comp-workers">
+          <div class="component-head">
+            <div class="component-name">Workers</div>
+            <div class="component-count" id="r-workers-count">×3</div>
+          </div>
+          <div class="component-specs" id="r-workers-specs">2 vCPU · 4,0 GB · concorrência 15</div>
+          <div class="component-formula" id="r-workers-formula">⌈60 ÷ 15⌉ = 3 workers</div>
+        </div>
+
+        <div class="component" id="comp-webhook">
+          <div class="component-head">
+            <div class="component-name">Webhook processors</div>
+            <div class="component-count" id="r-webhook-count">×1</div>
+          </div>
+          <div class="component-specs" id="r-webhook-specs">1 vCPU · 1,0 GB cada</div>
+          <div class="component-formula" id="r-webhook-formula">RPS alto justifica processor dedicado</div>
+        </div>
+
+        <div class="component" id="comp-postgres">
+          <div class="component-head">
+            <div class="component-name">PostgreSQL</div>
+            <div class="component-count">obrigatório</div>
+          </div>
+          <div class="component-specs" id="r-postgres-specs">4 vCPU · 8 GB · 50 GB NVMe</div>
+          <div class="component-formula" id="r-postgres-formula">pool: workers × conc + main + reserva</div>
+        </div>
+
+        <div class="component" id="comp-redis">
+          <div class="component-head">
+            <div class="component-name">Redis</div>
+            <div class="component-count" id="r-redis-count">obrigatório</div>
+          </div>
+          <div class="component-specs" id="r-redis-specs">1 vCPU · 2 GB</div>
+          <div class="component-formula">message broker · Bull queue</div>
+        </div>
+      </div>
+
+      <div class="totals">
+        <div class="totals-grid">
+          <div class="total-item">
+            <div class="label">Total vCPU</div>
+            <div class="value" id="r-total-cpu">13</div>
+          </div>
+          <div class="total-item">
+            <div class="label">Total RAM</div>
+            <div class="value" id="r-total-ram">22<span class="small">GB</span></div>
+          </div>
+          <div class="total-item">
+            <div class="label">PG conn.</div>
+            <div class="value" id="r-total-conn">65</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warnings" id="warnings-section" style="display: none;">
+        <div class="warnings-title">⚠ Observações</div>
+        <div id="warnings-list"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ========== METHODOLOGY FOOTER ========== -->
+  <section class="methodology">
+    <h3>Como esta calculadora pensa</h3>
+    <p><strong>Workers</strong> são calculados por <code>⌈concorrência_pico ÷ concorrência_por_worker⌉</code>. A concorrência por worker varia com o perfil — workloads I/O-bound (API leve, misto) suportam 20–25 jobs simultâneos por worker; workloads memory-bound (ETL, IA, Code) ficam em 8–10.</p>
+    <p><strong>RAM por worker</strong> = <code>512 MB base + (concorrência × mem_por_execução × 1,2 buffer)</code> × margem do usuário. A memória por execução assume workload típico do perfil (n8n é I/O-bound, slot raramente segura payload grande em memória sustentado): 30 MB para API leve, 60 MB para misto, 200 MB para ETL, 250 MB para IA, 150 MB para Code.</p>
+    <p><strong>Webhook processors</strong> são propostos quando o RPS de pico passa de ~5 ou quando webhook concentra mais de 60% do tráfego com RPS &gt; 2 — abaixo disso o main absorve sem problema.</p>
+    <p><strong>PostgreSQL</strong> escala com volume diário (CPU/RAM) e com retenção (storage). O pool de conexões segue <code>workers × concorrência + main + reserva</code>; passar de 100 conexões já merece atenção.</p>
+    <p><strong>Modo single vs queue</strong> é decidido por volume (&gt;1k exec/dia ou &gt;10 concorrentes) ou por requisito de HA. A margem de segurança do usuário é aplicada uma única vez, sobre o resultado já bufferizado internamente — sem dupla margem.</p>
+    <p style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted-light); font-size: 12px;">Os números refletem cenário <strong>realista de produção</strong>, não defensivo. Para produção crítica, instrumente e meça por 2–3 semanas antes de fixar o sizing. Se o seu workload tem outliers de payload (&gt;10 MB), o cálculo escala automaticamente via <code>maxPayload</code>.</p>
+  </section>
+
+</div>
+
+<script>
+// ============================================================
+// CALCULATION ENGINE
+// ============================================================
+
+const PROFILE_CONFIG = {
+  // memPerExecMB: RAM ativa por slot de execução em produção real (n8n é I/O-bound, maior parte espera API).
+  // Estes valores assumem workloads típicos do perfil; payloads grandes (>10 MB) escalam o número via maxPayload.
+  'api-light':   { memPerExecMB: 30,  concurrency: 25, cpuPerWorker: 1 },  // API-to-API, payloads pequenos
+  'mixed':       { memPerExecMB: 60,  concurrency: 20, cpuPerWorker: 1 },  // mistura I/O-bound padrão
+  'etl-files':   { memPerExecMB: 200, concurrency: 10, cpuPerWorker: 2 },  // arquivos, transformação
+  'ai-llm':      { memPerExecMB: 250, concurrency: 8,  cpuPerWorker: 2 },  // respostas LLM podem ser grandes
+  'code-custom': { memPerExecMB: 150, concurrency: 10, cpuPerWorker: 2 },  // sandbox runner + payload
+};
+
+// Buffer interno aplicado sobre o cálculo de memória (compensa variação normal de runtime).
+// A "margem de segurança" do usuário é aplicada DEPOIS, sobre o resultado bufferizado.
+const INTERNAL_BUFFER = 1.2;
+
+function readInputs() {
+  return {
+    peakExecDay: +document.getElementById('peakExecDay').value || 0,
+    peakConcurrent: +document.getElementById('peakConcurrent').value || 1,
+    avgDuration: +document.getElementById('avgDuration').value || 1,
+    p95Duration: +document.getElementById('p95Duration').value || 1,
+    profile: document.getElementById('profile').value,
+    avgPayloadKB: +document.getElementById('avgPayload').value || 0,
+    maxPayloadMB: +document.getElementById('maxPayload').value || 0,
+    webhookPct: +document.getElementById('webhookPct').value || 0,
+    peakRPS: +document.getElementById('peakRPS').value || 0,
+    workflows: +document.getElementById('workflows').value || 1,
+    retentionDays: +document.getElementById('retentionDays').value || 14,
+    editorUsers: +document.getElementById('editorUsers').value || 1,
+    safetyMargin: +document.getElementById('safetyMargin').value || 0,
+    needsHA: document.getElementById('needsHA').checked,
+  };
+}
+
+function calculate(input) {
+  const profile = PROFILE_CONFIG[input.profile];
+  const margin = 1 + input.safetyMargin / 100;
+
+  // ===== Mode decision =====
+  // Decisão holística: volume baixo (POC) NUNCA dispara queue mode automaticamente,
+  // exceto se HA for explicitamente exigido. RPS de pico sozinho não dispara queue mode —
+  // só justifica isolamento se for sustentado e o volume diário comprovar.
+  const isLowVolume = input.peakExecDay < 500;
+  const hasRealConcurrencyNeed = input.peakConcurrent > 15;
+  const hasRealTrafficVolume = input.peakExecDay > 3000;
+  const hasManyWorkflows = input.workflows > 50;
+  const hasSustainedRPS = input.peakRPS > 15 && input.peakExecDay > 2000;
+
+  const useQueue =
+    input.needsHA ||
+    hasRealTrafficVolume ||
+    hasRealConcurrencyNeed ||
+    hasManyWorkflows ||
+    hasSustainedRPS;
+
+  // ===== Memory per execution =====
+  // Profile baseline, escalated if max payload is big
+  let memPerExec = profile.memPerExecMB;
+  if (input.maxPayloadMB > 10) {
+    memPerExec = Math.max(memPerExec, input.maxPayloadMB * 40);
+  }
+
+  // ===== Worker count =====
+  const concurrencyPerWorker = profile.concurrency;
+  const workers = useQueue
+    ? Math.max(1, Math.ceil(input.peakConcurrent / concurrencyPerWorker))
+    : 0;
+
+  // ===== RAM per worker =====
+  const ramPerWorkerMB = Math.ceil((512 + concurrencyPerWorker * memPerExec * INTERNAL_BUFFER) * margin);
+  const ramPerWorkerGB = Math.max(1, Math.ceil(ramPerWorkerMB / 1024 * 2) / 2); // round to .5
+
+  // ===== Webhook processors =====
+  // Main absorve webhooks até traffic genuinamente alto. Webhook processor dedicado
+  // só vale quando RPS sustentado é grande O SUFICIENTE para competir com UI/API no main.
+  const needsWebhookProc = useQueue && (
+    input.peakRPS > 20 ||
+    (input.peakRPS > 10 && input.webhookPct > 70 && input.editorUsers > 5)
+  );
+  const webhookProcs = needsWebhookProc
+    ? Math.max(1, Math.ceil(input.peakRPS / 80))
+    : 0;
+
+  // ===== Main process =====
+  // Single process com volume muito baixo precisa menos recursos. Queue mode tem main fixo.
+  let mainCPU, mainRAMGB;
+  if (useQueue) {
+    mainCPU = 2;
+    mainRAMGB = 2;
+  } else {
+    // Single process: dimensiona pela carga real
+    mainCPU = input.peakConcurrent > 5 || input.peakExecDay > 500 ? 2 : 1;
+    mainRAMGB = input.peakExecDay > 500 ? 2 : 1.5;
+  }
+  // Main com muitos usuários no editor precisa mais
+  if (input.editorUsers > 10) { mainCPU += 1; mainRAMGB += 1; }
+  // Sem webhook processor e com RPS razoável, beef up main
+  if (!needsWebhookProc && input.peakRPS > 15) { mainRAMGB += 1; }
+
+  // ===== PostgreSQL =====
+  // Total connections = workers × concurrency + main + webhook procs + reserve
+  const totalConnections = useQueue
+    ? (workers * concurrencyPerWorker) + 5 + (webhookProcs * 2) + 10
+    : input.peakConcurrent + 5;
+
+  // Storage estimate: each execution log ~40KB avg, + workflow data baseline
+  const logStorageGB = (input.retentionDays * input.peakExecDay * 0.000040);
+  const dbDiskGB = Math.ceil((logStorageGB + 10 + (input.workflows * 0.01)) * margin);
+
+  let dbCPU, dbRAMGB;
+  if (input.peakExecDay > 100000)      { dbCPU = 8; dbRAMGB = 16; }
+  else if (input.peakExecDay > 30000)  { dbCPU = 4; dbRAMGB = 8; }
+  else if (input.peakExecDay > 5000)   { dbCPU = 2; dbRAMGB = 4; }
+  else if (input.peakExecDay > 500)    { dbCPU = 2; dbRAMGB = 4; }
+  else                                  { dbCPU = 1; dbRAMGB = 2; }  // POC genuíno
+
+  // If connections very high, scale up
+  if (totalConnections > 200) { dbCPU = Math.max(dbCPU, 8); dbRAMGB = Math.max(dbRAMGB, 16); }
+  else if (totalConnections > 100) { dbCPU = Math.max(dbCPU, 4); dbRAMGB = Math.max(dbRAMGB, 8); }
+
+  // ===== Redis =====
+  const redisCPU = useQueue ? 1 : 0;
+  const redisRAMGB = useQueue ? 2 : 0;
+
+  // ===== Totals =====
+  const totalCPU = mainCPU + (workers * profile.cpuPerWorker) + (webhookProcs * 1) + dbCPU + redisCPU;
+  const totalRAMGB = mainRAMGB + (workers * ramPerWorkerGB) + (webhookProcs * 1) + dbRAMGB + redisRAMGB;
+
+  // ===== Tier =====
+  let tier, tierSub;
+  if (input.peakExecDay > 100000)      { tier = 'Larga escala';  tierSub = '100k+ exec/dia'; }
+  else if (input.peakExecDay > 10000)  { tier = 'Média prod';    tierSub = '10k+ exec/dia'; }
+  else if (input.peakExecDay > 100)    { tier = 'Pequena prod';  tierSub = '~1k exec/dia'; }
+  else                                  { tier = 'POC / Dev';     tierSub = '<100 exec/dia'; }
+
+  // ===== Warnings =====
+  const warnings = [];
+  const tailRatio = input.p95Duration / input.avgDuration;
+
+  // Consistência dos inputs: RPS sustentado deveria gerar volume coerente
+  // Se peak RPS for sustentado por 1 minuto, gera peakRPS × 60 execuções.
+  // Se isso é >> peakExecDay, os inputs estão inconsistentes.
+  if (input.peakRPS > 0 && input.peakExecDay > 0) {
+    const oneMinuteOfPeakRPS = input.peakRPS * 60;
+    if (oneMinuteOfPeakRPS > input.peakExecDay * 2) {
+      warnings.push(`Inputs inconsistentes: <strong>${input.peakRPS} RPS</strong> sustentado por 1 minuto já geraria ${oneMinuteOfPeakRPS} execuções, mais que o seu volume diário declarado (${input.peakExecDay}). Ou o RPS é apenas um burst muito curto, ou o volume diário está subestimado.`);
+    }
+  }
+
+  // Concorrência incompatível com volume
+  if (input.peakExecDay > 0) {
+    const avgConcurrent = (input.peakExecDay / 86400) * input.avgDuration;
+    if (input.peakConcurrent > avgConcurrent * 100 && input.peakConcurrent > 5) {
+      warnings.push(`Pico de concorrência (${input.peakConcurrent}) é mais de 100× a concorrência média esperada (${avgConcurrent.toFixed(2)}). Cenário muito bursty — confirme se faz sentido.`);
+    }
+  }
+
+  if (tailRatio > 5) {
+    warnings.push(`Ratio P95/média = ${tailRatio.toFixed(1)}× indica cauda lenta acentuada. Considere worker pool dedicado para workflows pesados.`);
+  }
+  if (totalConnections > 150) {
+    warnings.push(`Pool de conexões PG alto (${totalConnections}). Verifique <code>max_connections</code> do Postgres — default costuma ser 100.`);
+  }
+  if (input.maxPayloadMB > 50) {
+    warnings.push('Payload máximo acima de 50 MB. Considere offload de binários para object storage (S3/GCS) e referência por URL.');
+  }
+  if (input.needsHA && useQueue) {
+    warnings.push('HA real exige licença <strong>Enterprise</strong> (multi-main). Em Community Edition, o main é ponto único de falha.');
+  }
+  if (!useQueue && input.workflows > 20) {
+    warnings.push('Volume baixo mas muitos workflows ativos. Reavalie em 30 dias — pode justificar migração para queue mode.');
+  }
+  if (input.retentionDays > 60 && input.peakExecDay > 10000) {
+    warnings.push(`Retenção de ${input.retentionDays} dias com volume alto vai gerar banco grande. Configure pruning agressivo ou export para data lake.`);
+  }
+  if (logStorageGB > 100) {
+    warnings.push(`Logs estimados em ${Math.round(logStorageGB)} GB. Considere arquivamento ou redução de retenção.`);
+  }
+
+  return {
+    mode: useQueue ? 'Queue Mode' : 'Single Process',
+    modeReason: useQueue
+      ? (input.needsHA ? 'HA exige distribuição' : (input.peakExecDay > 1000 ? 'volume justifica' : 'concorrência justifica'))
+      : 'volume baixo, single resolve',
+    tier, tierSub,
+    components: {
+      main: { count: useQueue ? 1 : 1, cpu: mainCPU, ramGB: mainRAMGB },
+      workers: { count: workers, cpuEach: profile.cpuPerWorker, ramGBEach: ramPerWorkerGB, concurrency: concurrencyPerWorker, formula: `⌈${input.peakConcurrent} ÷ ${concurrencyPerWorker}⌉ = ${workers}` },
+      webhook: { count: webhookProcs, cpuEach: 1, ramGBEach: 1, enabled: needsWebhookProc },
+      postgres: { cpu: dbCPU, ramGB: dbRAMGB, diskGB: dbDiskGB, connections: totalConnections, formulaConn: useQueue ? `${workers}×${concurrencyPerWorker} + main + reserva` : `~${input.peakConcurrent} + main` },
+      redis: { cpu: redisCPU, ramGB: redisRAMGB, enabled: useQueue },
+    },
+    totals: {
+      cpu: totalCPU,
+      ramGB: Math.ceil(totalRAMGB),
+      connections: totalConnections,
+    },
+    warnings,
+  };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function fmt(n) {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(1).replace('.', ',');
+}
+
+function render() {
+  const input = readInputs();
+  const r = calculate(input);
+
+  // Summary
+  document.getElementById('r-mode').textContent = r.mode;
+  document.getElementById('r-mode-reason').textContent = r.modeReason;
+  document.getElementById('r-tier').textContent = r.tier;
+  document.getElementById('r-tier-sub').textContent = r.tierSub;
+
+  // Main
+  document.getElementById('r-main-specs').textContent =
+    `${r.components.main.cpu} vCPU · ${fmt(r.components.main.ramGB)} GB`;
+
+  // Workers
+  const compWorkers = document.getElementById('comp-workers');
+  if (r.components.workers.count > 0) {
+    compWorkers.classList.remove('disabled');
+    document.getElementById('r-workers-count').textContent = `×${r.components.workers.count}`;
+    document.getElementById('r-workers-specs').textContent =
+      `${r.components.workers.cpuEach} vCPU · ${fmt(r.components.workers.ramGBEach)} GB · concorrência ${r.components.workers.concurrency}`;
+    document.getElementById('r-workers-formula').textContent = r.components.workers.formula;
+  } else {
+    compWorkers.classList.add('disabled');
+    document.getElementById('r-workers-count').textContent = '—';
+    document.getElementById('r-workers-specs').textContent = 'não aplicável em single process';
+    document.getElementById('r-workers-formula').textContent = '';
+  }
+
+  // Webhook processors
+  const compWebhook = document.getElementById('comp-webhook');
+  if (r.components.webhook.enabled) {
+    compWebhook.classList.remove('disabled');
+    document.getElementById('r-webhook-count').textContent = `×${r.components.webhook.count}`;
+    document.getElementById('r-webhook-specs').textContent =
+      `${r.components.webhook.cpuEach} vCPU · ${fmt(r.components.webhook.ramGBEach)} GB cada`;
+    document.getElementById('r-webhook-formula').textContent = `RPS de ${input.peakRPS} req/s justifica processor dedicado`;
+  } else {
+    compWebhook.classList.add('disabled');
+    document.getElementById('r-webhook-count').textContent = '—';
+    document.getElementById('r-webhook-specs').textContent = 'main absorve o tráfego de webhook';
+    document.getElementById('r-webhook-formula').textContent = 'volume de webhook não justifica camada dedicada';
+  }
+
+  // Postgres
+  document.getElementById('r-postgres-specs').textContent =
+    `${r.components.postgres.cpu} vCPU · ${r.components.postgres.ramGB} GB · ${r.components.postgres.diskGB} GB NVMe`;
+  document.getElementById('r-postgres-formula').textContent =
+    `pool: ${r.components.postgres.formulaConn} = ${r.components.postgres.connections} conexões`;
+
+  // Redis
+  const compRedis = document.getElementById('comp-redis');
+  if (r.components.redis.enabled) {
+    compRedis.classList.remove('disabled');
+    document.getElementById('r-redis-count').textContent = 'obrigatório';
+    document.getElementById('r-redis-specs').textContent =
+      `${r.components.redis.cpu} vCPU · ${r.components.redis.ramGB} GB`;
+  } else {
+    compRedis.classList.add('disabled');
+    document.getElementById('r-redis-count').textContent = 'não usado';
+    document.getElementById('r-redis-specs').textContent = 'single process não usa Redis';
+  }
+
+  // Totals
+  document.getElementById('r-total-cpu').textContent = r.totals.cpu;
+  document.getElementById('r-total-ram').innerHTML = `${r.totals.ramGB}<span class="small">GB</span>`;
+  document.getElementById('r-total-conn').textContent = r.totals.connections;
+
+  // Warnings
+  const wSection = document.getElementById('warnings-section');
+  const wList = document.getElementById('warnings-list');
+  if (r.warnings.length > 0) {
+    wSection.style.display = 'block';
+    wList.innerHTML = r.warnings.map(w => `<div class="warning">${w}</div>`).join('');
+  } else {
+    wSection.style.display = 'none';
+  }
+}
+
+// ============================================================
+// BIND EVENTS
+// ============================================================
+const inputs = document.querySelectorAll('input, select');
+inputs.forEach(el => el.addEventListener('input', render));
+
+// Initial render
+render();
+</script>
+
+</body>
+</html>

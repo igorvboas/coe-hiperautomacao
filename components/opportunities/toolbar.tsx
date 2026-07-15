@@ -62,6 +62,13 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const currentView = parseView(params.get('view'));
+
+  // Export CSV: mesmo recorte de filtros/empresa que a lista (a route handler
+  // relê a mesma query string). `view` não afeta o export, mas é inofensivo.
+  const exportHref = (() => {
+    const qs = params.toString();
+    return qs ? `/opportunities/export?${qs}` : '/opportunities/export';
+  })();
   const filters = parseFilters(params);
   const sortValue: SortKey = filters.sort ?? 'score_desc';
 
@@ -163,6 +170,15 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
           <span className="text-base leading-none">+</span>
           <span className="hidden sm:inline">Nova Oportunidade</span>
         </Link>
+
+        <a
+          href={exportHref}
+          title="Exportar oportunidades (com os filtros atuais) em CSV"
+          className="px-3 py-2 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-bdr bg-wh text-txt hover:bg-bg whitespace-nowrap"
+        >
+          <span>⬇</span>
+          <span className="hidden md:inline">Exportar CSV</span>
+        </a>
 
         {tenantSlug && (
           <button

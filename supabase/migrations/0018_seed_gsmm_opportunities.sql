@@ -199,6 +199,16 @@ begin
      'Levantamento Inicial', array['Recursos Humanos','Compliance']::text[], 'Mensal', 'rpa'::automation_tool,
      'medio'::effort_level, 'medio'::complexity_level, 'mensal'::frequency_bucket, 3, 'baixo'::fte_bucket,
      v_criterios, v_beneficios, 'novo'::opportunity_status, v_user_id);
+
+    -- IMPORTANTE: estas 10 linhas são inseridas via SQL e NUNCA passam pelo
+    -- enrichment por IA (que só roda no after() de createOpportunity). Sem isto
+    -- herdam o default 'pending' da 0010 e o modal mostra o overlay
+    -- "Enriquecendo com IA…" eternamente a cada abertura (ver 0014/0019). Marca
+    -- como 'enriched' já no seed para nascer correto num re-seed / DB limpo.
+    update opportunities
+    set ai_enrichment_status = 'enriched',
+        ai_enriched_at = coalesce(ai_enriched_at, now())
+    where tenant_id = v_tenant_id and ai_enrichment_status = 'pending';
   end if;
 end $$;
 
