@@ -1,49 +1,46 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
 import { Sidebar } from '@/components/shell/Sidebar';
 
 export default async function AppLayout({
   children,
   modal,
 }: LayoutProps<'/'>) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/login');
-
-  // Carrega profile + tenant via RLS — só vê o próprio profile + seu tenant
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, full_name, email, role, tenant_id, tenants(name, slug)')
-    .eq('id', user.id)
-    .single();
+  const profile = await getCurrentProfile();
 
   if (!profile) {
-    // Sessão válida mas sem profile = inconsistência (trigger handle_new_user falhou)
+    // Sem sessão ou profile inconsistente (trigger handle_new_user falhou) → login
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/login');
   }
 
-  // Supabase aninha relacionamentos como objeto (single FK) ou array — extrai com segurança
-  const tenantsField = profile.tenants as
-    | { name: string; slug: string }
-    | { name: string; slug: string }[]
-    | null;
-  const tenant = Array.isArray(tenantsField) ? tenantsField[0] : tenantsField;
+  const isAdmin = isPlatformAdmin(profile);
+
+  // Admin precisa da lista de empresas para o seletor (RLS cross-tenant).
+  // Usa SLUG (não id) — é o que vai pra URL (?empresa=<slug>), sem expor UUID.
+  let tenants: { slug: string; name: string }[] = [];
+  if (isAdmin) {
+    const supabase = await createClient();
+    const { data } = await supabase.from('tenants').select('slug, name').order('name');
+    tenants = data ?? [];
+  }
 
   return (
     <div className="min-h-screen flex bg-bg">
-      <Sidebar
-        profile={{
-          fullName: profile.full_name,
-          email: profile.email,
-          role: profile.role,
-          tenantName: tenant?.name ?? null,
-        }}
-      />
+      <Suspense fallback={<div className="w-60 shrink-0 bg-nav" />}>
+        <Sidebar
+          profile={{
+            fullName: profile.fullName,
+            email: profile.email,
+            role: profile.role,
+            tenantName: profile.tenantName,
+          }}
+          tenants={tenants}
+        />
+      </Suspense>
       <div className="flex-1 min-w-0 flex flex-col">
         <main className="flex-1 min-w-0">{children}</main>
       </div>

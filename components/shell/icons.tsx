@@ -36,4 +36,15 @@ export const Icon = {
       <path d="M21 12H9" />
     </svg>
   ),
+  Invites: ({ className }: P) => (
+    <svg {...base(className)}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
+  ),
+  Chevron: ({ className }: P) => (
+    <svg {...base(className)}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  ),
 };

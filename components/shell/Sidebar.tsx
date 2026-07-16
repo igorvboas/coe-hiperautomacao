@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './icons';
+import { CompanySelector } from './CompanySelector';
 import type { TenantRole } from '@/lib/database.types';
 
 type SidebarProfile = {
@@ -12,6 +13,8 @@ type SidebarProfile = {
   role: TenantRole;
   tenantName: string | null;
 };
+
+type Tenant = { slug: string; name: string };
 
 type NavItem = {
   label: string;
@@ -35,6 +38,15 @@ const NAV: NavItem[] = [
   },
 ];
 
+const ADMIN_NAV: NavItem[] = [
+  {
+    label: 'Convites',
+    href: '/admin/invites',
+    icon: Icon.Invites,
+    isActive: (p) => p.startsWith('/admin'),
+  },
+];
+
 function initials(name: string | null, email: string): string {
   const src = name?.trim() || email;
   const parts = src.split(/\s+/).filter(Boolean);
@@ -43,14 +55,22 @@ function initials(name: string | null, email: string): string {
 }
 
 const roleLabel: Record<TenantRole, string> = {
+  platform_admin: 'Administrador',
   tenant_admin: 'Admin da empresa',
   member: 'Membro',
   viewer: 'Somente leitura',
 };
 
-export function Sidebar({ profile }: { profile: SidebarProfile }) {
+export function Sidebar({
+  profile,
+  tenants,
+}: {
+  profile: SidebarProfile;
+  tenants: Tenant[];
+}) {
   const pathname = usePathname();
   const view = useSearchParams().get('view');
+  const isAdmin = profile.role === 'platform_admin';
 
   const renderItem = (item: NavItem) => {
     const active = item.isActive(pathname, view);
@@ -89,7 +109,22 @@ export function Sidebar({ profile }: { profile: SidebarProfile }) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 flex flex-col gap-1 overflow-y-auto">
         {NAV.map(renderItem)}
+        {isAdmin && (
+          <>
+            <div className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-nav-muted">
+              Administração
+            </div>
+            {ADMIN_NAV.map(renderItem)}
+          </>
+        )}
       </nav>
+
+      {/* Seletor de empresa (só admin) */}
+      {isAdmin && tenants.length > 0 && (
+        <div className="border-t border-white/10">
+          <CompanySelector tenants={tenants} />
+        </div>
+      )}
 
       {/* Usuário + logout */}
       <div className="border-t border-white/10 p-3 flex items-center gap-2.5">
