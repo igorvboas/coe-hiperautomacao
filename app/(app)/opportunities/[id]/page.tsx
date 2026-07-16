@@ -4,7 +4,11 @@ import {
   fetchOpportunityById,
   fetchPhasesForOpportunity,
   fetchRisksForOpportunity,
+  fetchDocumentsForOpportunity,
+  fetchNotesForOpportunity,
+  fetchHistoryForOpportunity,
 } from '@/lib/opportunities/queries';
+import { isReadOnlyViewer } from '@/lib/security/role';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
 
 /**
@@ -19,9 +23,13 @@ export default async function OpportunityDetailPage({
   const { id } = await params;
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) notFound();
-  const [phases, risks] = await Promise.all([
+  const [phases, risks, documents, notes, history, readOnly] = await Promise.all([
     fetchPhasesForOpportunity(id),
     fetchRisksForOpportunity(id),
+    fetchDocumentsForOpportunity(id),
+    fetchNotesForOpportunity(id),
+    fetchHistoryForOpportunity(id),
+    isReadOnlyViewer(),
   ]);
 
   return (
@@ -40,6 +48,10 @@ export default async function OpportunityDetailPage({
             opportunity={opportunity}
             phases={phases}
             risks={risks}
+            documents={documents}
+            notes={notes}
+            history={history}
+            readOnly={readOnly}
           />
         </div>
       </div>

@@ -3,24 +3,15 @@
 import { useState, useTransition } from 'react';
 import { updateOpportunityStatus } from '@/lib/opportunities/actions';
 import type { OpportunityStatus } from '@/lib/opportunities/types';
-
-const STATUS_OPTIONS: { value: OpportunityStatus; label: string; icon: string }[] = [
-  { value: 'novo', label: 'Novo', icon: '🆕' },
-  { value: 'em_analise', label: 'Em Análise', icon: '🔍' },
-  { value: 'planejamento', label: 'Planejamento', icon: '📋' },
-  { value: 'backlog', label: 'Backlog', icon: '⏳' },
-  { value: 'desenvolvimento', label: 'Desenvolvimento', icon: '⚙️' },
-  { value: 'homologacao', label: 'Homologação', icon: '🧪' },
-  { value: 'producao', label: 'Produção', icon: '🚀' },
-  { value: 'concluido', label: 'Concluído', icon: '✅' },
-];
+import { STATUS_OPTIONS } from '@/lib/opportunities/status';
 
 type Props = {
   opportunityId: string;
   currentStatus: OpportunityStatus;
+  readOnly?: boolean;
 };
 
-export function StatusSelector({ opportunityId, currentStatus }: Props) {
+export function StatusSelector({ opportunityId, currentStatus, readOnly = false }: Props) {
   const [optimisticStatus, setOptimisticStatus] =
     useState<OpportunityStatus>(currentStatus);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +30,15 @@ export function StatusSelector({ opportunityId, currentStatus }: Props) {
         setError(result.error);
       }
     });
+  }
+
+  if (readOnly) {
+    const s = STATUS_OPTIONS.find((o) => o.value === optimisticStatus);
+    return (
+      <span className="px-2.5 py-1 rounded-full bg-white/20 border-2 border-white/40 text-white text-[11px] font-bold">
+        {s ? `${s.icon} ${s.label}` : optimisticStatus}
+      </span>
+    );
   }
 
   return (

@@ -13,9 +13,11 @@ import {
   SeqIdDisplay,
   FteCell,
   RpaFitBadge,
+  CriticidadeBadge,
 } from './cells';
 import { getInitials } from '@/lib/opportunities/utils';
 import { buildQuery, parseFilters, type SortKey } from '@/lib/opportunities/filters';
+import { formatCodigoChamado, isProcessoDuplicado } from '@/lib/opportunities/ticket';
 
 type Props = { opportunities: Opportunity[] };
 
@@ -79,7 +81,8 @@ export function OpportunityTable({ opportunities }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-pri text-white">
+            {/* Gradiente diagonal — mockup _giba_wsi-dashboard.html:48 (thead) */}
+            <tr className="bg-gradient-to-br from-pril to-pri text-white">
               <ThSort
                 active={isActive('id')}
                 onClick={() => toggleSort('id')}
@@ -105,8 +108,10 @@ export function OpportunityTable({ opportunities }: Props) {
               >
                 Processo / Oportunidade{arrowFor('processo')}
               </ThSort>
+              <Th>Cód. Chamado</Th>
               <Th>Freq.</Th>
               <Th>Pessoas</Th>
+              <Th>Criticidade</Th>
               <ThSort
                 active={isActive('fte')}
                 onClick={() => toggleSort('fte')}
@@ -169,6 +174,21 @@ export function OpportunityTable({ opportunities }: Props) {
                   </div>
                 </Td>
                 <Td>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-semibold text-acc whitespace-nowrap">
+                      {formatCodigoChamado(o.seq_id)}
+                    </span>
+                    {isProcessoDuplicado(o, opportunities) && (
+                      <span
+                        title="Nome do processo duplicado — revisar"
+                        className="text-[9px] font-bold bg-red-600 text-white rounded px-1"
+                      >
+                        DUP
+                      </span>
+                    )}
+                  </div>
+                </Td>
+                <Td>
                   <span className="text-[11px] text-mut">
                     {o.frequencia ?? '—'}
                   </span>
@@ -177,6 +197,9 @@ export function OpportunityTable({ opportunities }: Props) {
                   <span className="text-[11px] text-mut">
                     {o.num_pessoas ?? '—'}
                   </span>
+                </Td>
+                <Td>
+                  <CriticidadeBadge value={o.criticidade} />
                 </Td>
                 <Td>
                   <FteCell fte={o.fte_horas} />

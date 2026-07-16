@@ -8,14 +8,16 @@ import { scoreColor } from '@/lib/opportunities/utils';
 
 type Props = {
   opportunity: Opportunity;
+  readOnly?: boolean;
 };
 
-export function KanbanCard({ opportunity: o }: Props) {
+export function KanbanCard({ opportunity: o, readOnly = false }: Props) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: o.id,
       data: { status: o.status },
+      disabled: readOnly,
     });
 
   const style: React.CSSProperties = {
@@ -23,9 +25,10 @@ export function KanbanCard({ opportunity: o }: Props) {
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     opacity: isDragging ? 0.4 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: readOnly ? 'pointer' : isDragging ? 'grabbing' : 'grab',
     touchAction: 'none',
   };
+  const isCritica = o.criticidade === 'critica';
 
   // Click sem drag → navega; com drag → ignora (@dnd-kit suprime via activation constraint do sensor)
   function onClick(e: React.MouseEvent) {
@@ -39,13 +42,21 @@ export function KanbanCard({ opportunity: o }: Props) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
+      {...(readOnly ? {} : listeners)}
       {...attributes}
       onClick={onClick}
       className="bg-white border border-bdr rounded-lg p-2.5 hover:border-pril hover:shadow-md transition-shadow"
     >
-      <div className="text-[10px] font-extrabold text-pri tracking-wider mb-1">
-        #{String(o.seq_id).padStart(4, '0')}
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[10px] font-extrabold text-pri tracking-wider">
+          #{String(o.seq_id).padStart(4, '0')}
+        </span>
+        {isCritica && (
+          <span
+            className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"
+            title="Criticidade: Crítica"
+          />
+        )}
       </div>
       <div className="text-[11px] font-semibold leading-snug line-clamp-2 mb-1.5">
         {o.processo}

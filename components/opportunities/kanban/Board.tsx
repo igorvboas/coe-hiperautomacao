@@ -8,34 +8,27 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import type {
-  Opportunity,
-  OpportunityStatus,
-} from '@/lib/opportunities/types';
+import type { Opportunity, OpportunityStatus } from '@/lib/opportunities/types';
 import { updateOpportunityStatus } from '@/lib/opportunities/actions';
+import { STATUS_ORDER, STATUS_META } from '@/lib/opportunities/status';
 import { KanbanColumn } from './Column';
 
 type Props = {
   opportunities: Opportunity[];
+  /** RBAC (v0.3) — viewer não arrasta cards nem edita nada. */
+  readOnly?: boolean;
 };
 
-const COLUMNS: {
-  status: OpportunityStatus;
-  label: string;
-  icon: string;
-  color: string;
-}[] = [
-  { status: 'novo', label: 'Novo', icon: '🆕', color: '#64748b' },
-  { status: 'em_analise', label: 'Em Análise', icon: '🔍', color: '#8b5cf6' },
-  { status: 'planejamento', label: 'Planejamento', icon: '📋', color: '#3b82f6' },
-  { status: 'backlog', label: 'Backlog', icon: '⏳', color: '#f59e0b' },
-  { status: 'desenvolvimento', label: 'Desenvolvimento', icon: '⚙️', color: '#f97316' },
-  { status: 'homologacao', label: 'Homologação', icon: '🧪', color: '#06b6d4' },
-  { status: 'producao', label: 'Produção', icon: '🚀', color: '#22c55e' },
-  { status: 'concluido', label: 'Concluído', icon: '✅', color: '#10b981' },
-];
+// 11 colunas (fonte única: lib/opportunities/status.ts) — mesma ordem exibida
+// no seletor de status do header do modal.
+const COLUMNS = STATUS_ORDER.map((status) => ({
+  status,
+  label: STATUS_META[status].label,
+  icon: STATUS_META[status].icon,
+  color: STATUS_META[status].color,
+}));
 
-export function KanbanBoard({ opportunities }: Props) {
+export function KanbanBoard({ opportunities, readOnly = false }: Props) {
   const [opps, setOpps] = useState(opportunities);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -46,6 +39,7 @@ export function KanbanBoard({ opportunities }: Props) {
   );
 
   function onDragEnd(event: DragEndEvent) {
+    if (readOnly) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -95,6 +89,7 @@ export function KanbanBoard({ opportunities }: Props) {
                   icon={col.icon}
                   color={col.color}
                   opportunities={items}
+                  readOnly={readOnly}
                 />
               );
             })}

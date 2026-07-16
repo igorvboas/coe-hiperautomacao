@@ -1,6 +1,7 @@
 import { fetchOpportunityById } from '@/lib/opportunities/queries';
 import { WizardShell } from '@/components/opportunities/wizard/WizardShell';
 import { opportunityToFormData } from '@/components/opportunities/wizard/state';
+import { isReadOnlyViewer } from '@/lib/security/role';
 
 /**
  * Intercepting route do modo edit: quando o usuário clica em "✏️ Editar"
@@ -15,6 +16,7 @@ export default async function EditOpportunityModalPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (await isReadOnlyViewer()) return null;
   const opp = await fetchOpportunityById(id);
   if (!opp) return null;
 

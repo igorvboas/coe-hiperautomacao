@@ -16,6 +16,7 @@ import { DeleteRiskButton } from './DeleteRiskButton';
 type Props = {
   opportunity: Opportunity;
   risks: OpportunityRisk[];
+  readOnly?: boolean;
 };
 
 /**
@@ -25,7 +26,7 @@ type Props = {
  * ?risco=<id>) + 🗑️ (DeleteRiskButton, confirmação). Vazio = "Nenhum risco
  * registrado". `risks` chega por props do RSC pai (Pitfall 5).
  */
-export function RiskTable({ opportunity, risks }: Props) {
+export function RiskTable({ opportunity, risks, readOnly = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -62,16 +63,18 @@ export function RiskTable({ opportunity, risks }: Props) {
             <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
               Status
             </th>
-            <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-              Ações
-            </th>
+            {!readOnly && (
+              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+                Ações
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
           {risks.length === 0 ? (
             <tr>
               <td
-                colSpan={9}
+                colSpan={readOnly ? 8 : 9}
                 className="px-2 py-4 text-center text-[12px] text-mut italic"
               >
                 Nenhum risco registrado
@@ -118,23 +121,25 @@ export function RiskTable({ opportunity, risks }: Props) {
                   <td className="px-2 py-2 text-[10px] text-mut whitespace-nowrap">
                     {STATUS_LABEL[r.status]}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(r.id)}
-                        title="Editar risco"
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-800 rounded px-2 py-1 text-[10px]"
-                      >
-                        ✏️
-                      </button>
-                      <DeleteRiskButton
-                        riskId={r.id}
-                        opportunityId={opportunity.id}
-                        label={rid}
-                      />
-                    </div>
-                  </td>
+                  {!readOnly && (
+                    <td className="px-2 py-2 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(r.id)}
+                          title="Editar risco"
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 rounded px-2 py-1 text-[10px]"
+                        >
+                          ✏️
+                        </button>
+                        <DeleteRiskButton
+                          riskId={r.id}
+                          opportunityId={opportunity.id}
+                          label={rid}
+                        />
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })

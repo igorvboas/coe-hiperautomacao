@@ -55,6 +55,12 @@ export function OpportunityCards({ opportunities }: Props) {
           <div className="flex items-center justify-between pt-2 border-t border-bdr mt-1">
             <div className="flex items-center gap-1.5">
               <SeqIdDisplay seqId={o.seq_id} />
+              {o.criticidade === 'critica' && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"
+                  title="Criticidade: Crítica"
+                />
+              )}
               <ToolBadge tool={o.ferramenta} />
             </div>
             <div

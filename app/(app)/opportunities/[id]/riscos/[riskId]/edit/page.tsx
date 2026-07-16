@@ -1,6 +1,7 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { fetchRiskById } from '@/lib/opportunities/queries';
 import { RiskFormPage } from '@/components/opportunities/modal/risk/RiskFormPage';
+import { isReadOnlyViewer } from '@/lib/security/role';
 
 /**
  * Rota fullscreen REAL (não-interceptada) de edição de risco (D-02 deep-link).
@@ -13,6 +14,7 @@ export default async function EditRiskPage({
   params: Promise<{ id: string; riskId: string }>;
 }) {
   const { id, riskId } = await params;
+  if (await isReadOnlyViewer()) redirect(`/opportunities/${id}`);
   const risk = await fetchRiskById(riskId);
   if (!risk) notFound();
 

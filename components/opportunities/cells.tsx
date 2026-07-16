@@ -1,5 +1,6 @@
 import type { Opportunity } from '@/lib/opportunities/types';
 import { rpaTier } from '@/lib/opportunities/cells';
+import { STATUS_META } from '@/lib/opportunities/status';
 
 // rpaTier (fn pura, _giba:520-525) vive em lib/opportunities/cells.ts — fonte
 // única importável também pelos specs puros. Reexportado aqui para os consumidores
@@ -52,21 +53,10 @@ export function ToolBadge({ tool }: { tool: Opportunity['ferramenta'] }) {
 }
 
 // =============================================================================
-// StatusBadge — 8 status com cor+ícone (extraído do mockup STATUS_INFO)
+// StatusBadge — 11 status com cor+ícone (fonte única: lib/opportunities/status.ts)
 // =============================================================================
-const STATUS_MAP = {
-  novo: { label: 'Novo', icon: '🆕', bg: '#f1f5f9', color: '#64748b' },
-  em_analise: { label: 'Em Análise', icon: '🔍', bg: '#ede9fe', color: '#8b5cf6' },
-  planejamento: { label: 'Planejamento', icon: '📋', bg: '#dbeafe', color: '#3b82f6' },
-  backlog: { label: 'Backlog', icon: '⏳', bg: '#fef3c7', color: '#f59e0b' },
-  desenvolvimento: { label: 'Desenvolvimento', icon: '⚙️', bg: '#ffedd5', color: '#f97316' },
-  homologacao: { label: 'Homologação', icon: '🧪', bg: '#cffafe', color: '#06b6d4' },
-  producao: { label: 'Produção', icon: '🚀', bg: '#dcfce7', color: '#22c55e' },
-  concluido: { label: 'Concluído', icon: '✅', bg: '#d1fae5', color: '#10b981' },
-} as const;
-
 export function StatusBadge({ status }: { status: Opportunity['status'] }) {
-  const m = STATUS_MAP[status];
+  const m = STATUS_META[status];
   return (
     <span
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
@@ -181,6 +171,38 @@ export function PriorityPill({ level }: { level: Opportunity['priority_level'] }
     </span>
   );
 }
+
+// =============================================================================
+// CriticidadeBadge — baixa / media / alta / critica (v0.3, separada do Score)
+// =============================================================================
+const CRITICIDADE_MAP = {
+  baixa: { label: 'Baixa', icon: '🟢', bg: '#dcfce7', color: '#166534' },
+  media: { label: 'Média', icon: '🟡', bg: '#fef9c3', color: '#854d0e' },
+  alta: { label: 'Alta', icon: '🟠', bg: '#ffedd5', color: '#9a3412' },
+  critica: { label: 'Crítica', icon: '🔴', bg: '#fee2e2', color: '#991b1b' },
+} as const;
+
+export function CriticidadeBadge({ value }: { value: Opportunity['criticidade'] }) {
+  if (!value) return <span className="text-mut text-xs">—</span>;
+  const m = CRITICIDADE_MAP[value];
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+      style={{ backgroundColor: m.bg, color: m.color }}
+    >
+      <span>{m.icon}</span>
+      <span>{m.label}</span>
+    </span>
+  );
+}
+
+// =============================================================================
+// CodigoChamadoDisplay — "CHM-0001" derivado do seq_id por tenant (v0.3)
+// -----------------------------------------------------------------------------
+// Fonte única em lib/opportunities/ticket.ts (formatCodigoChamado) — reexportado
+// aqui só para os consumidores de UI que já importam badges/cells daqui.
+// =============================================================================
+export { formatCodigoChamado } from '@/lib/opportunities/ticket';
 
 // =============================================================================
 // SeqIdDisplay — #0001 zero-padded

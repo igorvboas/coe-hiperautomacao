@@ -8,6 +8,7 @@ import { RiskFormDialog } from '../risk/RiskFormDialog';
 type Props = {
   opportunity: Opportunity;
   risks: OpportunityRisk[];
+  readOnly?: boolean;
 };
 
 /**
@@ -18,7 +19,7 @@ type Props = {
  * livre `risco` foi REMOVIDO (D-03). O CRUD usa o dialog empilhado dirigido pelo
  * search param ?risco (montado uma vez aqui, resolve `initial` a partir de `risks`).
  */
-export function RiscoTab({ opportunity, risks }: Props) {
+export function RiscoTab({ opportunity, risks, readOnly = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -32,18 +33,20 @@ export function RiscoTab({ opportunity, risks }: Props) {
         <span className="text-[12px] font-bold text-pri">
           ⚠️ Registro de Riscos — {risks.length} registro(s)
         </span>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="bg-pri hover:bg-pril text-white rounded-lg px-3 py-1.5 text-[11px] font-bold"
-        >
-          + Adicionar Risco
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="bg-pri hover:bg-pril text-white rounded-lg px-3 py-1.5 text-[11px] font-bold"
+          >
+            + Adicionar Risco
+          </button>
+        )}
       </div>
 
-      <RiskTable opportunity={opportunity} risks={risks} />
+      <RiskTable opportunity={opportunity} risks={risks} readOnly={readOnly} />
 
-      <RiskFormDialog opportunityId={opportunity.id} risks={risks} />
+      {!readOnly && <RiskFormDialog opportunityId={opportunity.id} risks={risks} />}
     </div>
   );
 }

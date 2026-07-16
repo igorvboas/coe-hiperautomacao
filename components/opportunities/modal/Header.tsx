@@ -20,6 +20,8 @@ type Props = {
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
+  /** RBAC (v0.3) — viewer não edita/exclui/troca status. */
+  readOnly?: boolean;
 };
 
 const PRIORITY_LABEL: Record<'alta' | 'media' | 'baixa', string> = {
@@ -44,6 +46,7 @@ export function ModalHeader({
   onEdit,
   onSave,
   onCancel,
+  readOnly = false,
 }: Props) {
   const role =
     o.source === 'persona'
@@ -72,7 +75,11 @@ export function ModalHeader({
               {o.subarea && o.subarea !== o.area ? ` · ${o.subarea}` : ''}
             </div>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              <StatusSelector opportunityId={o.id} currentStatus={o.status} />
+              <StatusSelector
+                opportunityId={o.id}
+                currentStatus={o.status}
+                readOnly={readOnly}
+              />
               <AiEnrichmentBadge
                 status={o.ai_enrichment_status}
                 error={o.ai_enrichment_error}
@@ -81,44 +88,56 @@ export function ModalHeader({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* D-12: UM fluxo global Editar ↔ Salvar/Cancelar (in-modal).
-              EditButton.tsx (rota /edit) permanece separado p/ D-14. */}
-          {!editMode ? (
-            <button
-              type="button"
-              onClick={onEdit}
-              title="Editar oportunidade"
-              className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1"
+          {readOnly && (
+            <span
+              className="px-2.5 py-1 rounded-full bg-acc/90 text-white text-[11px] font-bold inline-flex items-center gap-1"
+              title="Perfil somente leitura"
             >
-              ✏️ Editar
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onSave}
-                disabled={pending}
-                title="Salvar alterações"
-                className="px-2.5 py-1 rounded-full bg-acc hover:opacity-90 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
-              >
-                {pending ? 'Salvando...' : '💾 Salvar'}
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={pending}
-                title="Cancelar edição"
-                className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
-              >
-                ✕ Cancelar
-              </button>
-            </>
+              👁️ Somente leitura
+            </span>
           )}
-          {!editMode && <EditButton opportunityId={o.id} />}
-          <DeleteButton
-            opportunityId={o.id}
-            label={`#${String(o.seq_id).padStart(4, '0')} · ${o.solicitante}`}
-          />
+          {/* D-12: UM fluxo global Editar ↔ Salvar/Cancelar (in-modal).
+              EditButton.tsx (rota /edit) permanece separado p/ D-14.
+              RBAC (v0.3): viewer nunca vê nenhum destes botões. */}
+          {!readOnly &&
+            (!editMode ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                title="Editar oportunidade"
+                className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1"
+              >
+                ✏️ Editar
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={pending}
+                  title="Salvar alterações"
+                  className="px-2.5 py-1 rounded-full bg-acc hover:opacity-90 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  {pending ? 'Salvando...' : '💾 Salvar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={pending}
+                  title="Cancelar edição"
+                  className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold border border-white/30 inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  ✕ Cancelar
+                </button>
+              </>
+            ))}
+          {!readOnly && !editMode && <EditButton opportunityId={o.id} />}
+          {!readOnly && (
+            <DeleteButton
+              opportunityId={o.id}
+              label={`#${String(o.seq_id).padStart(4, '0')} · ${o.solicitante}`}
+            />
+          )}
           <div
             className="w-14 h-14 rounded-full border-[3px] flex flex-col items-center justify-center bg-white/10"
             style={{ borderColor: `${color}99` }}

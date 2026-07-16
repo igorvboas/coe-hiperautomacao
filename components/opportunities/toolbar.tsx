@@ -10,39 +10,37 @@ import {
   type OpportunityFilters,
   type SortKey,
 } from '@/lib/opportunities/filters';
+import { STATUS_OPTIONS, SEGMENTO_OPTIONS, type Segmento } from '@/lib/opportunities/status';
 
 type Props = {
   counts: { visible: number; total: number };
   areas: string[];
   tenantSlug: string | null;
+  readOnly?: boolean;
 };
 
 type View = 'table' | 'cards' | 'kanban' | 'relatorio';
 
+// Rótulos do mockup (_giba_wsi-dashboard.html:335-338): Lista · Cards · Gestão ·
+// Relatório — os ids internos (table/kanban) permanecem, só o rótulo muda.
 const VIEWS: { id: View; icon: string; label: string }[] = [
-  { id: 'table', icon: '☰', label: 'Tabela' },
+  { id: 'table', icon: '☰', label: 'Lista' },
   { id: 'cards', icon: '⊞', label: 'Cards' },
-  { id: 'kanban', icon: '📊', label: 'Kanban' },
+  { id: 'kanban', icon: '📊', label: 'Gestão' },
   { id: 'relatorio', icon: '📈', label: 'Relatório' },
 ];
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'novo', label: 'Novo' },
-  { value: 'em_analise', label: 'Em Análise' },
-  { value: 'planejamento', label: 'Planejamento' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'desenvolvimento', label: 'Desenvolvimento' },
-  { value: 'homologacao', label: 'Homologação' },
-  { value: 'producao', label: 'Produção' },
-  { value: 'concluido', label: 'Concluído' },
-];
+function parseSegmento(raw: string | null): Segmento {
+  const valid: Segmento[] = ['todos', 'legado', 'gestao', 'novas', 'manutencao'];
+  return valid.includes(raw as Segmento) ? (raw as Segmento) : 'todos';
+}
 
 function parseView(raw: string | null): View {
   if (raw === 'cards' || raw === 'kanban' || raw === 'relatorio') return raw;
   return 'table';
 }
 
-export function Toolbar({ counts, areas, tenantSlug }: Props) {
+export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {
@@ -127,17 +125,47 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
   const selectClass =
     'px-2 py-1 border border-bdr rounded-md text-[11px] bg-white text-txt focus:outline-none focus:border-pril';
 
+  const segmentoAtual = filters.segmento ?? 'todos';
+
   return (
     <div className="bg-white border-b border-bdr px-6 py-2 flex flex-col gap-2">
+      {/* Segmentação de portfólio (v0.3) — grupo macro de status, acima dos filtros finos */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-mut mr-0.5">
+          Segmento:
+        </span>
+        {SEGMENTO_OPTIONS.map((seg) => {
+          const isActive = seg.value === segmentoAtual;
+          return (
+            <button
+              key={seg.value}
+              type="button"
+              onClick={() => applyChange({ segmento: seg.value })}
+              className={
+                'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ' +
+                (isActive
+                  ? 'bg-pri text-white'
+                  : 'bg-bg text-txt border border-bdr hover:bg-slate-200')
+              }
+            >
+              {seg.icon ? `${seg.icon} ` : ''}
+              {seg.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Linha 1: Action button + counts + view switcher */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/opportunities/new"
-          className="px-3 py-1.5 bg-acc hover:opacity-90 text-white text-[12px] font-bold rounded-lg flex items-center gap-1 transition-opacity"
-        >
-          <span>➕</span>
-          <span className="hidden sm:inline">Nova Oportunidade</span>
-        </Link>
+        {!readOnly && (
+          <Link
+            href="/opportunities/new"
+            className="px-3 py-1.5 bg-acc hover:opacity-90 text-white text-[12px] font-bold rounded-lg flex items-center gap-1 transition-opacity"
+          >
+            <span>➕</span>
+            <span className="hidden sm:inline">Nova Oportunidade</span>
+          </Link>
+        )}
 
         {tenantSlug && (
           <button

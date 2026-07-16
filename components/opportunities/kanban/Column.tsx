@@ -10,9 +10,17 @@ type Props = {
   icon: string;
   color: string;
   opportunities: Opportunity[];
+  readOnly?: boolean;
 };
 
-export function KanbanColumn({ status, label, icon, color, opportunities }: Props) {
+export function KanbanColumn({
+  status,
+  label,
+  icon,
+  color,
+  opportunities,
+  readOnly = false,
+}: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: `col-${status}`,
     data: { status },
@@ -55,7 +63,9 @@ export function KanbanColumn({ status, label, icon, color, opportunities }: Prop
             Nenhuma
           </div>
         ) : (
-          opportunities.map((o) => <KanbanCard key={o.id} opportunity={o} />)
+          opportunities.map((o) => (
+            <KanbanCard key={o.id} opportunity={o} readOnly={readOnly} />
+          ))
         )}
       </div>
     </div>
