@@ -74,7 +74,9 @@ export type PhaseKey =
   | 'producao'
   | 'concluido';
 
-export type TenantRole = 'member' | 'tenant_admin' | 'viewer';
+// v0.3-admin (0020) — super-admin de plataforma, cross-tenant, gated via RLS
+// aditiva (0021). Nunca concedido via convite self-service (0022, só SQL).
+export type TenantRole = 'member' | 'tenant_admin' | 'viewer' | 'platform_admin';
 
 // v0.3 (0017/0018)
 export type CriticidadeLevel = 'baixa' | 'media' | 'alta' | 'critica';
@@ -212,6 +214,50 @@ export type Database = {
             foreignKeyName: 'profiles_tenant_id_fkey';
             columns: ['tenant_id'];
             referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      // v0.3-admin (0022) — allowlist de signup self-service; só platform_admin
+      // gerencia (RLS). role nunca é 'viewer'/'platform_admin' aqui (CHECK no DB).
+      invited_emails: {
+        Row: {
+          id: string;
+          email: string;
+          tenant_id: string;
+          role: 'member' | 'tenant_admin';
+          invited_by: string | null;
+          created_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          tenant_id: string;
+          role?: 'member' | 'tenant_admin';
+          invited_by?: string | null;
+          created_at?: string;
+          used_at?: string | null;
+        };
+        Update: Partial<{
+          email: string;
+          tenant_id: string;
+          role: 'member' | 'tenant_admin';
+          invited_by: string | null;
+          used_at: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'invited_emails_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invited_emails_invited_by_fkey';
+            columns: ['invited_by'];
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           }
         ];
