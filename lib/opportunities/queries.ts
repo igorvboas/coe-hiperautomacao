@@ -85,6 +85,12 @@ export async function fetchOpportunities(
   const supabase = await createClient();
   let q = supabase.from('opportunities_with_score').select(OPPORTUNITY_COLUMNS);
 
+  // Seletor de empresa (platform_admin) — tenant_id já resolvido pela page a
+  // partir do slug em `?empresa=`. RLS aditiva (0021) permite platform_admin
+  // ler qualquer tenant; para os demais roles isto é no-op (a RLS já os
+  // restringe ao próprio tenant de qualquer forma).
+  if (filters.tenant) q = q.eq('tenant_id', filters.tenant);
+
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);

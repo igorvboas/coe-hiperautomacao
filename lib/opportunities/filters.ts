@@ -34,6 +34,12 @@ export type OpportunityFilters = {
   sort?: SortKey;
   /** Segmentação de portfólio (v0.3) — grupo de status, além do filtro fino de `status`. */
   segmento?: Segmento;
+  /** Filtro de empresa — `tenant_id` JÁ RESOLVIDO (a URL carrega o slug em
+   *  `?empresa=`, resolvido server-side via `fetchTenantIdBySlug`; NUNCA expõe
+   *  UUID). Só efetivo para platform_admin — NÃO vem de `parseFilters` (não é
+   *  lido direto da URL) para não virar um vetor de `tenant_id` arbitrário;
+   *  quem popula este campo é a page, depois de resolver o slug. */
+  tenant?: string;
 };
 
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
