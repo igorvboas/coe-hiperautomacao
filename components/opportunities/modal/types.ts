@@ -6,7 +6,9 @@ export type TabId =
   | 'score'
   | 'fases'
   | 'risco'
-  | 'observacao';
+  | 'observacao'
+  | 'documentos'
+  | 'historico';
 
 export type TabDef = {
   id: TabId;

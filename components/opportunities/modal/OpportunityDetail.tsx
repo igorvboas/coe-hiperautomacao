@@ -6,6 +6,9 @@ import type {
   Opportunity,
   OpportunityPhase,
   OpportunityRisk,
+  OpportunityDocument,
+  OpportunityNote,
+  OpportunityHistoryEntry,
 } from '@/lib/opportunities/types';
 import { updateOpportunity } from '@/lib/opportunities/actions';
 import type { OpportunityInput } from '@/lib/opportunities/schema';
@@ -28,7 +31,9 @@ import { CriteriosTab } from './tabs/CriteriosTab';
 import { BeneficiosTab } from './tabs/BeneficiosTab';
 import { ObservacaoTab } from './tabs/ObservacaoTab';
 import { RiscoTab } from './tabs/RiscoTab';
-import { TextField, SelectField, TextareaField } from '@/components/opportunities/wizard/steps/fields';
+import { DocumentosTab } from './tabs/DocumentosTab';
+import { HistoricoTab } from './tabs/HistoricoTab';
+import { TextField, SelectField } from '@/components/opportunities/wizard/steps/fields';
 import { CriteriosStep } from '@/components/opportunities/wizard/steps/CriteriosStep';
 import { BeneficiosStep } from '@/components/opportunities/wizard/steps/BeneficiosStep';
 import { PriorizacaoStep } from '@/components/opportunities/wizard/steps/PriorizacaoStep';
@@ -46,6 +51,9 @@ const MODAL_TABS: TabDef[] = [
   { id: 'fases', label: 'Fases', icon: '📅' },
   { id: 'risco', label: 'Risco', icon: '⚠️' },
   { id: 'observacao', label: 'Observação', icon: '💬' },
+  // v0.3 — abas novas (documentos anexados + auditoria automática)
+  { id: 'documentos', label: 'Documentos', icon: '📎' },
+  { id: 'historico', label: 'Histórico', icon: '🕘' },
 ];
 
 // Domínio de Frequência (fonte única do fator `tempo`, 0011). Espelha ProcessoStep.
@@ -69,14 +77,34 @@ const TOOL_OPTIONS = [
   { value: 'n8n', label: 'n8n' },
   { value: 'ambos', label: 'Ambos' },
 ];
+// v0.3 — criticidade (separada do Score, input manual). Espelha ProcessoStep.
+const CRITICIDADE_OPTIONS = [
+  { value: 'baixa', label: '🟢 Baixa' },
+  { value: 'media', label: '🟡 Média' },
+  { value: 'alta', label: '🟠 Alta' },
+  { value: 'critica', label: '🔴 Crítica' },
+];
 
 type Props = {
   opportunity: Opportunity;
   phases: OpportunityPhase[];
   risks: OpportunityRisk[];
+  documents: OpportunityDocument[];
+  notes: OpportunityNote[];
+  history: OpportunityHistoryEntry[];
+  /** RBAC (v0.3) — viewer não edita nada; abas de mutação viram somente leitura. */
+  readOnly?: boolean;
 };
 
-export function OpportunityDetail({ opportunity, phases, risks }: Props) {
+export function OpportunityDetail({
+  opportunity,
+  phases,
+  risks,
+  documents,
+  notes,
+  history,
+  readOnly = false,
+}: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('processo');
 
   // ── Estado de edição global (recipe do WizardShell, D-12/D-13/D-15) ───────
@@ -178,6 +206,7 @@ export function OpportunityDetail({ opportunity, phases, risks }: Props) {
         onEdit={onEdit}
         onSave={onSave}
         onCancel={onCancel}
+        readOnly={readOnly}
       />
       <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
       <div className="max-h-[60vh] overflow-y-auto">
@@ -186,11 +215,15 @@ export function OpportunityDetail({ opportunity, phases, risks }: Props) {
           opp: opportunity,
           phases,
           risks,
+          documents,
+          notes,
+          history,
           editMode,
           form,
           patch,
           errors,
           liveRpaScore,
+          readOnly,
         })}
       </div>
     </>
@@ -202,19 +235,54 @@ function renderTab(args: {
   opp: Opportunity;
   phases: OpportunityPhase[];
   risks: OpportunityRisk[];
+  documents: OpportunityDocument[];
+  notes: OpportunityNote[];
+  history: OpportunityHistoryEntry[];
   editMode: boolean;
   form: WizardFormData;
   patch: (p: Partial<WizardFormData>) => void;
   errors: Record<string, string>;
   liveRpaScore: number | null;
+  readOnly: boolean;
 }) {
-  const { tab, opp, phases, risks, editMode, form, patch, errors } = args;
+  const {
+    tab,
+    opp,
+    phases,
+    risks,
+    documents,
+    notes,
+    history,
+    editMode,
+    form,
+    patch,
+    errors,
+    readOnly,
+  } = args;
 
-  // Fases e Risco permanecem READ-ONLY mesmo em modo edição (D-12): fases mudam
-  // via StatusSelector no header; riscos via o CRUD da aba Risco (Phase 12).
-  // Eles NÃO fazem parte do payload global da oportunidade.
+  // Fases, Risco, Documentos e Histórico têm sua própria interatividade (CRUD
+  // inline gated só por `readOnly`) — independem do fluxo global Editar/Salvar
+  // (D-12) e por isso NÃO fazem parte do payload de updateOpportunity.
   if (tab === 'fases') return <FasesTab opportunity={opp} phases={phases} />;
-  if (tab === 'risco') return <RiscoTab opportunity={opp} risks={risks} />;
+  if (tab === 'risco')
+    return <RiscoTab opportunity={opp} risks={risks} readOnly={readOnly} />;
+  if (tab === 'documentos')
+    return (
+      <DocumentosTab opportunityId={opp.id} documents={documents} readOnly={readOnly} />
+    );
+  if (tab === 'historico') return <HistoricoTab history={history} />;
+  if (tab === 'observacao')
+    return (
+      <ObservacaoTab
+        opportunity={opp}
+        notes={notes}
+        readOnly={readOnly}
+        editMode={editMode}
+        legacyObservacao={form.observacao ?? ''}
+        legacyRisco={form.risco ?? ''}
+        onLegacyChange={patch}
+      />
+    );
 
   // ── Modo LEITURA: abas de display do Plan 04 (inalteradas) ────────────────
   if (!editMode) {
@@ -229,8 +297,6 @@ function renderTab(args: {
         return <BeneficiosTab opportunity={opp} />;
       case 'score':
         return <ScoreTab opportunity={opp} />;
-      case 'observacao':
-        return <ObservacaoTab opportunity={opp} />;
       default:
         return null;
     }
@@ -294,6 +360,62 @@ function renderTab(args: {
               onChange={(v) => patch({ email: v })}
               error={errors.email}
             />
+            <TextField
+              label="Responsável CoE"
+              value={form.responsavel ?? ''}
+              onChange={(v) => patch({ responsavel: v })}
+            />
+            <SelectField
+              label="Criticidade"
+              value={form.criticidade ?? ''}
+              onChange={(v) =>
+                patch({ criticidade: (v || undefined) as WizardFormData['criticidade'] })
+              }
+              options={CRITICIDADE_OPTIONS}
+            />
+            <TextField
+              label="Execuções/mês"
+              type="number"
+              value={form.execucoes_mes != null ? String(form.execucoes_mes) : ''}
+              onChange={(v) => patch({ execucoes_mes: v === '' ? null : Number(v) })}
+            />
+          </div>
+
+          <div className="mt-2 pt-3 border-t border-bdr">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+              Operacional (automação já implementada)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <TextField
+                label="Código Azure Boards"
+                value={form.azure_boards_codigo ?? ''}
+                onChange={(v) => patch({ azure_boards_codigo: v })}
+              />
+              <TextField
+                label="Linguagem"
+                value={form.linguagem ?? ''}
+                onChange={(v) => patch({ linguagem: v })}
+                placeholder="Ex: Python, VBA, Power Automate"
+              />
+              <TextField
+                label="Execução"
+                value={form.execucao ?? ''}
+                onChange={(v) => patch({ execucao: v })}
+                placeholder="Ex: VM, servidor"
+              />
+              <TextField
+                label="Usuários de Serviço"
+                value={form.usuarios_servico ?? ''}
+                onChange={(v) => patch({ usuarios_servico: v })}
+              />
+              <TextField
+                label="Data de Conclusão"
+                type="text"
+                value={form.data_conclusao ?? ''}
+                onChange={(v) => patch({ data_conclusao: v })}
+                placeholder="AAAA-MM-DD"
+              />
+            </div>
           </div>
         </div>
       );
@@ -318,25 +440,6 @@ function renderTab(args: {
               options={TOOL_OPTIONS}
             />
           </div>
-        </div>
-      );
-    case 'observacao':
-      // D-10: dois campos legados de texto livre — observacao + risco (≠ tabela
-      // opportunity_risks). Ambos já semeados por opportunityToFormData.
-      return (
-        <div className="px-5 py-4">
-          <TextareaField
-            label="Observação"
-            value={form.observacao ?? ''}
-            onChange={(v) => patch({ observacao: v })}
-            rows={4}
-          />
-          <TextareaField
-            label="Risco (nota livre)"
-            value={form.risco ?? ''}
-            onChange={(v) => patch({ risco: v })}
-            rows={4}
-          />
         </div>
       );
     default:
