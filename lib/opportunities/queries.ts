@@ -6,8 +6,12 @@ import type {
   OpportunityKpis,
   OpportunityPhase,
   OpportunityRisk,
+  OpportunityDocument,
+  OpportunityNote,
+  OpportunityHistoryEntry,
 } from './types';
 import type { OpportunityFilters } from './filters';
+import { SEGMENTO_STATUSES } from './status';
 
 export type { OpportunityPhase };
 
@@ -33,6 +37,9 @@ const OPPORTUNITY_COLUMNS =
   'criterios, beneficios, fte, rpa_score, ' +
   'persona_extras, formulario_extras, ' +
   'ai_enrichment_status, ai_enrichment_error, ai_enriched_at, ' +
+  // v0.3 (0017) — incluídos por decisão explícita (HARDEN-E-06): nenhum sensível.
+  'criticidade, azure_boards_codigo, linguagem, execucao, usuarios_servico, ' +
+  'execucoes_mes, data_conclusao, data_abertura_coe, data_fechamento_coe, ' +
   'created_by, created_at, updated_at, ' +
   'score, priority_level';
 
@@ -53,6 +60,19 @@ const RISK_COLUMNS =
   'impacto, probabilidade, status, resposta, descricao_impacto, ' +
   'priority, created_by, created_at, updated_at';
 
+/** Whitelist para `opportunity_documents` (v0.3, 0018). */
+const DOCUMENT_COLUMNS =
+  'id, opportunity_id, tenant_id, kind, nome, url, storage_path, tipo, ' +
+  'size_bytes, created_by, created_at';
+
+/** Whitelist para `opportunity_notes` (v0.3, 0018). */
+const NOTE_COLUMNS =
+  'id, opportunity_id, tenant_id, texto, created_by, created_at';
+
+/** Whitelist para `opportunity_history` (v0.3, 0018) — append-only. */
+const HISTORY_COLUMNS =
+  'id, opportunity_id, tenant_id, resumo, comentario, changed_by, created_at';
+
 /**
  * Busca todas as oportunidades visíveis pro tenant do usuário logado.
  * RLS filtra automaticamente — backend não precisa passar tenant_id.
@@ -70,6 +90,9 @@ export async function fetchOpportunities(
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
   if (filters.priority) q = q.eq('priority_level', filters.priority);
   if (filters.status) q = q.eq('status', filters.status);
+  if (filters.segmento && filters.segmento !== 'todos') {
+    q = q.in('status', SEGMENTO_STATUSES[filters.segmento]);
+  }
 
   if (filters.q && filters.q.trim()) {
     const term = filters.q.trim().replace(/[%]/g, '\\%');
@@ -240,6 +263,76 @@ export async function fetchRiskById(
   }
 
   return data;
+}
+
+/**
+ * Busca os documentos anexados a uma oportunidade (`opportunity_documents`, 0018).
+ * RLS protege por tenant. Ordenados do mais recente pro mais antigo.
+ */
+export async function fetchDocumentsForOpportunity(
+  opportunityId: string
+): Promise<OpportunityDocument[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_documents')
+    .select(DOCUMENT_COLUMNS)
+    .eq('opportunity_id', opportunityId)
+    .order('created_at', { ascending: false })
+    .returns<OpportunityDocument[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar documentos: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Busca as anotações de uma oportunidade (`opportunity_notes`, 0018).
+ * RLS protege por tenant. Ordenadas do mais recente pro mais antigo.
+ */
+export async function fetchNotesForOpportunity(
+  opportunityId: string
+): Promise<OpportunityNote[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_notes')
+    .select(NOTE_COLUMNS)
+    .eq('opportunity_id', opportunityId)
+    .order('created_at', { ascending: false })
+    .returns<OpportunityNote[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar anotações: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Busca o histórico de alterações de uma oportunidade (`opportunity_history`,
+ * 0018) — auditoria automática, append-only. RLS protege por tenant.
+ * Ordenado do mais recente pro mais antigo (mesmo padrão da referência COPA).
+ */
+export async function fetchHistoryForOpportunity(
+  opportunityId: string
+): Promise<OpportunityHistoryEntry[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_history')
+    .select(HISTORY_COLUMNS)
+    .eq('opportunity_id', opportunityId)
+    .order('created_at', { ascending: false })
+    .returns<OpportunityHistoryEntry[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar histórico: ${error.message}`);
+  }
+
+  return data ?? [];
 }
 
 /**

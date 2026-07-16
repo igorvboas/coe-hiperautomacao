@@ -47,6 +47,22 @@ export type RiskProbability = Database['public']['Enums']['risk_probability'];
 export type RiskStatus = Database['public']['Enums']['risk_status'];
 export type RiskPriority = Database['public']['Enums']['risk_priority'];
 
+// ─── v0.3: Documentos / Anotações / Histórico ───────────────────────────
+export type CriticidadeLevel = Opportunity['criticidade'];
+
+export type OpportunityDocument =
+  Database['public']['Tables']['opportunity_documents']['Row'];
+export type DocumentKind = Database['public']['Enums']['document_kind'];
+
+export type OpportunityNote =
+  Database['public']['Tables']['opportunity_notes']['Row'];
+
+/** Append-only — nunca editado/removido pela app (ver migration 0018). */
+export type OpportunityHistoryEntry =
+  Database['public']['Tables']['opportunity_history']['Row'];
+
+export type TenantRole = Database['public']['Enums']['tenant_role'];
+
 /**
  * Buckets de KPI usados pela KPI bar.
  * Calculado a partir do array de Opportunity no Server Component.

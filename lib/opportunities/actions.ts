@@ -15,6 +15,8 @@ import {
   updatePublicFormAttempt,
 } from '@/lib/public-form/log';
 import { enrichOpportunity } from '@/lib/ai/enrichment';
+import { requireEditorRole } from '@/lib/security/role';
+import { diffOpportunity, type OpportunityDiffSnapshot } from './history';
 
 export type UpdateStatusResult = { ok: true } | { ok: false; error: string };
 
@@ -26,6 +28,9 @@ export async function updateOpportunityStatus(
   id: string,
   newStatus: OpportunityStatus
 ): Promise<UpdateStatusResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -265,6 +270,9 @@ export type DeleteOpportunityResult = { ok: true } | { ok: false; error: string 
 export async function deleteOpportunity(
   id: string
 ): Promise<DeleteOpportunityResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const supabase = await createClient();
   const { error } = await supabase.from('opportunities').delete().eq('id', id);
 
@@ -298,6 +306,9 @@ export type CreateOpportunityResult =
 export async function createOpportunity(
   input: unknown
 ): Promise<CreateOpportunityResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const parsed = opportunityInputSchema.safeParse(input);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -363,6 +374,15 @@ export async function createOpportunity(
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:
         data.source === 'formulario' ? data.formulario_extras ?? null : null,
+      // v0.3 — operacionais/criticidade. data_abertura_coe/data_fechamento_coe
+      // NÃO entram: geridas pelo trigger sync_coe_dates() (0017), nunca input.
+      criticidade: data.criticidade || null,
+      azure_boards_codigo: data.azure_boards_codigo || null,
+      linguagem: data.linguagem || null,
+      execucao: data.execucao || null,
+      usuarios_servico: data.usuarios_servico || null,
+      execucoes_mes: data.execucoes_mes ?? null,
+      data_conclusao: data.data_conclusao || null,
       created_by: user.id,
     })
     .select('id, tenant_id')
@@ -423,6 +443,9 @@ export async function updateOpportunity(
   id: string,
   input: unknown
 ): Promise<UpdateOpportunityResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const parsed = opportunityInputSchema.safeParse(input);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -448,6 +471,21 @@ export async function updateOpportunity(
     .eq('id', user.id)
     .single();
   if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+
+  // "Antes" pra auditoria (opportunity_history) — busca só o necessário pro
+  // diff, não a whitelist inteira. Falha aqui não bloqueia o update (o diff
+  // é observabilidade, não uma regra de negócio) — só pula o log.
+  const { data: before } = await supabase
+    .from('opportunities_with_score')
+    .select(
+      'solicitante, email, area, subarea, processo, frequencia, volume_medio, ' +
+        'tempo_execucao, num_pessoas, ferramenta, responsavel, criticidade, ' +
+        'azure_boards_codigo, linguagem, execucao, usuarios_servico, ' +
+        'execucoes_mes, data_conclusao, beneficio_qualitativo, fte_horas, ' +
+        'criterios, beneficios, escopo_automacao, beneficios_esperados, status'
+    )
+    .eq('id', id)
+    .maybeSingle<OpportunityDiffSnapshot>();
 
   const { error } = await supabase
     .from('opportunities')
@@ -482,6 +520,14 @@ export async function updateOpportunity(
       fte: data.prioridade_fte ?? null,
       criterios: data.criterios ?? null,
       beneficios: data.beneficios ?? null,
+      // v0.3 — operacionais/criticidade. Datas COE NÃO entram (trigger-managed).
+      criticidade: data.criticidade || null,
+      azure_boards_codigo: data.azure_boards_codigo || null,
+      linguagem: data.linguagem || null,
+      execucao: data.execucao || null,
+      usuarios_servico: data.usuarios_servico || null,
+      execucoes_mes: data.execucoes_mes ?? null,
+      data_conclusao: data.data_conclusao || null,
       persona_extras:
         data.source === 'persona' ? data.persona_extras ?? null : null,
       formulario_extras:
@@ -492,6 +538,27 @@ export async function updateOpportunity(
 
   if (error) {
     return { ok: false, error: `Erro ao atualizar: ${error.message}` };
+  }
+
+  // Auditoria (opportunity_history, 0018) — best-effort: se o "antes" não veio
+  // (RLS/erro pontual) ou não houve mudança relevante, não grava linha. Nunca
+  // bloqueia a resposta de sucesso do update por causa do log.
+  if (before) {
+    const resumo = diffOpportunity(before, data);
+    if (resumo) {
+      const { error: histError } = await supabase.from('opportunity_history').insert({
+        opportunity_id: id,
+        tenant_id: profile.tenant_id,
+        resumo,
+        changed_by: user.id,
+      });
+      if (histError) {
+        console.error(
+          '[actions/updateOpportunity] falha ao gravar histórico:',
+          histError.message
+        );
+      }
+    }
   }
 
   revalidatePath('/opportunities');

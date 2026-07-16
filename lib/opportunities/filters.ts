@@ -4,6 +4,7 @@ import type {
   OpportunityStatus,
   PriorityLevel,
 } from './types';
+import { SEGMENTO_STATUSES, type Segmento } from './status';
 
 export type SortKey =
   | 'score_desc'
@@ -31,6 +32,8 @@ export type OpportunityFilters = {
   priority?: PriorityFilter;
   status?: OpportunityStatus;
   sort?: SortKey;
+  /** Segmentação de portfólio (v0.3) — grupo de status, além do filtro fino de `status`. */
+  segmento?: Segmento;
 };
 
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
@@ -45,7 +48,11 @@ const STATUS_VALUES: OpportunityStatus[] = [
   'homologacao',
   'producao',
   'concluido',
+  'gestao',
+  'manutencao',
+  'descontinuado',
 ];
+const SEGMENTO_VALUES: Segmento[] = ['todos', 'legado', 'gestao', 'novas', 'manutencao'];
 export const SORT_VALUES: SortKey[] = [
   'score_desc',
   'score_asc',
@@ -82,6 +89,7 @@ export function parseFilters(
     priority: pickEnum(get('priority'), PRIORITY_VALUES),
     status: pickEnum(get('status'), STATUS_VALUES),
     sort: pickEnum(get('sort'), SORT_VALUES),
+    segmento: pickEnum(get('segmento'), SEGMENTO_VALUES),
   };
 }
 
@@ -111,6 +119,7 @@ export function buildQuery(
   if (filters.priority) next.set('priority', filters.priority);
   if (filters.status) next.set('status', filters.status);
   if (filters.sort && filters.sort !== 'score_desc') next.set('sort', filters.sort);
+  if (filters.segmento && filters.segmento !== 'todos') next.set('segmento', filters.segmento);
 
   return next.toString();
 }
@@ -123,6 +132,7 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
   'priority',
   'status',
   'sort',
+  'segmento',
 ];
 
 export const SORT_LABELS: Record<SortKey, string> = {

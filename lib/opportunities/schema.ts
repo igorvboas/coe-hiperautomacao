@@ -39,7 +39,13 @@ export const statusEnum = z.enum([
   'homologacao',
   'producao',
   'concluido',
+  // v0.3 (0016) — fora do fluxo linear datado
+  'gestao',
+  'manutencao',
+  'descontinuado',
 ]);
+// v0.3 (0017): criticidade — manual, separada do Score.
+export const criticidadeEnum = z.enum(['baixa', 'media', 'alta', 'critica']);
 export const toolEnum = z.enum(['rpa', 'n8n', 'ambos']);
 export const effortEnum = z.enum(['baixo', 'medio', 'alto']);
 export const complexityEnum = z.enum(['baixo', 'medio', 'alto']);
@@ -292,6 +298,43 @@ const baseSchema = z.object({
     .strict()
     .partial()
     .optional(),
+  // ─── Campos v0.3 — operacionais + criticidade ───────────────────────────
+  // Preenchidos pelo time do CoE (não pelo solicitante) — o wizard de criação
+  // só coleta `criticidade`; os demais entram via edição do modal (Phase 13
+  // recipe). Todos opcionais, sem default (compat MODEL-10, mesmo espírito
+  // dos campos v0.2 acima).
+  criticidade: criticidadeEnum.nullable().optional(),
+  azure_boards_codigo: z
+    .string()
+    .max(200, 'Máximo 200 caracteres')
+    .optional()
+    .or(z.literal('')),
+  linguagem: z
+    .string()
+    .max(60, 'Máximo 60 caracteres')
+    .optional()
+    .or(z.literal('')),
+  execucao: z
+    .string()
+    .max(60, 'Máximo 60 caracteres')
+    .optional()
+    .or(z.literal('')),
+  usuarios_servico: z
+    .string()
+    .max(200, 'Máximo 200 caracteres')
+    .optional()
+    .or(z.literal('')),
+  execucoes_mes: z
+    .number()
+    .int()
+    .min(0, 'Não pode ser negativo')
+    .nullable()
+    .optional(),
+  data_conclusao: z
+    .string()
+    .max(20, 'Data inválida')
+    .optional()
+    .or(z.literal('')),
 });
 
 // =============================================================================
