@@ -26,6 +26,7 @@ import { PriorizacaoStep } from './steps/PriorizacaoStep';
 import { ContextoStep } from './steps/ContextoStep';
 import { CriteriosStep } from './steps/CriteriosStep';
 import { BeneficiosStep } from './steps/BeneficiosStep';
+import { HelpGuide } from './HelpGuide';
 
 type Props = {
   mode: 'create' | 'edit';
@@ -43,6 +44,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const steps: StepDef[] = stepsFor(data.source, mode);
   const currentStep = steps[currentIndex];
@@ -173,15 +175,29 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Fechar"
-            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-base font-bold flex items-center justify-center"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {mode === 'create' && (
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                title="Como preencher (guia)"
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-sm font-bold flex items-center justify-center"
+              >
+                ?
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Fechar"
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-base font-bold flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
         </header>
+
+        <HelpGuide open={helpOpen} onClose={() => setHelpOpen(false)} />
 
         {steps.length > 1 && (
           <StepsNav

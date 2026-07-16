@@ -28,6 +28,14 @@ const TOOL_OPTIONS = [
   { value: 'ambos', label: 'Ambos' },
 ];
 
+// v0.3 — criticidade (separada do Score, input manual).
+const CRITICIDADE_OPTIONS = [
+  { value: 'baixa', label: '🟢 Baixa' },
+  { value: 'media', label: '🟡 Média' },
+  { value: 'alta', label: '🟠 Alta' },
+  { value: 'critica', label: '🔴 Crítica' },
+];
+
 // Rótulo legível espelhado em `frequencia` (texto) p/ compat de display — o
 // fator de score é `data.tempo`.
 const FREQUENCY_LABEL: Record<string, string> = {
@@ -90,6 +98,29 @@ export function ProcessoStep({ data, onChange }: Props) {
           value={data.num_pessoas ?? ''}
           onChange={(v) => onChange({ num_pessoas: v })}
           placeholder="Ex: De 2 a 4 pessoas"
+        />
+        <TextField
+          label="Responsável CoE"
+          value={data.responsavel ?? ''}
+          onChange={(v) => onChange({ responsavel: v })}
+          placeholder="Quem vai conduzir a automação"
+        />
+        <SelectField
+          label="Criticidade"
+          value={data.criticidade ?? ''}
+          onChange={(v) =>
+            onChange({
+              criticidade: (v || undefined) as WizardFormData['criticidade'],
+            })
+          }
+          options={CRITICIDADE_OPTIONS}
+        />
+        <TextField
+          label="Execuções/mês"
+          type="number"
+          value={data.execucoes_mes != null ? String(data.execucoes_mes) : ''}
+          onChange={(v) => onChange({ execucoes_mes: v === '' ? null : Number(v) })}
+          placeholder="Quantas vezes o bot roda por mês"
         />
 
         {isFormulario && (

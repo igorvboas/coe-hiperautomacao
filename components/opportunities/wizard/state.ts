@@ -187,6 +187,14 @@ export function opportunityToFormData(opp: Opportunity): WizardFormData {
       (opp.criterios as WizardFormData['criterios']) ?? undefined,
     beneficios:
       (opp.beneficios as WizardFormData['beneficios']) ?? undefined,
+    // v0.3 — operacionais/criticidade (edição global do modal):
+    criticidade: opp.criticidade ?? undefined,
+    azure_boards_codigo: opp.azure_boards_codigo ?? '',
+    linguagem: opp.linguagem ?? '',
+    execucao: opp.execucao ?? '',
+    usuarios_servico: opp.usuarios_servico ?? '',
+    execucoes_mes: opp.execucoes_mes ?? undefined,
+    data_conclusao: opp.data_conclusao ?? '',
   };
 
   // Apenas o extras da variante (discriminatedUnion .strict() — XOR).
