@@ -39,7 +39,11 @@ export type OpportunityStatus =
   | 'desenvolvimento'
   | 'homologacao'
   | 'producao'
-  | 'concluido';
+  | 'concluido'
+  // v0.3 (0016) — fora do fluxo linear datado (sem phase_key correspondente):
+  | 'gestao'
+  | 'manutencao'
+  | 'descontinuado';
 
 export type AutomationTool = 'rpa' | 'n8n' | 'ambos';
 export type EffortLevel = 'baixo' | 'medio' | 'alto';
@@ -70,7 +74,11 @@ export type PhaseKey =
   | 'producao'
   | 'concluido';
 
-export type TenantRole = 'member' | 'tenant_admin';
+export type TenantRole = 'member' | 'tenant_admin' | 'viewer';
+
+// v0.3 (0017/0018)
+export type CriticidadeLevel = 'baixa' | 'media' | 'alta' | 'critica';
+export type DocumentKind = 'link' | 'arquivo';
 
 export type OpportunityRequestType =
   | 'nova_oportunidade'
@@ -251,6 +259,16 @@ export type Database = {
           ai_enriched_at: string | null;
           persona_extras: PersonaExtras | null;
           formulario_extras: FormularioExtras | null;
+          // v0.3 (0017) — campos operacionais + criticidade + datas COE
+          criticidade: CriticidadeLevel | null;
+          azure_boards_codigo: string | null;
+          linguagem: string | null;
+          execucao: string | null;
+          usuarios_servico: string | null;
+          execucoes_mes: number | null;
+          data_conclusao: string | null;
+          data_abertura_coe: string | null;
+          data_fechamento_coe: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -295,6 +313,16 @@ export type Database = {
           ai_enriched_at?: string | null;
           persona_extras?: PersonaExtras | null;
           formulario_extras?: FormularioExtras | null;
+          // v0.3 (0017)
+          criticidade?: CriticidadeLevel | null;
+          azure_boards_codigo?: string | null;
+          linguagem?: string | null;
+          execucao?: string | null;
+          usuarios_servico?: string | null;
+          execucoes_mes?: number | null;
+          data_conclusao?: string | null;
+          data_abertura_coe?: string | null;
+          data_fechamento_coe?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -416,6 +444,124 @@ export type Database = {
           }
         ];
       };
+
+      // v0.3 (0018)
+      opportunity_documents: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          kind: DocumentKind;
+          nome: string;
+          url: string | null;
+          storage_path: string | null;
+          tipo: string | null;
+          size_bytes: number | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          tenant_id: string;
+          kind: DocumentKind;
+          nome: string;
+          url?: string | null;
+          storage_path?: string | null;
+          tipo?: string | null;
+          size_bytes?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['opportunity_documents']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_documents_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_documents_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      opportunity_notes: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          texto: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          tenant_id: string;
+          texto: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['opportunity_notes']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_notes_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_notes_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      // Append-only (auditoria) — sem policy/grant de update/delete no DB
+      // (0018). O tipo Update existe só por convenção estrutural; a app NUNCA
+      // chama .update()/.delete() nesta tabela.
+      opportunity_history: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          resumo: string;
+          comentario: string | null;
+          changed_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          tenant_id: string;
+          resumo: string;
+          comentario?: string | null;
+          changed_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['opportunity_history']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_history_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_history_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
 
     Views: {
@@ -495,6 +641,8 @@ export type Database = {
       ai_enrichment_status: AiEnrichmentStatus;
       phase_key: PhaseKey;
       tenant_role: TenantRole;
+      criticidade_level: CriticidadeLevel;
+      document_kind: DocumentKind;
     };
 
     CompositeTypes: Record<string, never>;
