@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import { signIn } from './actions';
 
@@ -20,12 +21,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         <div className="bg-gradient-to-br from-pri to-pril text-white px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center font-black">
-              FG
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0">
+              <Image src="/brand/psw-icone.png" alt="PSW Digital" width={24} height={24} />
             </div>
             <div>
               <h1 className="text-base font-bold">CoE Hiperautomação</h1>
-              <p className="text-xs opacity-75">Gestão de Automações · FGCoop</p>
+              <p className="text-xs opacity-75">Gestão de Automações · PSW Digital</p>
             </div>
           </div>
         </div>

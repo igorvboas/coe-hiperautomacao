@@ -1,19 +1,34 @@
 @import "tailwindcss";
 
-/* Paleta CoE Hiperautomação — derivada do mockup fgcoop-coe-v2.html */
+/* Paleta CoE Hiperautomação — shell v0.3 (sidebar) + identidade PSW Digital
+   (pswdigital.com.br: azul profundo + azul vivo, Poppins). Cores semânticas
+   do mockup (_giba_wsi-dashboard.html) preservadas: verde = criar/positivo,
+   amarelo/vermelho = prioridade média/baixa — nunca marca. */
 @theme {
-  /* primárias */
-  --color-pri: #1a3c6e;
-  --color-pril: #2a5298;
+  /* primárias (legado — login e demais usos de pri/pril/acc) */
+  --color-pri: #183799;
+  --color-pril: #2341e1;
   --color-acc: #00a878;
 
+  /* ações v0.3 */
+  --color-primary: #2341e1;        /* PSW azul vivo — botão primário, focus rings */
+  --color-primary-hover: #1c34b8;
+  --color-dark: #1e293b;           /* botão escuro — "Ações", "Próximo" (neutro) */
+
+  /* navegação (sidebar) — tons derivados do azul PSW */
+  --color-nav: #0f2159;            /* fundo navy profundo */
+  --color-nav-2: #1c3f8f;          /* topo do gradiente, próximo do --color-pri */
+  --color-nav-fg: #cbd5e1;         /* item inativo */
+  --color-nav-muted: #94a3b8;      /* labels/secções */
+  --color-nav-active: #2341e1;     /* item ativo — azul vivo PSW */
+
   /* superfícies */
-  --color-bg: #f0f4f8;
+  --color-bg: #f8fafc;
   --color-wh: #ffffff;
-  --color-bdr: #dde3ec;
+  --color-bdr: #e2e8f0;
 
   /* texto */
-  --color-txt: #1e2a3a;
+  --color-txt: #0f172a;
   --color-mut: #64748b;
 
   /* badges de ferramenta */
@@ -21,7 +36,7 @@
   --color-n8n: #ea580c;
   --color-both: #0891b2;
 
-  /* badges de prioridade */
+  /* badges de prioridade (semânticas do mockup — nunca a cor da marca) */
   --color-grn: #22c55e;
   --color-yel: #f59e0b;
   --color-red: #ef4444;
@@ -30,8 +45,8 @@
 body {
   background: var(--color-bg);
   color: var(--color-txt);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-family: var(--font-poppins), 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
 }
 
 /* Evita zoom automático no iOS quando o input tem font-size < 16px */
