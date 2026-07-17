@@ -22,8 +22,8 @@ export function SourceBadge({ source }: { source: Opportunity['source'] }) {
       className={
         'inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ' +
         (isPersona
-          ? 'bg-violet-100 text-violet-800'
-          : 'bg-emerald-100 text-emerald-800')
+          ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'
+          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300')
       }
     >
       {SOURCE_LABEL[source]}
@@ -35,9 +35,9 @@ export function SourceBadge({ source }: { source: Opportunity['source'] }) {
 // ToolBadge — rpa | n8n | ambos
 // =============================================================================
 const TOOL_MAP = {
-  rpa: { label: '🤖 RPA', bg: 'bg-violet-100', fg: 'text-rpa' },
-  n8n: { label: '⚡ n8n', bg: 'bg-orange-50', fg: 'text-n8n' },
-  ambos: { label: '🔁 Ambos', bg: 'bg-cyan-50', fg: 'text-both' },
+  rpa: { label: '🤖 RPA', bg: 'bg-violet-100 dark:bg-violet-900/40', fg: 'text-rpa' },
+  n8n: { label: '⚡ n8n', bg: 'bg-orange-50 dark:bg-orange-950/40', fg: 'text-n8n' },
+  ambos: { label: '🔁 Ambos', bg: 'bg-cyan-50 dark:bg-cyan-950/40', fg: 'text-both' },
 } as const;
 
 export function ToolBadge({ tool }: { tool: Opportunity['ferramenta'] }) {
@@ -54,13 +54,31 @@ export function ToolBadge({ tool }: { tool: Opportunity['ferramenta'] }) {
 
 // =============================================================================
 // StatusBadge — 11 status com cor+ícone (fonte única: lib/opportunities/status.ts)
+// -----------------------------------------------------------------------------
+// STATUS_META.bg/color continuam hex puro (consumidos via style por
+// kanban/Column.tsx, que precisa compor tinta translúcida `${color}15` — não dá
+// pra expressar isso em className). Aqui, badge pill isolado, className com
+// dark: funciona e evita o par pastel ficar sem contraste em fundo escuro.
 // =============================================================================
+const STATUS_BADGE_CLASS: Record<Opportunity['status'], string> = {
+  novo: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  em_analise: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  planejamento: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  backlog: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  desenvolvimento: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  homologacao: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+  producao: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  concluido: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  gestao: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  manutencao: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+  descontinuado: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+};
+
 export function StatusBadge({ status }: { status: Opportunity['status'] }) {
   const m = STATUS_META[status];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-      style={{ backgroundColor: m.bg, color: m.color }}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${STATUS_BADGE_CLASS[status]}`}
     >
       <span>{m.icon}</span>
       <span>{m.label}</span>
@@ -72,9 +90,9 @@ export function StatusBadge({ status }: { status: Opportunity['status'] }) {
 // ComplexityBadge — baixo / medio / alto
 // =============================================================================
 const COMPLEX_MAP = {
-  baixo: { label: 'Baixa', bg: 'bg-green-100', fg: 'text-green-800' },
-  medio: { label: 'Média', bg: 'bg-yellow-100', fg: 'text-yellow-900' },
-  alto: { label: 'Alta', bg: 'bg-red-100', fg: 'text-red-800' },
+  baixo: { label: 'Baixa', bg: 'bg-green-100 dark:bg-green-900/40', fg: 'text-green-800 dark:text-green-300' },
+  medio: { label: 'Média', bg: 'bg-yellow-100 dark:bg-yellow-900/40', fg: 'text-yellow-900 dark:text-yellow-200' },
+  alto: { label: 'Alta', bg: 'bg-red-100 dark:bg-red-900/40', fg: 'text-red-800 dark:text-red-300' },
 } as const;
 
 export function ComplexityBadge({ value }: { value: Opportunity['complexidade'] }) {
@@ -97,20 +115,18 @@ export function ComplexityBadge({ value }: { value: Opportunity['complexidade'] 
 // Reusa rpaTier (lib/opportunities/cells — fonte única do rótulo/ícone) e
 // mapeia o tom da faixa para as cores inline do mockup.
 // =============================================================================
-function rpaColors(rs: number): { bg: string; fg: string } {
-  if (rs >= 5) return { bg: '#fef3c7', fg: '#92400e' };
-  if (rs >= 3) return { bg: '#e0e7ff', fg: '#3730a3' };
-  return { bg: '#f1f5f9', fg: '#64748b' };
+function rpaColors(rs: number): string {
+  if (rs >= 5) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+  if (rs >= 3) return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300';
+  return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
 }
 
 export function RpaFitBadge({ score }: { score: number | null }) {
   if (score == null) return <span className="text-mut text-xs">—</span>;
   const tier = rpaTier(score);
-  const colors = rpaColors(score);
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-      style={{ backgroundColor: colors.bg, color: colors.fg }}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${rpaColors(score)}`}
     >
       {tier.icon ? `${tier.icon} ` : ''}
       {tier.label}
@@ -176,10 +192,10 @@ export function PriorityPill({ level }: { level: Opportunity['priority_level'] }
 // CriticidadeBadge — baixa / media / alta / critica (v0.3, separada do Score)
 // =============================================================================
 const CRITICIDADE_MAP = {
-  baixa: { label: 'Baixa', icon: '🟢', bg: '#dcfce7', color: '#166534' },
-  media: { label: 'Média', icon: '🟡', bg: '#fef9c3', color: '#854d0e' },
-  alta: { label: 'Alta', icon: '🟠', bg: '#ffedd5', color: '#9a3412' },
-  critica: { label: 'Crítica', icon: '🔴', bg: '#fee2e2', color: '#991b1b' },
+  baixa: { label: 'Baixa', icon: '🟢', cls: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
+  media: { label: 'Média', icon: '🟡', cls: 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200' },
+  alta: { label: 'Alta', icon: '🟠', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' },
+  critica: { label: 'Crítica', icon: '🔴', cls: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' },
 } as const;
 
 export function CriticidadeBadge({ value }: { value: Opportunity['criticidade'] }) {
@@ -187,8 +203,7 @@ export function CriticidadeBadge({ value }: { value: Opportunity['criticidade'] 
   const m = CRITICIDADE_MAP[value];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
-      style={{ backgroundColor: m.bg, color: m.color }}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${m.cls}`}
     >
       <span>{m.icon}</span>
       <span>{m.label}</span>

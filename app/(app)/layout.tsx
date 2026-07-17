@@ -30,7 +30,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen flex bg-bg">
-      <Suspense fallback={<div className="w-60 shrink-0 bg-nav" />}>
+      <Suspense fallback={<div className="w-16 shrink-0 bg-nav" />}>
         <Sidebar
           profile={{
             fullName: profile.fullName,

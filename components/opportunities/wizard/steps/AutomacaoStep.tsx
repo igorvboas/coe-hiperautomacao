@@ -33,7 +33,7 @@ export function AutomacaoStep({ data, onChange }: Props) {
                   'p-3 text-left rounded-lg border-2 transition-all ' +
                   (active
                     ? 'border-pri bg-pri/5'
-                    : 'border-bdr bg-white hover:border-pril')
+                    : 'border-bdr bg-wh hover:border-pril')
                 }
               >
                 <div className="text-[13px] font-bold mb-0.5">{t.label}</div>

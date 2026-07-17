@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function NotFound() {
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center p-8">
-      <div className="bg-white border border-bdr rounded-2xl p-8 max-w-md w-full text-center shadow-sm">
+      <div className="bg-wh border border-bdr rounded-2xl p-8 max-w-md w-full text-center shadow-sm">
         <div className="text-5xl mb-3">🔍</div>
         <h2 className="text-lg font-bold text-txt mb-2">Link inválido</h2>
         <p className="text-sm text-mut mb-5">

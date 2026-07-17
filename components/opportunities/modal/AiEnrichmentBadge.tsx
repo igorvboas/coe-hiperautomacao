@@ -35,7 +35,7 @@ export function AiEnrichmentBadge({ status, error }: Props) {
   if (status === 'pending') {
     return (
       <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
         title="A IA está analisando esta oportunidade. Aguarde alguns segundos e atualize a página."
       >
         <span
@@ -50,7 +50,7 @@ export function AiEnrichmentBadge({ status, error }: Props) {
   // status === 'failed'
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-red-700 border border-red-200"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
       title={error ?? 'Falha técnica não documentada'}
     >
       <span aria-hidden>⚠</span>

@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="w-full max-w-md bg-wh rounded-2xl shadow-xl overflow-hidden">
         <div className="bg-gradient-to-br from-pri to-pril text-white px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0">
@@ -43,7 +43,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               autoFocus
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+              className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
             />
           </div>
 
@@ -57,14 +57,14 @@ export default function LoginPage() {
               type="password"
               required
               autoComplete="current-password"
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+              className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
             />
           </div>
 
           {error && (
             <div
               role="alert"
-              className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+              className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800"
             >
               {error}
             </div>

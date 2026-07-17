@@ -35,7 +35,7 @@ export function FasesTab({ opportunity: _opp, phases }: Props) {
 
   return (
     <div className="px-5 py-4">
-      <div className="space-y-0 divide-y divide-slate-100 mb-4">
+      <div className="space-y-0 divide-y divide-bdr mb-4">
         {PHASES.map((p) => {
           const row = byKey.get(p.key as never);
           const isActive = !!row?.started_at && !row?.finished_at;
@@ -45,7 +45,7 @@ export function FasesTab({ opportunity: _opp, phases }: Props) {
               key={p.key}
               className={
                 'flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg ' +
-                (isActive ? 'bg-emerald-50' : '')
+                (isActive ? 'bg-emerald-50 dark:bg-emerald-950/40' : '')
               }
             >
               <div className="w-7 text-base flex-shrink-0 text-center">{p.icon}</div>
@@ -62,7 +62,7 @@ export function FasesTab({ opportunity: _opp, phases }: Props) {
                   <span>Início:</span>
                   <span
                     className={
-                      'font-mono ' + (row?.started_at ? 'text-txt' : 'text-slate-400')
+                      'font-mono ' + (row?.started_at ? 'text-txt' : 'text-slate-400 dark:text-slate-500')
                     }
                   >
                     {fmt(row?.started_at ?? null)}
@@ -72,7 +72,7 @@ export function FasesTab({ opportunity: _opp, phases }: Props) {
                   <span>Fim:</span>
                   <span
                     className={
-                      'font-mono ' + (row?.finished_at ? 'text-txt' : 'text-slate-400')
+                      'font-mono ' + (row?.finished_at ? 'text-txt' : 'text-slate-400 dark:text-slate-500')
                     }
                   >
                     {fmt(row?.finished_at ?? null)}
@@ -83,7 +83,7 @@ export function FasesTab({ opportunity: _opp, phases }: Props) {
           );
         })}
       </div>
-      <div className="text-[11px] text-mut bg-slate-50 rounded-lg px-3 py-2">
+      <div className="text-[11px] text-mut bg-bg rounded-lg px-3 py-2">
         💡 Datas mantidas automaticamente quando o status muda. Fase ativa em verde.
       </div>
     </div>

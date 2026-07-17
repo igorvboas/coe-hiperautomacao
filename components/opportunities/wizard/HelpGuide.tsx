@@ -83,7 +83,7 @@ export function HelpGuide({ open, onClose }: Props) {
       }}
       className="fixed inset-0 z-[60] bg-black/60 flex items-start justify-center overflow-y-auto p-4"
     >
-      <div className="relative my-8 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative my-8 w-full max-w-xl bg-wh rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-br from-pri to-pril text-white px-5 py-3.5 flex items-center justify-between">
           <h2 className="text-[14px] font-bold">❓ Como preencher uma Nova Oportunidade</h2>
           <button
@@ -96,7 +96,7 @@ export function HelpGuide({ open, onClose }: Props) {
           </button>
         </div>
         <div className="px-5 py-4 max-h-[70vh] overflow-y-auto text-[13px] leading-relaxed">
-          <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 text-[12.5px] mb-4">
+          <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-lg px-3 py-2.5 text-[12.5px] mb-4">
             <b>Por que preencher bem importa:</b> as informações alimentam o{' '}
             <b>Score de priorização</b>, o <b>RPA Fit</b> e os <b>KPIs</b> do CoE. Dados
             incompletos levam a priorização errada — use dados reais.
@@ -113,7 +113,7 @@ export function HelpGuide({ open, onClose }: Props) {
               ))}
             </div>
           ))}
-          <div className="text-[12px] text-mut bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5 mt-3">
+          <div className="text-[12px] text-mut bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2.5 mt-3">
             💡 Use dados reais (evite &quot;chutes&quot;) e preencha todos os 5 passos. Dá
             pra editar depois pelo botão ✏️ Editar no card.
           </div>

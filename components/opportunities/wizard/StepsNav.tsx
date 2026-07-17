@@ -12,7 +12,7 @@ type Props = {
 
 export function StepsNav({ steps, currentIndex, reachedIndex, onJump }: Props) {
   return (
-    <div className="bg-slate-50 border-b border-bdr px-5 flex gap-0 overflow-x-auto">
+    <div className="bg-bg border-b border-bdr px-5 flex gap-0 overflow-x-auto">
       {steps.map((s, i) => {
         const isActive = i === currentIndex;
         const isDone = i < currentIndex;
@@ -26,9 +26,9 @@ export function StepsNav({ steps, currentIndex, reachedIndex, onJump }: Props) {
             className={
               'px-3 py-2.5 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5 border-b-2 transition-colors ' +
               (isActive
-                ? 'text-pri border-pri bg-white'
+                ? 'text-pri border-pri bg-wh'
                 : isDone
-                  ? 'text-emerald-600 border-transparent hover:bg-emerald-50/50'
+                  ? 'text-emerald-600 dark:text-emerald-400 border-transparent hover:bg-emerald-50/50 dark:hover:bg-emerald-950/40'
                   : 'text-mut border-transparent') +
               (reachable ? ' cursor-pointer' : ' cursor-not-allowed opacity-60')
             }
@@ -40,7 +40,7 @@ export function StepsNav({ steps, currentIndex, reachedIndex, onJump }: Props) {
                   ? 'bg-pri text-white'
                   : isDone
                     ? 'bg-emerald-500 text-white'
-                    : 'bg-slate-200 text-mut')
+                    : 'bg-slate-200 dark:bg-slate-700 text-mut')
               }
             >
               {isDone ? '✓' : i + 1}

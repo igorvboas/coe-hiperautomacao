@@ -20,13 +20,13 @@ function Label({ children, required }: LabelProps) {
 
 function Err({ message }: { message?: string }) {
   if (!message) return null;
-  return <div className="text-[11px] text-red-700 mt-1">{message}</div>;
+  return <div className="text-[11px] text-red-700 dark:text-red-300 mt-1">{message}</div>;
 }
 
 const inputClass =
   'w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15';
 
-const inputErrClass = inputClass.replace('border-bdr', 'border-red-400');
+const inputErrClass = inputClass.replace('border-bdr', 'border-red-400 dark:border-red-600');
 
 type TextProps = {
   label: string;

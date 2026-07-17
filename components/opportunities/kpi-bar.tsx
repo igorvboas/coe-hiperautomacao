@@ -30,7 +30,7 @@ function Divider() {
 
 export function KpiBar({ kpis }: Props) {
   return (
-    <div className="bg-white border-b border-bdr px-6 py-2.5 flex gap-3.5 items-center overflow-x-auto">
+    <div className="bg-wh border-b border-bdr px-6 py-2.5 flex gap-3.5 items-center overflow-x-auto">
       <KpiCell value={kpis.total} label="Total" />
       <Divider />
       <KpiCell value={kpis.byPriority.alta} label="🟢 Alta (≥70)" color="#22c55e" />

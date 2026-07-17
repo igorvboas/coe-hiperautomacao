@@ -35,7 +35,7 @@ export default async function InvitesPage() {
     <div className="px-6 py-6 max-w-4xl mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-800">Convites de acesso</h1>
+          <h1 className="text-lg font-bold text-txt">Convites de acesso</h1>
           <p className="text-xs text-mut">
             Libere e-mails para que empresas criem suas contas.
           </p>
@@ -50,10 +50,10 @@ export default async function InvitesPage() {
 
       <InviteForm tenants={tenants} />
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-wh rounded-xl border border-bdr overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-mut">
+            <tr className="bg-bg text-left text-[11px] uppercase tracking-wide text-mut">
               <th className="px-4 py-2.5 font-bold">E-mail</th>
               <th className="px-4 py-2.5 font-bold">Empresa</th>
               <th className="px-4 py-2.5 font-bold">Papel</th>
@@ -70,7 +70,7 @@ export default async function InvitesPage() {
               </tr>
             ) : (
               invites.map((inv) => (
-                <tr key={inv.id} className="border-t border-slate-100">
+                <tr key={inv.id} className="border-t border-slate-100 dark:border-slate-800">
                   <td className="px-4 py-2.5">{inv.email}</td>
                   <td className="px-4 py-2.5">{tenantName(inv.tenants)}</td>
                   <td className="px-4 py-2.5">
@@ -78,11 +78,11 @@ export default async function InvitesPage() {
                   </td>
                   <td className="px-4 py-2.5">
                     {inv.used_at ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full dark:text-emerald-300 dark:bg-emerald-950/40">
                         ✓ Usado
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full dark:text-amber-300 dark:bg-amber-950/40">
                         ⏳ Pendente
                       </span>
                     )}
@@ -93,7 +93,7 @@ export default async function InvitesPage() {
                         <input type="hidden" name="id" value={inv.id} />
                         <button
                           type="submit"
-                          className="text-[11px] font-semibold text-red-600 hover:underline"
+                          className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline"
                         >
                           Revogar
                         </button>

@@ -39,7 +39,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
   const report = buildReport(escopo);
 
   const areaSelect = todasAreas.length > 0 && (
-    <div className="bg-white rounded-[10px] p-3 shadow mb-4 flex items-center gap-2 flex-wrap">
+    <div className="bg-wh rounded-[10px] p-3 shadow mb-4 flex items-center gap-2 flex-wrap">
       <span className="text-[11px] font-bold uppercase tracking-wider text-mut">
         📍 Área:
       </span>
@@ -68,7 +68,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     return (
       <div>
         {areaSelect}
-        <div className="rounded-[10px] bg-white border border-bdr p-10 text-center text-mut shadow">
+        <div className="rounded-[10px] bg-wh border border-bdr p-10 text-center text-mut shadow">
           <div className="text-base font-bold text-pri mb-2">
             📈 Nenhuma oportunidade{areaFiltro ? ` em "${areaFiltro}"` : ' ainda'}
           </div>
@@ -97,7 +97,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     <div>
       {areaSelect}
       {/* ── Seção 1 — Resumo do Portfólio (REPORT-02) ── */}
-      <section className="bg-white rounded-[10px] p-[18px] shadow mb-4">
+      <section className="bg-wh rounded-[10px] p-[18px] shadow mb-4">
         <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
           📊 Resumo do Portfólio
           {areaFiltro ? ` — ${areaFiltro}` : sourceLabel ? ` — ${sourceLabel}` : ''}
@@ -117,7 +117,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
       </section>
 
       {/* ── Seção 2 — Distribuição por Área (REPORT-03) ── */}
-      <section className="bg-white rounded-[10px] p-[18px] shadow mb-4">
+      <section className="bg-wh rounded-[10px] p-[18px] shadow mb-4">
         <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
           📊 Distribuição por Área de Negócio — Oportunidades & FTE Estimado
         </h3>
@@ -183,12 +183,12 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
               </div>
             </div>
             <div className="text-center">
-              <span className="bg-[#dbeafe] text-[#1e40af] px-[7px] py-0.5 rounded-[10px] text-[11px] font-bold">
+              <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-[7px] py-0.5 rounded-[10px] text-[11px] font-bold">
                 {a.count}
               </span>
             </div>
             <div className="text-center">
-              <span className="bg-[#d1fae5] text-[#065f46] px-[7px] py-0.5 rounded-[10px] text-[10px] font-bold">
+              <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-[7px] py-0.5 rounded-[10px] text-[10px] font-bold">
                 {a.fte}h
               </span>
             </div>
@@ -230,7 +230,7 @@ function SummaryCard({
   color: string;
 }) {
   return (
-    <div className="text-center bg-white border border-bdr rounded-[10px] p-3">
+    <div className="text-center bg-wh border border-bdr rounded-[10px] p-3">
       <div className="text-xl font-extrabold leading-none" style={{ color }}>
         {value}
       </div>

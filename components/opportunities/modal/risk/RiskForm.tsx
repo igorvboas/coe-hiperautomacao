@@ -123,7 +123,7 @@ export function RiskForm({
           className={inputCls}
         />
         {fieldError('descricao') && (
-          <p className="text-[10px] text-red-700 mt-1">
+          <p className="text-[10px] text-red-700 dark:text-red-300 mt-1">
             {fieldError('descricao')}
           </p>
         )}
@@ -268,7 +268,7 @@ export function RiskForm({
       </div>
 
       {formError && (
-        <div className="text-[11px] text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <div className="text-[11px] text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
           {formError}
         </div>
       )}
@@ -278,7 +278,7 @@ export function RiskForm({
           type="button"
           onClick={() => onDone?.()}
           disabled={pending}
-          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-txt text-[12px] font-semibold rounded-lg disabled:opacity-50"
+          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-txt text-[12px] font-semibold rounded-lg disabled:opacity-50"
         >
           Cancelar
         </button>

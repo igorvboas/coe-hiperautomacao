@@ -42,10 +42,10 @@ function next(v: CriterioValor | undefined): CriterioValor {
 }
 
 function visual(v: CriterioValor | undefined) {
-  if (v === 'sim') return { icon: '✅', label: 'Sim', cls: 'bg-green-50 text-green-800 border-green-300' };
-  if (v === 'nao') return { icon: '❌', label: 'Não', cls: 'bg-red-50 text-red-800 border-red-300' };
-  if (v === 'parcial') return { icon: '⚠️', label: 'Parcial', cls: 'bg-yellow-50 text-yellow-900 border-yellow-300' };
-  return { icon: '⚪', label: '—', cls: 'bg-slate-50 text-mut border-slate-200' };
+  if (v === 'sim') return { icon: '✅', label: 'Sim', cls: 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700' };
+  if (v === 'nao') return { icon: '❌', label: 'Não', cls: 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700' };
+  if (v === 'parcial') return { icon: '⚠️', label: 'Parcial', cls: 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700' };
+  return { icon: '⚪', label: '—', cls: 'bg-bg text-mut border-bdr' };
 }
 
 export function CriteriosStep({ data, onChange, errors }: Props) {
@@ -65,7 +65,7 @@ export function CriteriosStep({ data, onChange, errors }: Props) {
         avançar.
       </div>
       {error && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-800">
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-[11px] text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
@@ -82,7 +82,7 @@ export function CriteriosStep({ data, onChange, errors }: Props) {
               onClick={() => toggle(c.key)}
               className={
                 'w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-[12px] text-left transition-colors hover:brightness-95 ' +
-                (flagMissing ? 'ring-1 ring-red-300 ' : '') +
+                (flagMissing ? 'ring-1 ring-red-300 dark:ring-red-700 ' : '') +
                 u.cls
               }
             >

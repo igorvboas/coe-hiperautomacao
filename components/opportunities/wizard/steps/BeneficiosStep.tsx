@@ -128,7 +128,7 @@ export function BeneficiosStep({ data, onChange }: Props) {
           );
         })}
       </div>
-      <div className="mt-4 text-[10px] text-mut bg-slate-50 rounded-lg px-3 py-2 leading-relaxed">
+      <div className="mt-4 text-[10px] text-mut bg-bg rounded-lg px-3 py-2 leading-relaxed">
         <strong>Escala:</strong> 1 = Nada · 2 = Pouco · 3 = Moderadamente · 4 = Muito · 5 = Totalmente
       </div>
     </div>

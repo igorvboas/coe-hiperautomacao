@@ -197,7 +197,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
   if (submitted) {
     return (
       <main className="min-h-screen bg-bg flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden">
+        <div className="bg-wh rounded-2xl shadow-xl max-w-lg w-full overflow-hidden">
           <div className="bg-gradient-to-br from-acc to-emerald-600 text-white px-6 py-8 text-center">
             <div className="text-5xl mb-2">✅</div>
             <h1 className="text-xl font-extrabold">Obrigado!</h1>
@@ -228,7 +228,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
 
   return (
     <main className="min-h-screen bg-bg py-6 px-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="max-w-2xl mx-auto bg-wh rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
         <header className="bg-gradient-to-br from-pri to-pril text-white px-6 py-5">
           <div className="flex items-center gap-3">
@@ -245,7 +245,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
         </header>
 
         {/* Steps nav */}
-        <nav className="bg-slate-50 border-b border-bdr flex overflow-x-auto">
+        <nav className="bg-bg border-b border-bdr flex overflow-x-auto">
           {STEPS.map((s, i) => {
             const isActive = i === stepIdx;
             const isDone = i < stepIdx;
@@ -258,9 +258,9 @@ export function PublicForm({ tenant, siteKey }: Props) {
                 className={
                   'px-3 py-2.5 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5 border-b-2 ' +
                   (isActive
-                    ? 'text-pri border-pri bg-white'
+                    ? 'text-pri border-pri bg-wh'
                     : isDone
-                      ? 'text-emerald-600 border-transparent'
+                      ? 'text-emerald-600 dark:text-emerald-400 border-transparent'
                       : 'text-mut border-transparent') +
                   (i <= stepIdx ? ' cursor-pointer' : ' cursor-not-allowed opacity-60')
                 }
@@ -272,7 +272,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
                       ? 'bg-pri text-white'
                       : isDone
                         ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-200 text-mut')
+                        : 'bg-slate-200 dark:bg-slate-700 text-mut')
                   }
                 >
                   {isDone ? '✓' : i + 1}
@@ -427,14 +427,14 @@ export function PublicForm({ tenant, siteKey }: Props) {
           />
 
           {submitError && (
-            <div className="mt-4 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="mt-4 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800">
               {submitError}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <footer className="bg-slate-50 border-t border-bdr px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+        <footer className="bg-bg border-t border-bdr px-5 py-3 flex items-center justify-between flex-wrap gap-2">
           <span className="text-[11px] text-mut">
             Passo {stepIdx + 1} de {STEPS.length}
           </span>
@@ -444,7 +444,7 @@ export function PublicForm({ tenant, siteKey }: Props) {
                 type="button"
                 onClick={prev}
                 disabled={pending}
-                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-txt text-[12px] font-semibold rounded-lg disabled:opacity-50"
+                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-txt text-[12px] font-semibold rounded-lg disabled:opacity-50"
               >
                 ← Anterior
               </button>

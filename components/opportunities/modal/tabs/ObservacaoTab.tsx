@@ -89,7 +89,7 @@ export function ObservacaoTab({
             >
               ➕ Adicionar anotação
             </button>
-            {error && <div className="text-[11px] text-red-700 mt-1">{error}</div>}
+            {error && <div className="text-[11px] text-red-700 dark:text-red-300 mt-1">{error}</div>}
           </div>
         )}
 
@@ -110,7 +110,7 @@ export function ObservacaoTab({
                         type="button"
                         onClick={() => onDelete(n.id)}
                         title="Excluir anotação"
-                        className="bg-red-50 hover:bg-red-100 text-red-700 rounded px-2 py-1 text-[10px] font-bold"
+                        className="bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 rounded px-2 py-1 text-[10px] font-bold"
                       >
                         🗑️
                       </button>

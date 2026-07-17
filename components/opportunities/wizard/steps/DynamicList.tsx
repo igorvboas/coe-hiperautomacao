@@ -48,7 +48,7 @@ export function DynamicList({
             type="button"
             onClick={() => remove(i)}
             aria-label="Remover"
-            className="w-7 h-7 rounded-full bg-red-100 hover:bg-red-200 text-red-600 text-base flex items-center justify-center flex-shrink-0"
+            className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 text-base flex items-center justify-center flex-shrink-0"
           >
             ×
           </button>
@@ -57,7 +57,7 @@ export function DynamicList({
       <button
         type="button"
         onClick={add}
-        className="w-full px-3 py-1.5 bg-violet-50 border border-dashed border-violet-400 rounded-lg text-violet-700 text-[11px] font-semibold hover:bg-violet-100"
+        className="w-full px-3 py-1.5 bg-violet-50 dark:bg-violet-950/40 border border-dashed border-violet-400 dark:border-violet-600 rounded-lg text-violet-700 dark:text-violet-300 text-[11px] font-semibold hover:bg-violet-100 dark:hover:bg-violet-900/40"
       >
         {addLabel}
       </button>

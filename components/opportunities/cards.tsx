@@ -13,7 +13,7 @@ type Props = { opportunities: Opportunity[] };
 export function OpportunityCards({ opportunities }: Props) {
   if (opportunities.length === 0) {
     return (
-      <div className="bg-white border border-bdr rounded-xl p-12 text-center text-mut">
+      <div className="bg-wh border border-bdr rounded-xl p-12 text-center text-mut">
         Nenhuma oportunidade encontrada.
       </div>
     );
@@ -25,7 +25,7 @@ export function OpportunityCards({ opportunities }: Props) {
         <Link
           key={o.id}
           href={`/opportunities/${o.id}`}
-          className="bg-white border border-bdr rounded-xl p-3.5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col gap-2"
+          className="bg-wh border border-bdr rounded-xl p-3.5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col gap-2"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">

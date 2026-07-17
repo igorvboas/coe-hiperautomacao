@@ -123,12 +123,12 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
-    'px-2 py-1 border border-bdr rounded-md text-[11px] bg-white text-txt focus:outline-none focus:border-pril';
+    'px-2 py-1 border border-bdr rounded-md text-[11px] bg-wh text-txt focus:outline-none focus:border-pril';
 
   const segmentoAtual = filters.segmento ?? 'todos';
 
   return (
-    <div className="bg-white border-b border-bdr px-6 py-2 flex flex-col gap-2">
+    <div className="bg-wh border-b border-bdr px-6 py-2 flex flex-col gap-2">
       {/* Segmentação de portfólio (v0.3) — grupo macro de status, acima dos filtros finos */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[10px] font-bold uppercase tracking-wider text-mut mr-0.5">
@@ -145,7 +145,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
                 'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ' +
                 (isActive
                   ? 'bg-pri text-white'
-                  : 'bg-bg text-txt border border-bdr hover:bg-slate-200')
+                  : 'bg-bg text-txt border border-bdr hover:bg-slate-200 dark:hover:bg-slate-700')
               }
             >
               {seg.icon ? `${seg.icon} ` : ''}
@@ -175,8 +175,8 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
             className={
               'px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1 transition-colors border ' +
               (copied
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                : 'bg-white text-pri border-bdr hover:bg-bg')
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                : 'bg-wh text-pri border-bdr hover:bg-bg')
             }
           >
             <span>{copied ? '✓' : '🔗'}</span>
@@ -203,7 +203,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
                     'px-2.5 py-1 text-[13px] transition-colors ' +
                     (isActive
                       ? 'bg-pri text-white'
-                      : 'bg-bg text-txt hover:bg-slate-200')
+                      : 'bg-bg text-txt hover:bg-slate-200 dark:hover:bg-slate-700')
                   }
                 >
                   {v.icon}
@@ -316,7 +316,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           <button
             type="button"
             onClick={clearAll}
-            className="px-2.5 py-1 bg-bg border border-bdr hover:bg-slate-200 text-txt text-[11px] font-semibold rounded-md"
+            className="px-2.5 py-1 bg-bg border border-bdr hover:bg-slate-200 dark:hover:bg-slate-700 text-txt text-[11px] font-semibold rounded-md"
           >
             ↺ Limpar
           </button>

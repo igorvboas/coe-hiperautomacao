@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Dark mode via classe `.dark` na <html> (não prefers-color-scheme) — o
+   toggle em components/shell/ThemeToggle.tsx controla isso manualmente e
+   persiste em localStorage. Ver app/layout.tsx para o script anti-flash. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Paleta CoE Hiperautomação — shell v0.3 (sidebar) + identidade PSW Digital
    (pswdigital.com.br: azul profundo + azul vivo, Poppins). Cores semânticas
    do mockup (_giba_wsi-dashboard.html) preservadas: verde = criar/positivo,
@@ -40,6 +45,20 @@
   --color-grn: #22c55e;
   --color-yel: #f59e0b;
   --color-red: #ef4444;
+}
+
+/* Dark mode — sobrescreve só as 5 superfícies neutras (bg/wh/txt/mut/bdr).
+   Como quase todo o app consome cor via essas 5 tokens (gerando as classes
+   bg-bg/bg-wh/text-txt/text-mut/border-bdr), a maior parte da UI já vira
+   dark automaticamente aqui, sem tocar em componente nenhum. Cores de marca
+   (pri, primary, nav) e semânticas (grn, yel, red, rpa, n8n, both) ficam
+   intactas — já funcionam em fundo escuro. */
+.dark {
+  --color-bg: #0b1220;
+  --color-wh: #1e293b;
+  --color-bdr: #334155;
+  --color-txt: #f1f5f9;
+  --color-mut: #94a3b8;
 }
 
 body {

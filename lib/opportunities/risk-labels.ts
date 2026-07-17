@@ -72,10 +72,14 @@ export const TIPO_BADGE_EMOJI: Record<RiskType, string> = {
  * Composição hand-rolled (shadcn ausente no repo).
  */
 export const PRIORITY_BADGE_CLASS: Record<RiskPriority, string> = {
-  critica: 'bg-red-100 text-red-800 border border-red-300',
-  alta: 'bg-orange-100 text-orange-800 border border-orange-300',
-  media: 'bg-amber-100 text-amber-800 border border-amber-300',
-  baixa: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+  critica:
+    'bg-red-100 text-red-800 border border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700',
+  alta:
+    'bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700',
+  media:
+    'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700',
+  baixa:
+    'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700',
 } as const;
 
 /**
@@ -92,7 +96,7 @@ export function priorityLabel(p: RiskPriority | null): string {
 export function priorityBadgeClass(p: RiskPriority | null): string {
   return p
     ? PRIORITY_BADGE_CLASS[p]
-    : 'bg-slate-100 text-slate-600 border border-slate-300';
+    : 'bg-slate-100 text-slate-600 border border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-600';
 }
 
 // ─── Sugestões de Responsável (D-08) — hints, não dropdown fixo ───────────────

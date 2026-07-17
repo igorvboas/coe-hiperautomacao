@@ -95,7 +95,7 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
       </div>
 
       {/* 5º fator — bucket FTE DERIVADO (read-only, D-01/D-03). */}
-      <div className="mt-1 mb-3 rounded-lg border border-bdr bg-slate-50 px-3 py-2.5">
+      <div className="mt-1 mb-3 rounded-lg border border-bdr bg-bg px-3 py-2.5">
         <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
           Impacto FTE (derivado)
         </div>

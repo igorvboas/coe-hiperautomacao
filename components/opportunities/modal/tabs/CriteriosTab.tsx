@@ -29,10 +29,10 @@ const CRITERIOS: { key: CriterioKey; label: string }[] = [
 ];
 
 function visual(v: CriterioValor | undefined) {
-  if (v === 'sim') return { icon: '✅', label: 'Sim', bg: 'bg-green-50', fg: 'text-green-800', border: 'border-green-200' };
-  if (v === 'nao') return { icon: '❌', label: 'Não', bg: 'bg-red-50', fg: 'text-red-800', border: 'border-red-200' };
-  if (v === 'parcial') return { icon: '⚠️', label: 'Parcial', bg: 'bg-yellow-50', fg: 'text-yellow-900', border: 'border-yellow-200' };
-  return { icon: '⚪', label: '—', bg: 'bg-slate-50', fg: 'text-mut', border: 'border-slate-200' };
+  if (v === 'sim') return { icon: '✅', label: 'Sim', bg: 'bg-green-50 dark:bg-green-950/40', fg: 'text-green-800 dark:text-green-300', border: 'border-green-200 dark:border-green-800' };
+  if (v === 'nao') return { icon: '❌', label: 'Não', bg: 'bg-red-50 dark:bg-red-950/40', fg: 'text-red-800 dark:text-red-300', border: 'border-red-200 dark:border-red-800' };
+  if (v === 'parcial') return { icon: '⚠️', label: 'Parcial', bg: 'bg-yellow-50 dark:bg-yellow-950/40', fg: 'text-yellow-900 dark:text-yellow-200', border: 'border-yellow-200 dark:border-yellow-800' };
+  return { icon: '⚪', label: '—', bg: 'bg-bg', fg: 'text-mut', border: 'border-bdr' };
 }
 
 export function CriteriosTab({ opportunity: o }: Props) {

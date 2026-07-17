@@ -21,7 +21,7 @@ export default function SignupPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="w-full max-w-md bg-wh rounded-2xl shadow-xl overflow-hidden">
         <div className="bg-gradient-to-br from-pri to-pril text-white px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0">
@@ -37,7 +37,7 @@ export default function SignupPage() {
         {done ? (
           <div className="px-6 py-8 text-center flex flex-col gap-3">
             <div className="text-3xl">✉️</div>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-txt">
               Conta criada! Verifique seu e-mail para confirmar o cadastro e
               depois faça login.
             </p>
@@ -67,7 +67,7 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="name"
                 autoFocus
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+                className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
               />
             </div>
 
@@ -84,7 +84,7 @@ export default function SignupPage() {
                 type="email"
                 required
                 autoComplete="email"
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+                className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
               />
             </div>
 
@@ -102,7 +102,7 @@ export default function SignupPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+                className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
               />
               <p className="mt-1 text-[11px] text-mut">Mínimo de 8 caracteres.</p>
             </div>
@@ -110,7 +110,7 @@ export default function SignupPage() {
             {error && (
               <div
                 role="alert"
-                className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+                className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800"
               >
                 {error}
               </div>

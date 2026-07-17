@@ -110,7 +110,7 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Ex.: Manual técnico"
-                className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-white"
+                className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-wh"
               />
             </div>
             <div>
@@ -121,14 +121,14 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-white"
+                className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-wh"
               />
             </div>
             <button
               type="button"
               onClick={submitLink}
               disabled={pending || !url.trim()}
-              className="px-3 py-1.5 bg-white border border-bdr hover:bg-slate-100 text-[11px] font-bold rounded-lg disabled:opacity-50"
+              className="px-3 py-1.5 bg-wh border border-bdr hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold rounded-lg disabled:opacity-50"
             >
               🔗 Anexar link
             </button>
@@ -150,7 +150,7 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
               ⬆️ Enviar arquivo (PDF/Word/PPT/Excel, até 8 MB)
             </button>
           </div>
-          {error && <div className="text-[11px] text-red-700">{error}</div>}
+          {error && <div className="text-[11px] text-red-700 dark:text-red-300">{error}</div>}
         </div>
       )}
 
@@ -181,7 +181,7 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
                       type="button"
                       onClick={() => onDelete(doc.id)}
                       title="Remover"
-                      className="bg-red-50 hover:bg-red-100 text-red-700 rounded px-2 py-1 text-[10px] font-bold"
+                      className="bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 rounded px-2 py-1 text-[10px] font-bold"
                     >
                       🗑️
                     </button>

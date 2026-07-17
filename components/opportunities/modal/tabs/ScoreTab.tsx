@@ -77,7 +77,7 @@ export function ScoreTab({ opportunity: o }: Props) {
         </div>
       </div>
 
-      <div className="mt-3 text-[11px] text-mut bg-slate-50 rounded-lg px-3 py-2">
+      <div className="mt-3 text-[11px] text-mut bg-bg rounded-lg px-3 py-2">
         💡 Score = soma dos 5 fatores (esforço, complexidade, tempo, objetivo e FTE), máximo 100.
       </div>
 
@@ -97,12 +97,12 @@ type ComponentCardProps = {
 function ComponentCard({ label, value, points, max }: ComponentCardProps) {
   const pct = max > 0 ? (points / max) * 100 : 0;
   return (
-    <div className="bg-white border border-bdr rounded-lg p-3">
+    <div className="bg-wh border border-bdr rounded-lg p-3">
       <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
         {label}
       </div>
       <div className="text-sm font-extrabold text-txt mb-2">{value}</div>
-      <div className="bg-slate-200 rounded-full h-1.5 overflow-hidden">
+      <div className="bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
         <div className="h-full bg-pri rounded-full" style={{ width: `${pct}%` }} />
       </div>
       <div className="text-[10px] text-mut mt-1 text-right">

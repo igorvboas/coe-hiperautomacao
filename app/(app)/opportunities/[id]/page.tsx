@@ -43,7 +43,7 @@ export default async function OpportunityDetailPage({
             ← Voltar para a lista
           </Link>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-wh rounded-2xl shadow-xl overflow-hidden">
           <OpportunityDetail
             opportunity={opportunity}
             phases={phases}

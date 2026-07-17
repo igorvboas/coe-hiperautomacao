@@ -72,7 +72,7 @@ export function KanbanBoard({ opportunities, readOnly = false }: Props) {
   return (
     <>
       {error && (
-        <div className="mb-3 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <div className="mb-3 text-[11px] text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800 rounded-lg px-3 py-2">
           {error}
         </div>
       )}

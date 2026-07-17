@@ -41,8 +41,8 @@ export function RiskFormPage({
             ← Voltar
           </Link>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-slate-50 border-b border-bdr px-5 py-3">
+        <div className="bg-wh rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-bg border-b border-bdr px-5 py-3">
             <h1 className="text-[14px] font-bold text-pri">
               {mode === 'create' ? '➕ Novo Risco' : '✏️ Editar Risco'}
             </h1>

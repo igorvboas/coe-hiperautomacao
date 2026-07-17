@@ -15,15 +15,15 @@ export default function GlobalError({
 
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen flex items-center justify-center bg-slate-100 p-8">
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 max-w-md w-full text-center shadow-md">
+      <body className="min-h-screen flex items-center justify-center bg-bg p-8">
+        <div className="bg-wh border border-bdr rounded-2xl p-8 max-w-md w-full text-center shadow-md">
           <div className="text-4xl mb-3">💥</div>
-          <h2 className="text-lg font-bold mb-2">Erro crítico</h2>
-          <p className="text-sm text-slate-600 mb-5">
+          <h2 className="text-lg font-bold mb-2 text-txt">Erro crítico</h2>
+          <p className="text-sm text-mut mb-5">
             Ocorreu um erro inesperado. Recarregue a página.
           </p>
           {error.digest && (
-            <div className="text-[10px] text-slate-500 font-mono mb-4">
+            <div className="text-[10px] text-mut font-mono mb-4">
               ID: {error.digest}
             </div>
           )}

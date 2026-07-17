@@ -70,14 +70,14 @@ export function OpportunityTable({ opportunities }: Props) {
 
   if (opportunities.length === 0) {
     return (
-      <div className="bg-white border border-bdr rounded-xl p-12 text-center text-mut">
+      <div className="bg-wh border border-bdr rounded-xl p-12 text-center text-mut">
         Nenhuma oportunidade encontrada com esses filtros.
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-bdr rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
@@ -141,7 +141,7 @@ export function OpportunityTable({ opportunities }: Props) {
             {opportunities.map((o) => (
               <tr
                 key={o.id}
-                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 transition-colors"
+                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition-colors"
               >
                 <Td>
                   <SeqIdDisplay seqId={o.seq_id} />

@@ -62,8 +62,8 @@ export function RiskFormDialog({ opportunityId, risks }: Props) {
       }}
       className="fixed inset-0 z-[60] bg-black/60 flex items-start justify-center overflow-y-auto p-4"
     >
-      <div className="relative my-8 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="bg-slate-50 border-b border-bdr px-5 py-3 flex items-center justify-between">
+      <div className="relative my-8 w-full max-w-lg bg-wh rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-bg border-b border-bdr px-5 py-3 flex items-center justify-between">
           <h2 className="text-[14px] font-bold text-pri">
             {mode === 'create' ? '➕ Novo Risco' : '✏️ Editar Risco'}
           </h2>
@@ -71,7 +71,7 @@ export function RiskFormDialog({ opportunityId, risks }: Props) {
             type="button"
             onClick={close}
             aria-label="Fechar"
-            className="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-txt text-sm font-bold flex items-center justify-center"
+            className="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-txt text-sm font-bold flex items-center justify-center"
           >
             ✕
           </button>

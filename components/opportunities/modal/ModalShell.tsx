@@ -56,7 +56,7 @@ export function ModalShell({ children }: Props) {
     >
       <div
         ref={panelRef}
-        className="relative sm:my-8 w-full max-w-3xl bg-white sm:rounded-2xl shadow-2xl overflow-hidden min-h-screen sm:min-h-0"
+        className="relative sm:my-8 w-full max-w-3xl bg-wh sm:rounded-2xl shadow-2xl overflow-hidden min-h-screen sm:min-h-0"
       >
         <button
           type="button"

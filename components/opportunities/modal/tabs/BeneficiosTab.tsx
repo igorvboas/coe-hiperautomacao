@@ -50,7 +50,7 @@ export function BeneficiosTab({ opportunity: o }: Props) {
   return (
     <div className="px-5 py-4">
       {fteHoras != null && (
-        <div className="mb-4 rounded-lg border border-bdr bg-slate-50 px-3 py-2 flex items-center justify-between">
+        <div className="mb-4 rounded-lg border border-bdr bg-bg px-3 py-2 flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-mut">
             FTE estimado
           </span>
@@ -66,7 +66,7 @@ export function BeneficiosTab({ opportunity: o }: Props) {
           return (
             <div key={r.key} className="flex items-center gap-3">
               <span className="text-[11px] text-mut min-w-[170px]">{r.label}</span>
-              <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{ width: `${pct}%`, background: r.color }}
@@ -82,7 +82,7 @@ export function BeneficiosTab({ opportunity: o }: Props) {
           );
         })}
       </div>
-      <div className="text-[10px] text-mut bg-slate-50 rounded-lg px-3 py-2 leading-relaxed">
+      <div className="text-[10px] text-mut bg-bg rounded-lg px-3 py-2 leading-relaxed">
         <strong>Escala:</strong> 1 = Nada Alinhado · 2 = Pouco · 3 = Moderadamente · 4 = Muito · 5 = Totalmente Alinhado
       </div>
     </div>

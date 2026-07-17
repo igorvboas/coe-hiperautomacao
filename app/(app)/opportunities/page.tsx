@@ -75,11 +75,11 @@ export default async function OpportunitiesPage({
       />
       <div className="flex-1 px-6 py-4">
         {empresaNotFound ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-12 text-center flex flex-col items-center gap-2">
-            <h2 className="text-[16px] font-bold text-slate-800">
+          <div className="bg-wh border border-bdr rounded-xl p-12 text-center flex flex-col items-center gap-2">
+            <h2 className="text-[16px] font-bold text-txt">
               Empresa &quot;{empresaSlug}&quot; não encontrada
             </h2>
-            <p className="text-[13px] text-slate-500 max-w-sm">
+            <p className="text-[13px] text-mut max-w-sm">
               Escolha uma empresa válida no seletor da barra lateral (ou
               &quot;Todas as empresas&quot;).
             </p>

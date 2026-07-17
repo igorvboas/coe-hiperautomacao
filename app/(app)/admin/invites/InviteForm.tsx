@@ -26,16 +26,16 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
   }
 
   const inputCls =
-    'mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20';
+    'mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20';
   const labelCls = 'text-xs font-bold uppercase tracking-wide text-mut';
 
   return (
     <form
       id="invite-form"
       action={onSubmit}
-      className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-4"
+      className="bg-wh rounded-xl border border-bdr p-5 flex flex-col gap-4"
     >
-      <h2 className="text-sm font-bold text-slate-800">Liberar novo e-mail</h2>
+      <h2 className="text-sm font-bold text-txt">Liberar novo e-mail</h2>
 
       <div>
         <label htmlFor="invite-email" className={labelCls}>
@@ -111,7 +111,7 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
       {error && (
         <div
           role="alert"
-          className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+          className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800"
         >
           {error}
         </div>

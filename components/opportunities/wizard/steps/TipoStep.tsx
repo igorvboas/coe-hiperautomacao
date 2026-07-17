@@ -54,7 +54,7 @@ function Card({ icon, title, desc, active, onClick }: CardProps) {
         'text-left p-4 rounded-xl border-2 transition-all ' +
         (active
           ? 'border-pri bg-pri/5 shadow-md'
-          : 'border-bdr bg-white hover:border-pril hover:bg-blue-50/40')
+          : 'border-bdr bg-wh hover:border-pril hover:bg-blue-50/40 dark:hover:bg-blue-950/40')
       }
     >
       <div className="text-3xl mb-2">{icon}</div>

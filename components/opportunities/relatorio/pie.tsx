@@ -67,7 +67,7 @@ function PieChart({ slices, size }: { slices: PieSlice[]; size: number }) {
             key={`${s.label}-${i}`}
             d={d}
             fill={s.color}
-            stroke="#fff"
+            stroke="currentColor"
             strokeWidth={2}
           />
         );
@@ -92,7 +92,7 @@ export function PieCard({
   const total = slices.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div className="bg-white rounded-[10px] p-4 shadow">
+    <div className="bg-wh rounded-[10px] p-4 shadow">
       <div className="text-xs font-bold text-pri mb-2.5 text-center">
         {title}
       </div>
@@ -101,6 +101,7 @@ export function PieCard({
           width={160}
           height={160}
           viewBox="0 0 160 160"
+          className="text-wh dark:text-wh"
           style={{ flexShrink: 0 }}
         >
           <PieChart slices={slices} size={160} />

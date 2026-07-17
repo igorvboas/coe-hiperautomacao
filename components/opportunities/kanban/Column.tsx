@@ -32,7 +32,7 @@ export function KanbanColumn({
   );
 
   return (
-    <div className="bg-slate-50 border border-bdr rounded-xl w-[220px] flex-shrink-0 flex flex-col overflow-hidden">
+    <div className="bg-bg border border-bdr rounded-xl w-[220px] flex-shrink-0 flex flex-col overflow-hidden">
       <div
         className="px-3 py-2 flex items-center justify-between border-b border-bdr"
         style={{ background: `${color}15` }}
@@ -55,7 +55,7 @@ export function KanbanColumn({
         ref={setNodeRef}
         className={
           'p-2 flex flex-col gap-2 min-h-[80px] max-h-[72vh] overflow-y-auto flex-1 transition-colors ' +
-          (isOver ? 'bg-blue-100/50' : '')
+          (isOver ? 'bg-blue-100/50 dark:bg-blue-900/60' : '')
         }
       >
         {opportunities.length === 0 ? (

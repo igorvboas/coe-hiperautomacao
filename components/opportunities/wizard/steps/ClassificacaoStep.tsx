@@ -72,7 +72,7 @@ export function ClassificacaoStep({ data, onChange, errors }: Props) {
         ))}
       </div>
       {errors.request_type && (
-        <div className="text-[11px] text-red-700 mt-3">{errors.request_type}</div>
+        <div className="text-[11px] text-red-700 dark:text-red-300 mt-3">{errors.request_type}</div>
       )}
     </div>
   );
@@ -95,7 +95,7 @@ function Card({ icon, title, desc, active, onClick }: CardProps) {
         'text-left p-4 rounded-xl border-2 transition-all ' +
         (active
           ? 'border-pri bg-pri/5 shadow-md'
-          : 'border-bdr bg-white hover:border-pril hover:bg-blue-50/40')
+          : 'border-bdr bg-wh hover:border-pril hover:bg-blue-50/40 dark:hover:bg-blue-950/40')
       }
     >
       <div className="text-3xl mb-2">{icon}</div>

@@ -98,7 +98,7 @@ export function RiskTable({ opportunity, risks, readOnly = false }: Props) {
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     {r.responsavel ? (
-                      <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-full">
                         {r.responsavel}
                       </span>
                     ) : (
@@ -128,7 +128,7 @@ export function RiskTable({ opportunity, risks, readOnly = false }: Props) {
                           type="button"
                           onClick={() => openEdit(r.id)}
                           title="Editar risco"
-                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 rounded px-2 py-1 text-[10px]"
+                          className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
                         >
                           ✏️
                         </button>
