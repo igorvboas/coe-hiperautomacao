@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { updateOpportunityStatus } from '@/lib/opportunities/actions';
 import type { OpportunityStatus } from '@/lib/opportunities/types';
 import { STATUS_OPTIONS } from '@/lib/opportunities/status';
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function StatusSelector({ opportunityId, currentStatus, readOnly = false }: Props) {
+  const router = useRouter();
   const [optimisticStatus, setOptimisticStatus] =
     useState<OpportunityStatus>(currentStatus);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,12 @@ export function StatusSelector({ opportunityId, currentStatus, readOnly = false 
       if (!result.ok) {
         setOptimisticStatus(prev);
         setError(result.error);
+        return;
       }
+      // Reconcilia os server components da página (aba Fases, Histórico, etc.)
+      // com o novo estado — a trigger sync_opportunity_phase (0017) já atualizou
+      // as datas de fase no banco; sem o refresh a UI ficaria defasada.
+      router.refresh();
     });
   }
 

@@ -32,6 +32,10 @@ export type OpportunityFilters = {
   priority?: PriorityFilter;
   status?: OpportunityStatus;
   sort?: SortKey;
+  /** Range de data de criação (`created_at`), formato ISO `YYYY-MM-DD`. Inclusivo
+   *  nas duas pontas (o `to` cobre o dia inteiro — ver fetchOpportunities). */
+  dateFrom?: string;
+  dateTo?: string;
   /** Segmentação de portfólio (v0.3) — grupo de status, além do filtro fino de `status`. */
   segmento?: Segmento;
   /** Filtro de empresa — `tenant_id` JÁ RESOLVIDO (a URL carrega o slug em
@@ -78,6 +82,13 @@ function pickEnum<T extends string>(value: string | null, allowed: T[]): T | und
   return (allowed as string[]).includes(value) ? (value as T) : undefined;
 }
 
+/** Aceita só `YYYY-MM-DD` válido; qualquer outra coisa vira undefined. */
+function pickDate(value: string | null): string | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const t = Date.parse(`${value}T00:00:00Z`);
+  return Number.isNaN(t) ? undefined : value;
+}
+
 /**
  * Lê URL params e retorna objeto tipado de filtros.
  * Valores inválidos viram undefined (não derruba a página).
@@ -95,6 +106,8 @@ export function parseFilters(
     priority: pickEnum(get('priority'), PRIORITY_VALUES),
     status: pickEnum(get('status'), STATUS_VALUES),
     sort: pickEnum(get('sort'), SORT_VALUES),
+    dateFrom: pickDate(get('dateFrom')),
+    dateTo: pickDate(get('dateTo')),
     segmento: pickEnum(get('segmento'), SEGMENTO_VALUES),
   };
 }
@@ -125,6 +138,8 @@ export function buildQuery(
   if (filters.priority) next.set('priority', filters.priority);
   if (filters.status) next.set('status', filters.status);
   if (filters.sort && filters.sort !== 'score_desc') next.set('sort', filters.sort);
+  if (filters.dateFrom) next.set('dateFrom', filters.dateFrom);
+  if (filters.dateTo) next.set('dateTo', filters.dateTo);
   if (filters.segmento && filters.segmento !== 'todos') next.set('segmento', filters.segmento);
 
   return next.toString();
@@ -138,6 +153,8 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
   'priority',
   'status',
   'sort',
+  'dateFrom',
+  'dateTo',
   'segmento',
 ];
 

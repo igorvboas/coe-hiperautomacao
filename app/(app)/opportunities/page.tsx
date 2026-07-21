@@ -2,6 +2,7 @@ import {
   fetchOpportunities,
   fetchAreas,
   computeKpis,
+  fetchPhasesForOpportunities,
 } from '@/lib/opportunities/queries';
 import { parseFilters } from '@/lib/opportunities/filters';
 import { getCurrentTenant, fetchTenantIdBySlug } from '@/lib/tenants/queries';
@@ -11,6 +12,7 @@ import { Toolbar } from '@/components/opportunities/toolbar';
 import { OpportunityTable } from '@/components/opportunities/table';
 import { OpportunityCards } from '@/components/opportunities/cards';
 import { KanbanBoard } from '@/components/opportunities/kanban/Board';
+import { GanttChart } from '@/components/opportunities/gantt/GanttChart';
 import { Relatorio } from '@/components/opportunities/relatorio/relatorio';
 import type { Opportunity } from '@/lib/opportunities/types';
 
@@ -61,9 +63,23 @@ export default async function OpportunitiesPage({
   ]);
   const kpis = computeKpis(opportunities);
 
+  // Gantt: fases das oportunidades da lista filtrada (mesmo recorte de table/kanban).
+  const ganttPhases =
+    view === 'gantt' && !empresaNotFound
+      ? await fetchPhasesForOpportunities(opportunities.map((o) => o.id))
+      : [];
+
   return (
-    <div className="flex flex-col min-h-full">
-      <KpiBar kpis={kpis} />
+    <div className="px-6 lg:px-8 py-6 flex flex-col gap-6">
+      <header>
+        <h1 className="text-[26px] font-bold text-txt tracking-tight">
+          Oportunidades
+        </h1>
+        <p className="text-[13px] text-mut mt-0.5">
+          Gerencie e acompanhe todas as oportunidades de automação
+        </p>
+      </header>
+
       <Toolbar
         counts={{
           visible: opportunities.length,
@@ -73,7 +89,10 @@ export default async function OpportunitiesPage({
         tenantSlug={tenant?.slug ?? null}
         readOnly={readOnly}
       />
-      <div className="flex-1 px-6 py-4">
+
+      {!isReport && !empresaNotFound && <KpiBar kpis={kpis} />}
+
+      <div>
         {empresaNotFound ? (
           <div className="bg-wh border border-bdr rounded-xl p-12 text-center flex flex-col items-center gap-2">
             <h2 className="text-[16px] font-bold text-txt">
@@ -93,6 +112,8 @@ export default async function OpportunitiesPage({
           <OpportunityCards opportunities={opportunities} />
         ) : view === 'kanban' ? (
           <KanbanBoard opportunities={opportunities} readOnly={readOnly} />
+        ) : view === 'gantt' ? (
+          <GanttChart opportunities={opportunities} phases={ganttPhases} />
         ) : (
           <OpportunityTable opportunities={opportunities} />
         )}

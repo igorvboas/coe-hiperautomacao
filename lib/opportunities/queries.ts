@@ -11,7 +11,7 @@ import type {
   OpportunityHistoryEntry,
 } from './types';
 import type { OpportunityFilters } from './filters';
-import { SEGMENTO_STATUSES } from './status';
+import { SEGMENTO_STATUSES, STATUS_ALL } from './status';
 
 export type { OpportunityPhase };
 
@@ -98,6 +98,16 @@ export async function fetchOpportunities(
   if (filters.status) q = q.eq('status', filters.status);
   if (filters.segmento && filters.segmento !== 'todos') {
     q = q.in('status', SEGMENTO_STATUSES[filters.segmento]);
+  }
+
+  // Range de data de criação. `dateFrom` inclusivo (>= 00:00 do dia). `dateTo`
+  // inclusivo cobrindo o dia inteiro: comparamos `< dia seguinte` para não
+  // depender do horário/timezone do timestamptz (created_at).
+  if (filters.dateFrom) q = q.gte('created_at', filters.dateFrom);
+  if (filters.dateTo) {
+    const end = new Date(`${filters.dateTo}T00:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    q = q.lt('created_at', end.toISOString().slice(0, 10));
   }
 
   if (filters.q && filters.q.trim()) {
@@ -207,6 +217,30 @@ export async function fetchPhasesForOpportunity(
     .from('opportunity_phases')
     .select(PHASE_COLUMNS)
     .eq('opportunity_id', opportunityId)
+    .order('started_at', { ascending: true })
+    .returns<OpportunityPhase[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar fases: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Fases de VÁRIAS oportunidades (view Gantt). Uma query só via `in(...)`.
+ * Retorna vazio se `ids` vazio (evita `in.()` inválido). RLS filtra por tenant.
+ */
+export async function fetchPhasesForOpportunities(
+  ids: string[]
+): Promise<OpportunityPhase[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_phases')
+    .select(PHASE_COLUMNS)
+    .in('opportunity_id', ids)
     .order('started_at', { ascending: true })
     .returns<OpportunityPhase[]>();
 
@@ -349,17 +383,25 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
   // Status intermediários (em_analise/planejamento/...) são ignorados aqui.
   const byStatus = { novo: 0, producao: 0, concluido: 0 };
   const byPriority = { alta: 0, media: 0, baixa: 0 };
+  // Esteira analítica: toda chave de status inicia em 0 (garante cards mesmo vazios).
+  const byStage = Object.fromEntries(
+    STATUS_ALL.map((s) => [s, 0]),
+  ) as OpportunityKpis['byStage'];
 
   let totalScore = 0;
   let scoreCount = 0;
   let fteTotal = 0; // soma de fte_horas (null → 0) — KPI D-03/VIEW-01
+  let emAnalise = 0; // card "Em Análise" da lista (v0.3)
 
   for (const o of opps) {
     fteTotal += o.fte_horas ?? 0;
 
+    byStage[o.status]++;
+
     if (o.status === 'novo') byStatus.novo++;
     else if (o.status === 'producao') byStatus.producao++;
     else if (o.status === 'concluido') byStatus.concluido++;
+    else if (o.status === 'em_analise') emAnalise++;
 
     if (o.priority_level === 'alta') byPriority.alta++;
     else if (o.priority_level === 'media') byPriority.media++;
@@ -373,9 +415,11 @@ export function computeKpis(opps: Opportunity[]): OpportunityKpis {
 
   return {
     total: opps.length,
+    emAnalise,
     scoreMedio: scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0,
     fteTotal: Math.round(fteTotal),
     byPriority,
     byStatus,
+    byStage,
   };
 }

@@ -10,7 +10,7 @@ import {
   type OpportunityFilters,
   type SortKey,
 } from '@/lib/opportunities/filters';
-import { STATUS_OPTIONS, SEGMENTO_OPTIONS, type Segmento } from '@/lib/opportunities/status';
+import { STATUS_OPTIONS } from '@/lib/opportunities/status';
 
 type Props = {
   counts: { visible: number; total: number };
@@ -19,24 +19,19 @@ type Props = {
   readOnly?: boolean;
 };
 
-type View = 'table' | 'cards' | 'kanban' | 'relatorio';
+type View = 'table' | 'cards' | 'kanban' | 'gantt' | 'relatorio';
 
-// Rótulos do mockup (_giba_wsi-dashboard.html:335-338): Lista · Cards · Gestão ·
-// Relatório — os ids internos (table/kanban) permanecem, só o rótulo muda.
+// Rótulos do switcher: Lista · Gestão · Gantt (os ids internos table/kanban/gantt
+// permanecem; cards/relatorio ainda existem por URL mas saíram do switcher).
 const VIEWS: { id: View; icon: string; label: string }[] = [
   { id: 'table', icon: '☰', label: 'Lista' },
-  { id: 'cards', icon: '⊞', label: 'Cards' },
   { id: 'kanban', icon: '📊', label: 'Gestão' },
-  { id: 'relatorio', icon: '📈', label: 'Relatório' },
+  { id: 'gantt', icon: '📅', label: 'Gantt' },
 ];
 
-function parseSegmento(raw: string | null): Segmento {
-  const valid: Segmento[] = ['todos', 'legado', 'gestao', 'novas', 'manutencao'];
-  return valid.includes(raw as Segmento) ? (raw as Segmento) : 'todos';
-}
-
 function parseView(raw: string | null): View {
-  if (raw === 'cards' || raw === 'kanban' || raw === 'relatorio') return raw;
+  if (raw === 'cards' || raw === 'kanban' || raw === 'gantt' || raw === 'relatorio')
+    return raw;
   return 'table';
 }
 
@@ -127,49 +122,47 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
     !!filters.ferramenta ||
     !!filters.priority ||
     !!filters.status ||
+    !!filters.dateFrom ||
+    !!filters.dateTo ||
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
-    'px-2 py-1 border border-bdr rounded-md text-[11px] bg-wh text-txt focus:outline-none focus:border-pril';
-
-  const segmentoAtual = filters.segmento ?? 'todos';
+    'px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-wh text-txt focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15';
 
   return (
-    <div className="bg-wh border-b border-bdr px-6 py-2 flex flex-col gap-2">
-      {/* Segmentação de portfólio (v0.3) — grupo macro de status, acima dos filtros finos */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-mut mr-0.5">
-          Segmento:
-        </span>
-        {SEGMENTO_OPTIONS.map((seg) => {
-          const isActive = seg.value === segmentoAtual;
-          return (
-            <button
-              key={seg.value}
-              type="button"
-              onClick={() => applyChange({ segmento: seg.value })}
-              className={
-                'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ' +
-                (isActive
-                  ? 'bg-pri text-white'
-                  : 'bg-bg text-txt border border-bdr hover:bg-slate-200 dark:hover:bg-slate-700')
-              }
-            >
-              {seg.icon ? `${seg.icon} ` : ''}
-              {seg.label}
-            </button>
-          );
-        })}
-      </div>
+    // v0.3: linha de busca/ações + views, e abaixo a linha de filtros.
+    // Sem barra full-width — vive dentro do conteúdo da página.
+    <div className="flex flex-col gap-3">
+      {/* Linha 1: busca + ações + view switcher */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-mut pointer-events-none"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="search"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Buscar por nome, processo ou área..."
+            className="w-full pl-9 pr-3 py-2 border border-bdr rounded-lg text-[13px] bg-wh text-txt focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15"
+          />
+        </div>
 
-      {/* Linha 1: Action button + counts + view switcher */}
-      <div className="flex items-center gap-3">
         {!readOnly && (
           <Link
             href="/opportunities/new"
-            className="px-3 py-1.5 bg-acc hover:opacity-90 text-white text-[12px] font-bold rounded-lg flex items-center gap-1 transition-opacity"
+            className="px-4 py-2 bg-acc hover:opacity-90 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-opacity whitespace-nowrap"
           >
-            <span>➕</span>
+            <span className="text-base leading-none">+</span>
             <span className="hidden sm:inline">Nova Oportunidade</span>
           </Link>
         )}
@@ -177,10 +170,10 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
         <a
           href={exportHref}
           title="Exportar oportunidades (com os filtros atuais) em CSV"
-          className="px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1 transition-colors border border-bdr bg-wh text-txt hover:bg-bg whitespace-nowrap"
+          className="px-3 py-2 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-bdr bg-wh text-txt hover:bg-bg whitespace-nowrap"
         >
           <span>⬇</span>
-          <span className="hidden sm:inline">Exportar CSV</span>
+          <span className="hidden md:inline">Exportar CSV</span>
         </a>
 
         {tenantSlug && (
@@ -189,56 +182,46 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
             onClick={copyPublicLink}
             title="Copiar link do formulário público"
             className={
-              'px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1 transition-colors border ' +
+              'px-3 py-2 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-colors border whitespace-nowrap ' +
               (copied
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
-                : 'bg-wh text-pri border-bdr hover:bg-bg')
+                : 'bg-wh text-txt border-bdr hover:bg-bg')
             }
           >
             <span>{copied ? '✓' : '🔗'}</span>
-            <span className="hidden sm:inline">
-              {copied ? 'Link copiado!' : 'Copiar link do formulário'}
+            <span className="hidden md:inline">
+              {copied ? 'Link copiado!' : 'Copiar link'}
             </span>
           </button>
         )}
 
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-[11px] text-mut">
-            {counts.visible} de {counts.total} oportunidades
-          </span>
-          <div className="inline-flex border border-bdr rounded-lg overflow-hidden">
-            {VIEWS.map((v) => {
-              const isActive = v.id === currentView;
-              return (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => changeView(v.id)}
-                  title={v.label}
-                  className={
-                    'px-2.5 py-1 text-[13px] transition-colors ' +
-                    (isActive
-                      ? 'bg-pri text-white'
-                      : 'bg-bg text-txt hover:bg-slate-200 dark:hover:bg-slate-700')
-                  }
-                >
-                  {v.icon}
-                </button>
-              );
-            })}
-          </div>
+        {/* Switcher de view, à direita */}
+        <div className="ml-auto flex items-center gap-1 bg-bg border border-bdr rounded-lg p-0.5">
+          {VIEWS.map((v) => {
+            const isActive = v.id === currentView;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => changeView(v.id)}
+                title={v.label}
+                className={
+                  'px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors inline-flex items-center gap-1 whitespace-nowrap ' +
+                  (isActive
+                    ? 'bg-wh text-txt shadow-sm'
+                    : 'text-mut hover:text-txt')
+                }
+              >
+                <span>{v.icon}</span>
+                <span className="hidden lg:inline">{v.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Linha 2: busca + 5 dropdowns + sort + limpar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <input
-          type="search"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          placeholder="🔍  Buscar por nome, processo ou área..."
-          className="flex-1 min-w-[200px] px-2.5 py-1.5 border border-bdr rounded-md text-[12px] bg-bg focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/15"
-        />
+      {/* Linha 2: filtros + ordenação + limpar + counts */}
+      <div className="flex flex-wrap items-center gap-2">
         <select
           value={filters.source ?? ''}
           onChange={(e) =>
@@ -316,6 +299,29 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
             </option>
           ))}
         </select>
+        {/* Range de data de criação (created_at) */}
+        <div className="flex items-center gap-1.5 border border-bdr rounded-lg px-2 py-1 bg-wh">
+          <span className="text-[11px] font-medium text-mut whitespace-nowrap">
+            Criadas:
+          </span>
+          <input
+            type="date"
+            value={filters.dateFrom ?? ''}
+            max={filters.dateTo || undefined}
+            onChange={(e) => applyChange({ dateFrom: e.target.value || undefined })}
+            aria-label="Data de criação — de"
+            className="text-[12px] bg-transparent text-txt focus:outline-none"
+          />
+          <span className="text-[11px] text-mut">–</span>
+          <input
+            type="date"
+            value={filters.dateTo ?? ''}
+            min={filters.dateFrom || undefined}
+            onChange={(e) => applyChange({ dateTo: e.target.value || undefined })}
+            aria-label="Data de criação — até"
+            className="text-[12px] bg-transparent text-txt focus:outline-none"
+          />
+        </div>
         <select
           value={sortValue}
           onChange={(e) => applyChange({ sort: e.target.value as SortKey })}
@@ -328,15 +334,18 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
             </option>
           ))}
         </select>
-        {hasAnyFilter && (
-          <button
-            type="button"
-            onClick={clearAll}
-            className="px-2.5 py-1 bg-bg border border-bdr hover:bg-slate-200 dark:hover:bg-slate-700 text-txt text-[11px] font-semibold rounded-md"
-          >
-            ↺ Limpar
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={clearAll}
+          disabled={!hasAnyFilter}
+          className="px-2.5 py-1.5 bg-wh border border-bdr hover:bg-bg text-txt text-[12px] font-semibold rounded-lg whitespace-nowrap disabled:opacity-40 disabled:hover:bg-wh disabled:cursor-default"
+        >
+          ↺ Limpar
+        </button>
+
+        <span className="ml-auto text-[12px] text-mut whitespace-nowrap">
+          {counts.visible} de {counts.total} oportunidades
+        </span>
       </div>
     </div>
   );

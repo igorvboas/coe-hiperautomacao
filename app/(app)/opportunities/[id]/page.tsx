@@ -33,27 +33,25 @@ export default async function OpportunityDetailPage({
   ]);
 
   return (
-    <div className="px-6 py-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-3">
+    <div className="px-6 lg:px-8 py-6">
+      <div className="max-w-screen-2xl mx-auto">
+        <div className="mb-4">
           <Link
             href="/opportunities"
-            className="text-[11px] font-semibold text-pri hover:text-pril inline-flex items-center gap-1"
+            className="text-[12px] font-semibold text-pri hover:text-pril inline-flex items-center gap-1"
           >
             ← Voltar para a lista
           </Link>
         </div>
-        <div className="bg-wh rounded-2xl shadow-xl overflow-hidden">
-          <OpportunityDetail
-            opportunity={opportunity}
-            phases={phases}
-            risks={risks}
-            documents={documents}
-            notes={notes}
-            history={history}
-            readOnly={readOnly}
-          />
-        </div>
+        <OpportunityDetail
+          opportunity={opportunity}
+          phases={phases}
+          risks={risks}
+          documents={documents}
+          notes={notes}
+          history={history}
+          readOnly={readOnly}
+        />
       </div>
     </div>
   );

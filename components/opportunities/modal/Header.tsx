@@ -59,7 +59,7 @@ export function ModalHeader({
   const color = scoreColor(displayScore);
 
   return (
-    <div className="bg-gradient-to-br from-pri to-pril text-white pl-5 pr-12 py-4">
+    <div className="bg-gradient-to-br from-pri to-pril text-white px-6 py-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-black text-[15px] flex-shrink-0">

@@ -25,22 +25,27 @@ export type StatusMeta = {
   bg: string;
 };
 
+// Ordem canônica exibida (dropdown de status, filtro, colunas do kanban):
+// primeiro o PIPELINE linear (Registrado → … → Concluído), depois as etapas
+// fora do fluxo mas com cronologia própria (Backlog, Descontinuado).
+// `gestao`/`manutencao` foram removidos da seleção (continuam no STATUS_META
+// só para renderizar registros legados que ainda os tenham — ver STATUS_ALL).
 export const STATUS_ORDER: OpportunityStatus[] = [
+  // Pipeline linear
   'novo',
   'em_analise',
   'planejamento',
-  'backlog',
   'desenvolvimento',
   'homologacao',
   'producao',
-  'gestao',
-  'manutencao',
   'concluido',
+  // Etapas temporais fora do pipeline
+  'backlog',
   'descontinuado',
 ];
 
 export const STATUS_META: Record<OpportunityStatus, StatusMeta> = {
-  novo: { status: 'novo', label: 'Novo', icon: '🆕', bg: '#f1f5f9', color: '#64748b' },
+  novo: { status: 'novo', label: 'Registrado', icon: '🆕', bg: '#f1f5f9', color: '#64748b' },
   em_analise: { status: 'em_analise', label: 'Em Análise', icon: '🔍', bg: '#ede9fe', color: '#8b5cf6' },
   planejamento: { status: 'planejamento', label: 'Planejamento', icon: '📋', bg: '#dbeafe', color: '#3b82f6' },
   backlog: { status: 'backlog', label: 'Backlog', icon: '⏳', bg: '#fef3c7', color: '#f59e0b' },
@@ -56,6 +61,11 @@ export const STATUS_META: Record<OpportunityStatus, StatusMeta> = {
 
 export const STATUS_OPTIONS: { value: OpportunityStatus; label: string; icon: string }[] =
   STATUS_ORDER.map((s) => ({ value: s, label: STATUS_META[s].label, icon: STATUS_META[s].icon }));
+
+/** TODOS os status do enum (inclui `gestao`/`manutencao`, fora do STATUS_ORDER
+ *  visível) — para iterações que precisam cobrir qualquer valor persistido,
+ *  ex. contagem por status na KPI bar, sem depender da lista selecionável. */
+export const STATUS_ALL: OpportunityStatus[] = Object.keys(STATUS_META) as OpportunityStatus[];
 
 /** Status que fecham o "chamado" no COE — espelha COE_STATUS_ENCERRADO / migration 0017. */
 export const TERMINAL_STATUSES: OpportunityStatus[] = ['concluido', 'descontinuado'];

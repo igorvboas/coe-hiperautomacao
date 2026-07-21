@@ -69,6 +69,11 @@ export type TenantRole = Database['public']['Enums']['tenant_role'];
  */
 export type OpportunityKpis = {
   total: number;
+  /**
+   * Contagem de oportunidades em `em_analise` — card "Em Análise" da lista (v0.3).
+   * Top-level (fora de byStatus) para não quebrar o contrato D-03/VIEW-01.
+   */
+  emAnalise: number;
   scoreMedio: number;
   /**
    * Soma arredondada de `fte_horas` de todas as oportunidades (D-03 / VIEW-01).
@@ -90,4 +95,9 @@ export type OpportunityKpis = {
     producao: number;
     concluido: number;
   };
+  /**
+   * Contagem por status do pipeline — esteira analítica (backlog → concluído).
+   * Todas as chaves de OpportunityStatus presentes (0 quando vazio).
+   */
+  byStage: Record<OpportunityStatus, number>;
 };

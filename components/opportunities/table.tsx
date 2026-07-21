@@ -1,23 +1,24 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Opportunity } from '@/lib/opportunities/types';
 import {
-  SourceBadge,
-  ToolBadge,
   StatusBadge,
   ComplexityBadge,
   ScoreDisplay,
-  PriorityPill,
   SeqIdDisplay,
   FteCell,
-  RpaFitBadge,
-  CriticidadeBadge,
 } from './cells';
 import { getInitials } from '@/lib/opportunities/utils';
 import { buildQuery, parseFilters, type SortKey } from '@/lib/opportunities/filters';
-import { formatCodigoChamado, isProcessoDuplicado } from '@/lib/opportunities/ticket';
+
+// Data de registro (created_at) — formata a partir do ISO por slicing, sem
+// `new Date()`/locale, para não divergir entre SSR e hidratação (timezone).
+function fmtDataRegistro(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return y && m && d ? `${d}/${m}/${y}` : '—';
+}
 
 type Props = { opportunities: Opportunity[] };
 
@@ -89,7 +90,6 @@ export function OpportunityTable({ opportunities }: Props) {
               >
                 ID{arrowFor('id')}
               </ThSort>
-              <Th>Fonte</Th>
               <ThSort
                 active={isActive('nome')}
                 onClick={() => toggleSort('nome')}
@@ -108,46 +108,39 @@ export function OpportunityTable({ opportunities }: Props) {
               >
                 Processo / Oportunidade{arrowFor('processo')}
               </ThSort>
-              <Th>Cód. Chamado</Th>
-              <Th>Freq.</Th>
-              <Th>Pessoas</Th>
-              <Th>Criticidade</Th>
               <ThSort
                 active={isActive('fte')}
                 onClick={() => toggleSort('fte')}
               >
                 FTE/mês{arrowFor('fte')}
               </ThSort>
-              <Th>Complex.</Th>
-              <Th>RPA Fit</Th>
-              <Th>Ferramenta</Th>
               <ThSort
                 active={isActive('status')}
                 onClick={() => toggleSort('status')}
               >
                 Status{arrowFor('status')}
               </ThSort>
+              <Th>Freq.</Th>
+              <Th>Pessoas</Th>
+              <Th>Complex.</Th>
               <ThSort
                 active={isActive('score')}
                 onClick={() => toggleSort('score')}
               >
                 Score{arrowFor('score')}
               </ThSort>
-              <Th>Prior.</Th>
-              <Th>Ação</Th>
+              <Th>Data de Registro</Th>
             </tr>
           </thead>
           <tbody>
             {opportunities.map((o) => (
               <tr
                 key={o.id}
-                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition-colors"
+                onClick={() => router.push(`/opportunities/${o.id}`)}
+                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
               >
                 <Td>
                   <SeqIdDisplay seqId={o.seq_id} />
-                </Td>
-                <Td>
-                  <SourceBadge source={o.source} />
                 </Td>
                 <Td>
                   <div className="flex items-center gap-2">
@@ -174,19 +167,10 @@ export function OpportunityTable({ opportunities }: Props) {
                   </div>
                 </Td>
                 <Td>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-semibold text-acc whitespace-nowrap">
-                      {formatCodigoChamado(o.seq_id)}
-                    </span>
-                    {isProcessoDuplicado(o, opportunities) && (
-                      <span
-                        title="Nome do processo duplicado — revisar"
-                        className="text-[9px] font-bold bg-red-600 text-white rounded px-1"
-                      >
-                        DUP
-                      </span>
-                    )}
-                  </div>
+                  <FteCell fte={o.fte_horas} />
+                </Td>
+                <Td>
+                  <StatusBadge status={o.status} />
                 </Td>
                 <Td>
                   <span className="text-[11px] text-mut">
@@ -199,36 +183,15 @@ export function OpportunityTable({ opportunities }: Props) {
                   </span>
                 </Td>
                 <Td>
-                  <CriticidadeBadge value={o.criticidade} />
-                </Td>
-                <Td>
-                  <FteCell fte={o.fte_horas} />
-                </Td>
-                <Td>
                   <ComplexityBadge value={o.complexidade} />
-                </Td>
-                <Td>
-                  <RpaFitBadge score={o.rpa_score} />
-                </Td>
-                <Td>
-                  <ToolBadge tool={o.ferramenta} />
-                </Td>
-                <Td>
-                  <StatusBadge status={o.status} />
                 </Td>
                 <Td>
                   <ScoreDisplay score={o.score} />
                 </Td>
                 <Td>
-                  <PriorityPill level={o.priority_level} />
-                </Td>
-                <Td>
-                  <Link
-                    href={`/opportunities/${o.id}`}
-                    className="inline-block px-2.5 py-1 bg-pri hover:bg-pril text-white text-[10px] font-semibold rounded transition-colors"
-                  >
-                    Abrir
-                  </Link>
+                  <span className="text-[11px] text-mut whitespace-nowrap">
+                    {fmtDataRegistro(o.created_at)}
+                  </span>
                 </Td>
               </tr>
             ))}

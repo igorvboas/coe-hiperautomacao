@@ -194,39 +194,65 @@ export function OpportunityDetail({
     (form.criterios ?? null) as Record<string, string> | null
   );
 
+  const tabContent = renderTab({
+    tab: activeTab,
+    opp: opportunity,
+    phases,
+    risks,
+    documents,
+    notes,
+    history,
+    editMode,
+    form,
+    patch,
+    errors,
+    liveRpaScore,
+    readOnly,
+  });
+
   return (
-    <>
-      <ModalHeader
-        opportunity={opportunity}
-        editMode={editMode}
-        pending={pending}
-        submitError={submitError}
-        liveScore={liveScore}
-        livePriority={livePriority}
-        onEdit={onEdit}
-        onSave={onSave}
-        onCancel={onCancel}
-        readOnly={readOnly}
-      />
-      <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
-      <div className="max-h-[60vh] overflow-y-auto">
-        {renderTab({
-          tab: activeTab,
-          opp: opportunity,
-          phases,
-          risks,
-          documents,
-          notes,
-          history,
-          editMode,
-          form,
-          patch,
-          errors,
-          liveRpaScore,
-          readOnly,
-        })}
+    <div className="flex flex-col gap-4">
+      {/* Banner do cabeçalho — ocupa a largura toda */}
+      <div className="rounded-2xl overflow-hidden border border-bdr shadow-sm">
+        <ModalHeader
+          opportunity={opportunity}
+          editMode={editMode}
+          pending={pending}
+          submitError={submitError}
+          liveScore={liveScore}
+          livePriority={livePriority}
+          onEdit={onEdit}
+          onSave={onSave}
+          onCancel={onCancel}
+          readOnly={readOnly}
+        />
       </div>
-    </>
+
+      {/* Corpo: rail lateral (desktop) + conteúdo que preenche */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
+        {/* Abas horizontais — telas menores */}
+        <div className="w-full lg:hidden bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
+          <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
+        </div>
+
+        {/* Rail vertical — desktop, sticky ao rolar */}
+        <aside className="hidden lg:block lg:w-52 lg:shrink-0 lg:sticky lg:top-6">
+          <nav className="bg-wh border border-bdr rounded-xl shadow-sm p-1.5">
+            <TabsNav
+              tabs={MODAL_TABS}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              orientation="vertical"
+            />
+          </nav>
+        </aside>
+
+        {/* Conteúdo da aba — cresce e ocupa o resto da largura */}
+        <div className="flex-1 min-w-0 w-full bg-wh border border-bdr rounded-xl shadow-sm overflow-hidden min-h-[55vh]">
+          {tabContent}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -272,17 +298,7 @@ function renderTab(args: {
     );
   if (tab === 'historico') return <HistoricoTab history={history} />;
   if (tab === 'observacao')
-    return (
-      <ObservacaoTab
-        opportunity={opp}
-        notes={notes}
-        readOnly={readOnly}
-        editMode={editMode}
-        legacyObservacao={form.observacao ?? ''}
-        legacyRisco={form.risco ?? ''}
-        onLegacyChange={patch}
-      />
-    );
+    return <ObservacaoTab opportunity={opp} notes={notes} readOnly={readOnly} />;
 
   // ── Modo LEITURA: abas de display do Plan 04 (inalteradas) ────────────────
   if (!editMode) {

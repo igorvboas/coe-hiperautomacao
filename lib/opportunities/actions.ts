@@ -33,13 +33,24 @@ export async function updateOpportunityStatus(
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  // `.select()` para detectar no-op silencioso do RLS: um UPDATE que casa 0
+  // linhas (registro não visível para escrita — ex. cross-tenant) retorna
+  // error=null. Sem checar as linhas afetadas, a UI "confirmaria" uma mudança
+  // que o banco nunca gravou (revertia no refresh).
+  const { data, error } = await supabase
     .from('opportunities')
     .update({ status: newStatus })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
 
   if (error) {
     return { ok: false, error: `Falha ao atualizar status: ${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: 'Não foi possível alterar o status: sem permissão de escrita para este registro.',
+    };
   }
 
   revalidatePath('/opportunities');
