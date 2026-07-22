@@ -1,27 +1,53 @@
 // components/opportunities/relatorio/relatorio.tsx
 // =============================================================================
-// Client Component da view "Relatório" (Phase 14, filtro de área na v0.3) —
-// porta as 3 seções de renderRelatorio (_giba_wsi-dashboard.html:898-928): (1)
-// Resumo do Portfólio (7 cards), (2) Distribuição por Área (barras azul/verde
-// + rodapé), (3) dois donuts SVG. `opportunities` chega já resolvido (RLS-
-// scoped) do Server Component pai — o filtro de área abaixo é só uma
-// refinada client-side sobre o array já carregado, sem round-trip ao banco.
+// Client Component da view "Relatório" — REDESENHO estratégico (v0.4).
+// Deixa de ser um retrato por área (contagem/FTE) e vira uma narrativa de
+// decisão de cima pra baixo:
+//   ① Valor (realizado × potencial)  → ValueHeader
+//   ② Priorização (matriz 2×2 + quick wins) → PriorityMatrix
+//   ③ Esteira & cycle time → FunnelCycle
+//   ④ Riscos & bloqueios → RiskPanel
+//   ⑤ Composição (área + mix de ferramenta) → seção final
+//
+// `opportunities`/`phases`/`risks` chegam já resolvidos (RLS-scoped) do Server
+// Component pai; o filtro de área abaixo é uma refinada client-side sobre os
+// arrays já carregados (sem round-trip). Tudo READ-ONLY: as agregações
+// (report.ts) leem colunas computadas da view e NUNCA recalculam/persistem
+// score (CLAUDE.md §3).
 // =============================================================================
 
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Opportunity } from '@/lib/opportunities/types';
-import { buildReport } from '@/lib/opportunities/report';
+import type {
+  Opportunity,
+  OpportunityPhase,
+  OpportunityRisk,
+} from '@/lib/opportunities/types';
+import {
+  buildReport,
+  buildValueSummary,
+  buildPriorityMatrix,
+  buildFunnel,
+  buildCycleTime,
+  buildRiskSummary,
+  buildToolMix,
+} from '@/lib/opportunities/report';
 import { PieCard, type PieSlice } from '@/components/opportunities/relatorio/pie';
+import { ValueHeader } from '@/components/opportunities/relatorio/ValueHeader';
+import { PriorityMatrix } from '@/components/opportunities/relatorio/PriorityMatrix';
+import { FunnelCycle } from '@/components/opportunities/relatorio/FunnelCycle';
+import { RiskPanel } from '@/components/opportunities/relatorio/RiskPanel';
 
 type Props = {
   opportunities: Opportunity[];
+  phases: OpportunityPhase[];
+  risks: OpportunityRisk[];
   /** Rótulo real de origem (nome do tenant) — NÃO hardcodar. */
   sourceLabel: string | null;
 };
 
-export function Relatorio({ opportunities, sourceLabel }: Props) {
+export function Relatorio({ opportunities, phases, risks, sourceLabel }: Props) {
   const [areaFiltro, setAreaFiltro] = useState('');
 
   const todasAreas = useMemo(
@@ -32,11 +58,28 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     [opportunities]
   );
 
-  const escopo = areaFiltro
-    ? opportunities.filter((o) => (o.area || 'Sem Área').trim() === areaFiltro)
-    : opportunities;
+  // Escopo = portfólio inteiro ou uma área. Fases/riscos são refiltrados pelos
+  // ids do escopo para manter cycle time e riscos coerentes com o filtro.
+  const { escopo, escopoPhases, escopoRisks } = useMemo(() => {
+    const esc = areaFiltro
+      ? opportunities.filter((o) => (o.area || 'Sem Área').trim() === areaFiltro)
+      : opportunities;
+    if (!areaFiltro) return { escopo: esc, escopoPhases: phases, escopoRisks: risks };
+    const ids = new Set(esc.map((o) => o.id));
+    return {
+      escopo: esc,
+      escopoPhases: phases.filter((p) => ids.has(p.opportunity_id)),
+      escopoRisks: risks.filter((r) => ids.has(r.opportunity_id)),
+    };
+  }, [areaFiltro, opportunities, phases, risks]);
 
-  const report = buildReport(escopo);
+  const report = useMemo(() => buildReport(escopo), [escopo]);
+  const value = useMemo(() => buildValueSummary(escopo), [escopo]);
+  const matrix = useMemo(() => buildPriorityMatrix(escopo), [escopo]);
+  const funnel = useMemo(() => buildFunnel(escopo), [escopo]);
+  const cycle = useMemo(() => buildCycleTime(escopoPhases), [escopoPhases]);
+  const riskSummary = useMemo(() => buildRiskSummary(escopoRisks), [escopoRisks]);
+  const toolMix = useMemo(() => buildToolMix(escopo), [escopo]);
 
   const areaSelect = todasAreas.length > 0 && (
     <div className="bg-wh rounded-[10px] p-3 shadow mb-4 flex items-center gap-2 flex-wrap">
@@ -61,9 +104,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     </div>
   );
 
-  // Empty state (D-04a): sem oportunidades no escopo atual (portfólio todo ou
-  // área filtrada) → bloco amigável, sem cards/seções zeradas. O dropdown
-  // continua visível pra dar pra voltar pra "Todas as áreas".
+  // Empty state: sem oportunidades no escopo atual.
   if (report.totalCount === 0) {
     return (
       <div>
@@ -75,7 +116,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
           <p>
             {areaFiltro
               ? 'Escolha outra área ou volte para "Todas as áreas".'
-              : 'Cadastre oportunidades para ver o relatório do portfólio (distribuição por área, FTE e prioridades).'}
+              : 'Cadastre oportunidades para ver a visão estratégica do portfólio (valor, priorização, esteira e riscos).'}
           </p>
         </div>
       </div>
@@ -93,36 +134,56 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
     color: a.color,
   }));
 
+  const escopoLabel = areaFiltro
+    ? ` — ${areaFiltro}`
+    : sourceLabel
+      ? ` — ${sourceLabel}`
+      : '';
+
   return (
     <div>
       {areaSelect}
-      {/* ── Seção 1 — Resumo do Portfólio (REPORT-02) ── */}
+
+      {/* ① Valor */}
+      <ValueHeader value={value} />
+
+      {/* ② Priorização */}
+      <PriorityMatrix matrix={matrix} />
+
+      {/* ③ Esteira & cycle time */}
+      <FunnelCycle funnel={funnel} cycle={cycle} />
+
+      {/* ④ Riscos */}
+      <RiskPanel risk={riskSummary} />
+
+      {/* ⑤ Composição — perfil do portfólio (contexto, não protagonista) */}
       <section className="bg-wh rounded-[10px] p-[18px] shadow mb-4">
         <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
-          📊 Resumo do Portfólio
-          {areaFiltro ? ` — ${areaFiltro}` : sourceLabel ? ` — ${sourceLabel}` : ''}
+          🧩 Composição do Portfólio{escopoLabel}
         </h3>
-        <div
-          className="grid gap-2.5 mb-4"
-          style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}
-        >
-          <SummaryCard value={`${report.totalCount}`} label="Total Oport." color="var(--color-pri)" />
-          <SummaryCard value={`${report.totalFte}h`} label="FTE Total/mês" color="#8b5cf6" />
-          <SummaryCard value={`${report.prioAlta}`} label="Prioridade Alta" color="#22c55e" />
-          <SummaryCard value={`${report.prioMedia}`} label="Prioridade Média" color="#f59e0b" />
-          <SummaryCard value={`${report.rpaIdeal}`} label="RPA Ideal" color="#92400e" />
-          <SummaryCard value={`${report.rpaHybrid}`} label="RPA + n8n" color="#3730a3" />
-          <SummaryCard value={`${report.areas.length}`} label="Áreas" color="var(--color-pri)" />
+
+        {/* Mix de ferramenta */}
+        <div className="mb-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1.5">
+            Ferramenta de automação
+          </div>
+          <div className="flex h-5 w-full overflow-hidden rounded-md border border-bdr">
+            <ToolSeg count={toolMix.rpa} total={report.totalCount} color="var(--color-rpa)" label="RPA" />
+            <ToolSeg count={toolMix.n8n} total={report.totalCount} color="var(--color-n8n)" label="n8n" />
+            <ToolSeg count={toolMix.ambos} total={report.totalCount} color="var(--color-both)" label="Ambos" />
+            <ToolSeg count={toolMix.semFerramenta} total={report.totalCount} color="#94a3b8" label="—" />
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+            <ToolLegend color="var(--color-rpa)" label="🤖 RPA" count={toolMix.rpa} />
+            <ToolLegend color="var(--color-n8n)" label="⚡ n8n" count={toolMix.n8n} />
+            <ToolLegend color="var(--color-both)" label="🔁 Ambos" count={toolMix.ambos} />
+            {toolMix.semFerramenta > 0 && (
+              <ToolLegend color="#94a3b8" label="Não definida" count={toolMix.semFerramenta} />
+            )}
+          </div>
         </div>
-      </section>
 
-      {/* ── Seção 2 — Distribuição por Área (REPORT-03) ── */}
-      <section className="bg-wh rounded-[10px] p-[18px] shadow mb-4">
-        <h3 className="text-sm font-bold text-pri mb-3.5 border-b border-bdr pb-2">
-          📊 Distribuição por Área de Negócio — Oportunidades & FTE Estimado
-        </h3>
-
-        {/* Header */}
+        {/* Distribuição por área — barras oportunidades/FTE */}
         <div
           className="grid gap-2 border-b-2 border-bdr pb-1.5 mb-0.5"
           style={{ gridTemplateColumns: '160px 1fr 55px 90px' }}
@@ -137,21 +198,16 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
           <div className="text-[10px] font-bold text-mut text-center">FTE/MÊS</div>
         </div>
 
-        {/* Linhas por área */}
         {report.areas.map((a) => (
           <div
             key={a.area}
             className="grid gap-2 items-center border-b border-bdr py-1.5"
             style={{ gridTemplateColumns: '160px 1fr 55px 90px' }}
           >
-            <div
-              className="text-[11px] font-semibold text-right pr-2 truncate"
-              title={a.area}
-            >
+            <div className="text-[11px] font-semibold text-right pr-2 truncate" title={a.area}>
               {a.area}
             </div>
             <div className="flex flex-col gap-[3px]">
-              {/* Barra azul — oportunidades */}
               <div className="flex items-center gap-1">
                 <div
                   style={{
@@ -166,7 +222,6 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
                   {a.count} op.
                 </span>
               </div>
-              {/* Barra verde — FTE */}
               <div className="flex items-center gap-1">
                 <div
                   style={{
@@ -195,8 +250,7 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
           </div>
         ))}
 
-        {/* Rodapé de totais */}
-        <div className="mt-2.5 text-[11px] text-mut flex gap-4">
+        <div className="mt-2.5 text-[11px] text-mut flex gap-4 flex-wrap">
           <span>
             Total: <strong>{report.totalCount}</strong> oportunidades em{' '}
             <strong>{report.areas.length}</strong> áreas
@@ -205,38 +259,54 @@ export function Relatorio({ opportunities, sourceLabel }: Props) {
             FTE Total: <strong>{report.totalFte}h/mês</strong>
           </span>
         </div>
-      </section>
 
-      {/* ── Seção 3 — Dois donuts (REPORT-04) ── */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <PieCard slices={pieCount} title="🔵 Oportunidades por Área" valueSuffix="op." />
-        <PieCard
-          slices={pieFte}
-          title="⏱️ FTE Estimado por Área (h/mês)"
-          valueSuffix="h"
-        />
-      </div>
+        {/* Donuts por área */}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <PieCard slices={pieCount} title="🔵 Oportunidades por Área" valueSuffix="op." />
+          <PieCard slices={pieFte} title="⏱️ FTE Estimado por Área (h/mês)" valueSuffix="h" />
+        </div>
+      </section>
     </div>
   );
 }
 
-function SummaryCard({
-  value,
-  label,
+function ToolSeg({
+  count,
+  total,
   color,
+  label,
 }: {
-  value: string;
-  label: string;
+  count: number;
+  total: number;
   color: string;
+  label: string;
+}) {
+  if (count === 0) return null;
+  const pct = total ? (count / total) * 100 : 0;
+  return (
+    <div
+      className="h-full flex items-center justify-center text-[9px] font-bold text-white overflow-hidden"
+      style={{ width: `${pct}%`, background: color }}
+      title={`${label}: ${count}`}
+    >
+      {pct >= 8 ? label : ''}
+    </div>
+  );
+}
+
+function ToolLegend({
+  color,
+  label,
+  count,
+}: {
+  color: string;
+  label: string;
+  count: number;
 }) {
   return (
-    <div className="text-center bg-wh border border-bdr rounded-[10px] p-3">
-      <div className="text-xl font-extrabold leading-none" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-[9px] text-mut mt-0.5 uppercase tracking-wider">
-        {label}
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-1 text-[10px] text-mut">
+      <span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+      {label} <strong className="text-txt">{count}</strong>
+    </span>
   );
 }

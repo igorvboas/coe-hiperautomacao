@@ -3,6 +3,7 @@ import {
   fetchAreas,
   computeKpis,
   fetchPhasesForOpportunities,
+  fetchRisksForOpportunities,
 } from '@/lib/opportunities/queries';
 import { parseFilters } from '@/lib/opportunities/filters';
 import { getCurrentTenant, fetchTenantIdBySlug } from '@/lib/tenants/queries';
@@ -69,6 +70,15 @@ export default async function OpportunitiesPage({
       ? await fetchPhasesForOpportunities(opportunities.map((o) => o.id))
       : [];
 
+  // Relatório estratégico: fases (cycle time) + riscos (painel de riscos) do
+  // PORTFÓLIO INTEIRO (mesmo recorte de `fullPortfolio` — D-01a). Só busca
+  // quando a view é o relatório, em paralelo.
+  const reportIds = isReport && !empresaNotFound ? fullPortfolio.map((o) => o.id) : [];
+  const [reportPhases, reportRisks] = await Promise.all([
+    fetchPhasesForOpportunities(reportIds),
+    fetchRisksForOpportunities(reportIds),
+  ]);
+
   return (
     <div className="px-6 lg:px-8 py-6 flex flex-col gap-6">
       <header>
@@ -106,6 +116,8 @@ export default async function OpportunitiesPage({
         ) : view === 'relatorio' ? (
           <Relatorio
             opportunities={fullPortfolio}
+            phases={reportPhases}
+            risks={reportRisks}
             sourceLabel={tenant?.name ?? null}
           />
         ) : view === 'cards' ? (

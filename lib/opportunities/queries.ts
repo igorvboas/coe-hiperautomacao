@@ -283,6 +283,31 @@ export async function fetchRisksForOpportunity(
 }
 
 /**
+ * Riscos de VÁRIAS oportunidades (view Relatório — painel de riscos agregado).
+ * Uma query só via `in(...)`. Retorna vazio se `ids` vazio (evita `in.()`
+ * inválido). RLS filtra por tenant. `priority` é trigger-set — leitura apenas.
+ */
+export async function fetchRisksForOpportunities(
+  ids: string[]
+): Promise<OpportunityRisk[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_risks')
+    .select(RISK_COLUMNS)
+    .in('opportunity_id', ids)
+    .order('created_at', { ascending: true })
+    .returns<OpportunityRisk[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar riscos: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
  * Busca um risco por id (usado pela rota fullscreen de edição no Plan 12-02).
  * RLS filtra implicitamente. Retorna null se não existir / não autorizado.
  */
