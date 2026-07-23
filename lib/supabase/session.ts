@@ -48,8 +48,15 @@ export async function updateSession(request: NextRequest) {
     path === '/' ||
     path.startsWith('/r/'); // formulário público por tenant slug
 
+  // Server Actions respondem num protocolo próprio (POST + header `next-action`).
+  // Redirecionar esse POST pra /login devolve HTML pro client da action → throw
+  // no startTransition → error boundary "Erro crítico". Deixa passar: as actions
+  // já checam getUser() e retornam { ok: false, error: 'Sessão expirada.' }.
+  const isServerAction =
+    request.method === 'POST' && request.headers.has('next-action');
+
   // Sem sessão tentando acessar rota protegida
-  if (!user && !isPublic) {
+  if (!user && !isPublic && !isServerAction) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

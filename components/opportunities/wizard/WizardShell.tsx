@@ -117,6 +117,19 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
     setSubmitError(null);
 
     startTransition(async () => {
+      try {
+        await doSubmit();
+      } catch {
+        // Action falhou fora do protocolo (sessão expirada + redirect do proxy,
+        // rede, deploy no meio) — mostra erro inline em vez de estourar o
+        // error boundary global ("Erro crítico").
+        setSubmitError(
+          'Não foi possível salvar. Sua sessão pode ter expirado — recarregue a página e tente novamente.'
+        );
+      }
+    });
+
+    async function doSubmit() {
       if (mode === 'create') {
         // Deriva o 5º fator (bucket FTE) de fte_horas — fonte única (D-01), mesma
         // fn do display em Priorização → impossível divergir preview × persistência.
@@ -148,7 +161,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
         }
         router.back();
       }
-    });
+    }
   }
 
   return (
