@@ -52,6 +52,17 @@ const ADMIN_NAV: NavItem[] = [
   },
 ];
 
+// Admin da PRÓPRIA empresa (v0.4) — não confundir com ADMIN_NAV, que é do
+// super-admin de plataforma (PSW) e cruza tenants.
+const TENANT_ADMIN_NAV: NavItem[] = [
+  {
+    label: 'Equipe',
+    href: '/team',
+    icon: Icon.Invites,
+    isActive: (p) => p.startsWith('/team'),
+  },
+];
+
 function initials(name: string | null, email: string): string {
   const src = name?.trim() || email;
   const parts = src.split(/\s+/).filter(Boolean);
@@ -76,6 +87,7 @@ export function Sidebar({
   const pathname = usePathname();
   const view = useSearchParams().get('view');
   const isAdmin = profile.role === 'platform_admin';
+  const isTenantAdmin = profile.role === 'tenant_admin';
   const [expanded, setExpanded] = useState(false);
 
   const label = (text: string) => (
@@ -152,6 +164,14 @@ export function Sidebar({
                   {label('Administração')}
                 </div>
                 {ADMIN_NAV.map(renderItem)}
+              </>
+            )}
+            {isTenantAdmin && (
+              <>
+                <div className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-nav-muted">
+                  {label('Administração')}
+                </div>
+                {TENANT_ADMIN_NAV.map(renderItem)}
               </>
             )}
           </nav>

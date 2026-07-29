@@ -8,7 +8,7 @@ import type { Database } from '@/lib/database.types';
  *
  * Regras:
  *   • Sem sessão + rota não-pública → redirect /login
- *   • Com sessão + /login         → redirect /opportunities
+ *   • Com sessão + /login|/signup → redirect /opportunities
  *   • Caso contrário              → segue
  */
 export async function updateSession(request: NextRequest) {
@@ -43,6 +43,10 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic =
     path === '/login' ||
+    // Cadastro por convite: PRECISA ser público — quem vem criar a conta é, por
+    // definição, anônimo. A trava não é o guard e sim o trigger handle_new_user
+    // (0022), que rejeita e-mail sem convite pendente na allowlist.
+    path === '/signup' ||
     path.startsWith('/_next') ||
     path === '/favicon.ico' ||
     path === '/' ||
@@ -62,8 +66,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Já logado tentando ir pra /login
-  if (user && path === '/login') {
+  // Já logado tentando ir pra /login ou /signup
+  if (user && (path === '/login' || path === '/signup')) {
     const url = request.nextUrl.clone();
     url.pathname = '/opportunities';
     return NextResponse.redirect(url);

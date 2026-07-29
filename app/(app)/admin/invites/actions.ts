@@ -28,8 +28,11 @@ export async function createInvite(formData: FormData): Promise<InviteResult> {
   const email = String(formData.get('email') ?? '')
     .trim()
     .toLowerCase();
+  // Allowlist explícita — nunca confiar no <select> do client. 'platform_admin'
+  // é intencionalmente inconvidável (CHECK no DB reforça; ver 0028).
   const roleRaw = String(formData.get('role') ?? 'member');
-  const role = roleRaw === 'tenant_admin' ? 'tenant_admin' : 'member';
+  const role: 'member' | 'tenant_admin' | 'viewer' =
+    roleRaw === 'tenant_admin' || roleRaw === 'viewer' ? roleRaw : 'member';
   const tenantMode = String(formData.get('tenant_mode') ?? 'existing');
   const existingTenantId = String(formData.get('tenant_id') ?? '').trim();
   const newCompanyName = String(formData.get('new_company') ?? '').trim();

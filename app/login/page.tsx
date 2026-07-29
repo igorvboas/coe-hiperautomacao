@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { signIn } from './actions';
 
@@ -77,6 +78,13 @@ export default function LoginPage() {
           >
             {pending ? 'Entrando...' : 'Entrar'}
           </button>
+
+          <p className="text-xs text-mut text-center">
+            Recebeu um convite?{' '}
+            <Link href="/signup" className="font-semibold text-pri hover:underline">
+              Crie sua conta
+            </Link>
+          </p>
         </form>
       </div>
     </main>

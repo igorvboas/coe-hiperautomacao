@@ -6,10 +6,16 @@ import { revokeInvite } from './actions';
 type InviteRow = {
   id: string;
   email: string;
-  role: 'member' | 'tenant_admin';
+  role: 'member' | 'tenant_admin' | 'viewer';
   used_at: string | null;
   created_at: string;
   tenants: { name: string } | { name: string }[] | null;
+};
+
+const ROLE_LABEL: Record<InviteRow['role'], string> = {
+  member: 'Membro',
+  tenant_admin: 'Admin da empresa',
+  viewer: 'Leitor (somente leitura)',
 };
 
 function tenantName(t: InviteRow['tenants']): string {
@@ -74,7 +80,7 @@ export default async function InvitesPage() {
                   <td className="px-4 py-2.5">{inv.email}</td>
                   <td className="px-4 py-2.5">{tenantName(inv.tenants)}</td>
                   <td className="px-4 py-2.5">
-                    {inv.role === 'tenant_admin' ? 'Admin da empresa' : 'Membro'}
+                    {ROLE_LABEL[inv.role] ?? inv.role}
                   </td>
                   <td className="px-4 py-2.5">
                     {inv.used_at ? (

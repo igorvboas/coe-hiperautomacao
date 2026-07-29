@@ -105,7 +105,12 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
         <select id="invite-role" name="role" defaultValue="member" className={inputCls}>
           <option value="member">Membro</option>
           <option value="tenant_admin">Admin da empresa</option>
+          <option value="viewer">Leitor (somente leitura)</option>
         </select>
+        <p className="mt-1 text-xs text-slate-500">
+          Leitor enxerga tudo da empresa, mas não cria, edita nem muda status de
+          oportunidades.
+        </p>
       </div>
 
       {error && (

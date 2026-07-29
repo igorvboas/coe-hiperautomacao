@@ -220,13 +220,14 @@ export type Database = {
       };
 
       // v0.3-admin (0022) — allowlist de signup self-service; só platform_admin
-      // gerencia (RLS). role nunca é 'viewer'/'platform_admin' aqui (CHECK no DB).
+      // gerencia (RLS). role nunca é 'platform_admin' aqui (CHECK no DB); 'viewer'
+      // passou a ser aceito em 0028.
       invited_emails: {
         Row: {
           id: string;
           email: string;
           tenant_id: string;
-          role: 'member' | 'tenant_admin';
+          role: 'member' | 'tenant_admin' | 'viewer';
           invited_by: string | null;
           created_at: string;
           used_at: string | null;
@@ -235,7 +236,7 @@ export type Database = {
           id?: string;
           email: string;
           tenant_id: string;
-          role?: 'member' | 'tenant_admin';
+          role?: 'member' | 'tenant_admin' | 'viewer';
           invited_by?: string | null;
           created_at?: string;
           used_at?: string | null;
@@ -243,7 +244,7 @@ export type Database = {
         Update: Partial<{
           email: string;
           tenant_id: string;
-          role: 'member' | 'tenant_admin';
+          role: 'member' | 'tenant_admin' | 'viewer';
           invited_by: string | null;
           used_at: string | null;
         }>;

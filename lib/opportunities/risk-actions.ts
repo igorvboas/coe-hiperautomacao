@@ -16,11 +16,15 @@
 //      recalcula `priority` automaticamente no UPDATE (RISK-02 / D-04).
 //   4. update/delete escopam por `.eq('tenant_id', profile.tenant_id)` — defesa
 //      em profundidade sobre o RLS (USING + WITH CHECK).
+//   5. `requireEditorRole()` barra role='viewer' antes de qualquer escrita
+//      (mesmo padrão de actions.ts). A RLS (0015) já bloqueia, mas falhar aqui
+//      devolve mensagem pt-BR em vez do 42501 cru do Postgres.
 // =============================================================================
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { riskInputSchema } from './risk-schema';
+import { requireEditorRole } from '@/lib/security/role';
 
 export type RiskActionResult =
   | { ok: true; id: string }
@@ -37,6 +41,9 @@ export async function createRisk(
   opportunityId: string,
   input: unknown
 ): Promise<RiskActionResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const parsed = riskInputSchema.safeParse(input);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -103,6 +110,9 @@ export async function updateRisk(
   opportunityId: string,
   input: unknown
 ): Promise<MutationResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const parsed = riskInputSchema.safeParse(input);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -161,6 +171,9 @@ export async function deleteRisk(
   riskId: string,
   opportunityId: string
 ): Promise<MutationResult> {
+  const roleCheck = await requireEditorRole();
+  if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
+
   const supabase = await createClient();
 
   const {

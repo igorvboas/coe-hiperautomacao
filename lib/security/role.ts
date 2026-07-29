@@ -120,3 +120,14 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 export function isPlatformAdmin(profile: Pick<CurrentProfile, 'role'> | null): boolean {
   return profile?.role === 'platform_admin';
 }
+
+/**
+ * Admin da própria empresa (v0.4): gerencia a allowlist de convites do SEU
+ * tenant — e só dele. Espelha o predicado das policies de 0029
+ * (`current_user_role() = 'tenant_admin'` + escopo de tenant). NÃO é
+ * platform_admin: o super-admin da PSW tem sua própria tela em /admin/invites,
+ * com alcance global.
+ */
+export function isTenantAdmin(profile: Pick<CurrentProfile, 'role'> | null): boolean {
+  return profile?.role === 'tenant_admin';
+}
