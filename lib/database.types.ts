@@ -292,6 +292,7 @@ export type Database = {
           notas: string | null;
           observacao: string | null;
           risco: string | null;
+          visivel: boolean; // 0030 — not null default true, alterada só via SQL
           // v0.2 (0011)
           fte_horas: number | null;
           fonte: string | null;
@@ -347,6 +348,7 @@ export type Database = {
           notas?: string | null;
           observacao?: string | null;
           risco?: string | null;
+          visivel?: boolean;
           // v0.2 (0011) — rpa_score é GENERATED (omitido do Insert)
           fte_horas?: number | null;
           fonte?: string | null;

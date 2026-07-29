@@ -91,6 +91,11 @@ export async function fetchOpportunities(
   // restringe ao próprio tenant de qualquer forma).
   if (filters.tenant) q = q.eq('tenant_id', filters.tenant);
 
+  // Soft-hide (0030): `visivel = false` some da listagem sem ser deletada. A
+  // flag só é alterada via SQL — não há UI. Não é controle de acesso (isso é
+  // RLS/tenant_id), é curadoria de listagem.
+  q = q.eq('visivel', true);
+
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
@@ -171,6 +176,9 @@ export async function fetchAreas(): Promise<string[]> {
   const { data, error } = await supabase
     .from('opportunities')
     .select('area')
+    // 0030 — não oferecer no filtro uma área que só existe em item oculto
+    // (selecioná-la devolveria zero resultados).
+    .eq('visivel', true)
     .order('area', { ascending: true });
 
   if (error) {
@@ -194,6 +202,7 @@ export async function fetchOpportunityById(
     .from('opportunities_with_score')
     .select(OPPORTUNITY_COLUMNS)
     .eq('id', id)
+    .eq('visivel', true) // 0030 — oculta também no acesso direto por URL
     .maybeSingle()
     .returns<Opportunity>();
 
