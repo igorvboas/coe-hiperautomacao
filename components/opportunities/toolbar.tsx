@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -16,6 +15,8 @@ type Props = {
   counts: { visible: number; total: number };
   areas: string[];
   tenantSlug: string | null;
+  /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
+   *  botão "Nova Oportunidade" (a criação agora é só pelo formulário público). */
   readOnly?: boolean;
 };
 
@@ -35,7 +36,7 @@ function parseView(raw: string | null): View {
   return 'table';
 }
 
-export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) {
+export function Toolbar({ counts, areas, tenantSlug }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {
@@ -157,16 +158,6 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           />
         </div>
 
-        {!readOnly && (
-          <Link
-            href="/opportunities/new"
-            className="px-4 py-2 bg-acc hover:opacity-90 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-opacity whitespace-nowrap"
-          >
-            <span className="text-base leading-none">+</span>
-            <span className="hidden sm:inline">Nova Oportunidade</span>
-          </Link>
-        )}
-
         <a
           href={exportHref}
           title="Exportar oportunidades (com os filtros atuais) em CSV"
@@ -180,7 +171,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           <button
             type="button"
             onClick={copyPublicLink}
-            title="Copiar link do formulário público"
+            title="Copiar o link do formulário público para cadastrar uma nova oportunidade — envie para quem vai preencher"
             className={
               'px-3 py-2 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-colors border whitespace-nowrap ' +
               (copied
@@ -190,7 +181,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           >
             <span>{copied ? '✓' : '🔗'}</span>
             <span className="hidden md:inline">
-              {copied ? 'Link copiado!' : 'Copiar link'}
+              {copied ? 'Link copiado!' : 'Copiar link do formulário'}
             </span>
           </button>
         )}
