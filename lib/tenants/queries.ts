@@ -1,16 +1,32 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { publicLogoUrl } from '@/lib/branding/queries';
+import { normalizeHexColor } from '@/lib/branding/theme';
 
 export type PublicTenant = {
   id: string;
   name: string;
   slug: string;
+  /** Identidade visual (0033/0034) — null nos dois = padrão PSW. */
+  brandColor: string | null;
+  logoUrl: string | null;
+};
+
+type PublicTenantRow = {
+  id: string;
+  name: string;
+  slug: string;
+  brand_color: string | null;
+  logo_path: string | null;
 };
 
 /**
  * Resolve tenant por slug. Usa RPC SECURITY DEFINER — qualquer usuário
  * (autenticado ou não) pode chamar. Retorna null se slug não existir.
+ *
+ * Traz o branding junto porque o formulário público é anônimo: o `anon` não lê
+ * `tenants` (RLS), e esta RPC é a única porta. Ver 0034.
  */
 export async function fetchPublicTenantBySlug(
   slug: string
@@ -20,8 +36,15 @@ export async function fetchPublicTenantBySlug(
     p_slug: slug,
   });
   if (error) throw new Error(`Erro ao buscar tenant: ${error.message}`);
-  const row = (data as PublicTenant[] | null)?.[0];
-  return row ?? null;
+  const row = (data as PublicTenantRow[] | null)?.[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    brandColor: normalizeHexColor(row.brand_color),
+    logoUrl: publicLogoUrl(row.logo_path),
+  };
 }
 
 /**
@@ -54,16 +77,20 @@ export async function getCurrentTenant(): Promise<PublicTenant | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('tenant_id, tenants(id, name, slug)')
+    .select('tenant_id, tenants(id, name, slug, brand_color, logo_path)')
     .eq('id', user.id)
     .single();
 
   if (error || !data) return null;
 
-  const tenants = data.tenants as
-    | { id: string; name: string; slug: string }
-    | { id: string; name: string; slug: string }[]
-    | null;
+  const tenants = data.tenants as PublicTenantRow | PublicTenantRow[] | null;
   const t = Array.isArray(tenants) ? tenants[0] : tenants;
-  return t ?? null;
+  if (!t) return null;
+  return {
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    brandColor: normalizeHexColor(t.brand_color),
+    logoUrl: publicLogoUrl(t.logo_path),
+  };
 }

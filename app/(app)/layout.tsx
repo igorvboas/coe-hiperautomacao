@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
+import { fetchTenantBranding } from '@/lib/branding/queries';
+import { brandingCss } from '@/lib/branding/theme';
 import { Sidebar } from '@/components/shell/Sidebar';
 
 export default async function AppLayout({
@@ -19,6 +21,11 @@ export default async function AppLayout({
 
   const isAdmin = isPlatformAdmin(profile);
 
+  // Identidade visual da empresa (/configuracoes). `brandingCss` devolve '' se
+  // a empresa não escolheu cor — aí globals.css fica no comando, sem override.
+  const branding = await fetchTenantBranding(profile.tenantId);
+  const themeCss = brandingCss(branding.brandColor);
+
   // Admin precisa da lista de empresas para o seletor (RLS cross-tenant).
   // Usa SLUG (não id) — é o que vai pra URL (?empresa=<slug>), sem expor UUID.
   let tenants: { slug: string; name: string }[] = [];
@@ -30,6 +37,10 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen flex bg-bg">
+      {/* Override dos tokens de marca (:root + .dark). Inline porque a cor vem
+          do banco — não existe em build time. CSP permite style inline
+          ('unsafe-inline' em style-src, ver proxy.ts). */}
+      {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
       <Suspense fallback={<div className="w-16 shrink-0 bg-nav" />}>
         <Sidebar
           profile={{
@@ -39,6 +50,7 @@ export default async function AppLayout({
             tenantName: profile.tenantName,
           }}
           tenants={tenants}
+          logoUrl={branding.logoUrl}
         />
       </Suspense>
       <div className="flex-1 min-w-0 flex flex-col">

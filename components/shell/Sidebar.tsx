@@ -45,10 +45,24 @@ const NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   {
+    label: 'Proposta',
+    href: '/admin/proposta',
+    icon: Icon.Proposal,
+    isActive: (p) => p.startsWith('/admin/proposta'),
+  },
+  {
     label: 'Convites',
     href: '/admin/invites',
     icon: Icon.Invites,
-    isActive: (p) => p.startsWith('/admin'),
+    isActive: (p) => p.startsWith('/admin/invites'),
+  },
+  // A tela é a mesma do tenant_admin e age sobre o tenant do PRÓPRIO usuário —
+  // o super-admin não pinta a empresa alheia daqui.
+  {
+    label: 'Configurações',
+    href: '/configuracoes',
+    icon: Icon.Settings,
+    isActive: (p) => p.startsWith('/configuracoes'),
   },
 ];
 
@@ -60,6 +74,12 @@ const TENANT_ADMIN_NAV: NavItem[] = [
     href: '/team',
     icon: Icon.Invites,
     isActive: (p) => p.startsWith('/team'),
+  },
+  {
+    label: 'Configurações',
+    href: '/configuracoes',
+    icon: Icon.Settings,
+    isActive: (p) => p.startsWith('/configuracoes'),
   },
 ];
 
@@ -80,12 +100,17 @@ const roleLabel: Record<TenantRole, string> = {
 export function Sidebar({
   profile,
   tenants,
+  logoUrl,
 }: {
   profile: SidebarProfile;
   tenants: Tenant[];
+  /** Logo da empresa (/configuracoes). null → identidade PSW padrão. */
+  logoUrl?: string | null;
 }) {
   const pathname = usePathname();
-  const view = useSearchParams().get('view');
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
+  const empresa = searchParams.get('empresa');
   const isAdmin = profile.role === 'platform_admin';
   const isTenantAdmin = profile.role === 'tenant_admin';
   const [expanded, setExpanded] = useState(false);
@@ -103,10 +128,17 @@ export function Sidebar({
   const renderItem = (item: NavItem) => {
     const active = item.isActive(pathname, view);
     const I = item.icon;
+    // Preserva a empresa selecionada ao navegar entre abas admin — o relatório
+    // de proposta depende de ?empresa=<slug>, e perder a seleção derruba pro
+    // empty state.
+    const href =
+      empresa && item.href.startsWith('/admin')
+        ? `${item.href}?empresa=${encodeURIComponent(empresa)}`
+        : item.href;
     return (
       <Link
         key={item.label}
-        href={item.href}
+        href={href}
         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-colors ${
           active
             ? 'bg-nav-active text-white font-semibold'
@@ -135,21 +167,42 @@ export function Sidebar({
         {/* Conteúdo interno com largura fixa (w-60) — a rail só recorta a
             largura visível via overflow-hidden acima, então nada reflow. */}
         <div className="w-60 flex flex-col h-full shrink-0">
-          {/* Logo */}
+          {/* Logo — a da empresa quando configurada, senão a da PSW */}
           <div className="px-5 py-5 flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0">
-              <Image src="/brand/psw-icone.png" alt="PSW Digital" width={22} height={22} />
-            </div>
+            {logoUrl ? (
+              // Sem moldura branca: a logo da empresa preenche a caixa toda e
+              // fica direto sobre o navy. Quem envia PNG transparente não quer
+              // um quadrado branco em volta; quem envia PNG com fundo próprio
+              // já traz o seu. `object-contain` preserva a proporção.
+              // <img> e não next/image: a URL vem do Storage do tenant (host
+              // dinâmico), não vale configurar remotePatterns por uma logo.
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={logoUrl}
+                alt={profile.tenantName ?? 'Logo da empresa'}
+                className="w-9 h-9 rounded-lg object-contain shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                <Image src="/brand/psw-icone.png" alt="PSW Digital" width={22} height={22} />
+              </div>
+            )}
             <div className="leading-tight">
-              <div className="text-white font-bold text-[15px] tracking-tight">
-                {label('PSW ')}
-                <span
-                  className={`font-light transition-opacity duration-150 ${
-                    expanded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  DIGITAL
-                </span>
+              <div className="text-white font-bold text-[15px] tracking-tight truncate">
+                {logoUrl ? (
+                  label(profile.tenantName ?? 'CoE')
+                ) : (
+                  <>
+                    {label('PSW ')}
+                    <span
+                      className={`font-light transition-opacity duration-150 ${
+                        expanded ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    >
+                      DIGITAL
+                    </span>
+                  </>
+                )}
               </div>
               <div className="text-[10px] text-nav-muted">{label('CoE Hiperautomação')}</div>
             </div>
