@@ -50,7 +50,11 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/_next') ||
     path === '/favicon.ico' ||
     path === '/' ||
-    path.startsWith('/r/'); // formulário público por tenant slug
+    path.startsWith('/r/') || // formulário público por tenant slug
+    // Assets do Vercel BotID (proxy Kasada, path fixo injetado por withBotId).
+    // Sem isto, o guard redireciona o script de desafio pra /login e o submit
+    // do formulário público anônimo quebra com "Erro crítico".
+    path.startsWith('/149e9513-01fa-4fb0-aad4-566afd725d1b/');
 
   // Server Actions respondem num protocolo próprio (POST + header `next-action`).
   // Redirecionar esse POST pra /login devolve HTML pro client da action → throw

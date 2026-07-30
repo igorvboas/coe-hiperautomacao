@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { cargoLabel } from '@/lib/security/cargo';
 import { InviteForm } from './InviteForm';
 import { revokeInvite } from './actions';
 
@@ -7,6 +8,7 @@ type InviteRow = {
   id: string;
   email: string;
   role: 'member' | 'tenant_admin' | 'viewer';
+  cargo: string | null;
   used_at: string | null;
   created_at: string;
   tenants: { name: string } | { name: string }[] | null;
@@ -29,7 +31,7 @@ export default async function InvitesPage() {
   const [invitesRes, tenantsRes] = await Promise.all([
     supabase
       .from('invited_emails')
-      .select('id, email, role, used_at, created_at, tenants(name)')
+      .select('id, email, role, cargo, used_at, created_at, tenants(name)')
       .order('created_at', { ascending: false }),
     supabase.from('tenants').select('id, name').order('name'),
   ]);
@@ -63,6 +65,7 @@ export default async function InvitesPage() {
               <th className="px-4 py-2.5 font-bold">E-mail</th>
               <th className="px-4 py-2.5 font-bold">Empresa</th>
               <th className="px-4 py-2.5 font-bold">Papel</th>
+              <th className="px-4 py-2.5 font-bold">Cargo</th>
               <th className="px-4 py-2.5 font-bold">Status</th>
               <th className="px-4 py-2.5 font-bold text-right">Ação</th>
             </tr>
@@ -70,7 +73,7 @@ export default async function InvitesPage() {
           <tbody>
             {invites.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-mut">
+                <td colSpan={6} className="px-4 py-8 text-center text-mut">
                   Nenhum convite ainda.
                 </td>
               </tr>
@@ -82,6 +85,7 @@ export default async function InvitesPage() {
                   <td className="px-4 py-2.5">
                     {ROLE_LABEL[inv.role] ?? inv.role}
                   </td>
+                  <td className="px-4 py-2.5">{cargoLabel(inv.cargo)}</td>
                   <td className="px-4 py-2.5">
                     {inv.used_at ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full dark:text-emerald-300 dark:bg-emerald-950/40">

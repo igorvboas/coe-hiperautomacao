@@ -227,10 +227,13 @@ export function validateStep(
 
   if (step === 'identificacao') {
     // Phase 11 (D-11 / WIZARD-04): Identificação valida nome + área + e-mail.
-    // A checagem de `processo` migrou para o step Processo (fluxo único 5 steps).
+    // O campo `processo` também pertence ao step Identificação, então deve ser
+    // validado aqui para dar feedback imediato ao usuário.
     if (!data.solicitante || data.solicitante.length < 2)
       errors.solicitante = 'Nome obrigatório';
     if (!data.area || data.area.length < 2) errors.area = 'Área obrigatória';
+    if (!data.processo || data.processo.length < 3)
+      errors.processo = 'Nome do processo obrigatório';
     if (
       data.email &&
       data.email !== '' &&
@@ -241,8 +244,10 @@ export function validateStep(
 
   if (step === 'processo') {
     // Phase 11 (D-11 / WIZARD-04): Processo obrigatório (≥ 3 chars), pt-BR.
+    // Aqui mantemos a validação como defesa em profundidade, mas o campo é
+    // efetivamente preenchido no step anterior.
     if (!data.processo || data.processo.length < 3)
-      errors.processo = 'Processo obrigatório';
+      errors.processo = 'Nome do processo obrigatório';
   }
 
   if (step === 'criterios') {

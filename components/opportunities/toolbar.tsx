@@ -10,10 +10,18 @@ import {
   type SortKey,
 } from '@/lib/opportunities/filters';
 import { STATUS_OPTIONS } from '@/lib/opportunities/status';
+import {
+  assigneeName,
+  type AssignableProfile,
+} from '@/lib/opportunities/assignee-types';
+import { CARGOS, CARGO_LABEL, type Cargo } from '@/lib/security/cargo';
 
 type Props = {
   counts: { visible: number; total: number };
   areas: string[];
+  /** Pessoas do tenant, para o filtro "Membro" (0032). Vazio = filtro escondido
+   *  (ex: platform_admin sem empresa selecionada). */
+  members: AssignableProfile[];
   tenantSlug: string | null;
   /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
    *  botão "Nova Oportunidade" (a criação agora é só pelo formulário público). */
@@ -36,7 +44,7 @@ function parseView(raw: string | null): View {
   return 'table';
 }
 
-export function Toolbar({ counts, areas, tenantSlug }: Props) {
+export function Toolbar({ counts, areas, members, tenantSlug }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {
@@ -118,13 +126,14 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
 
   const hasAnyFilter =
     !!filters.q ||
-    !!filters.source ||
     !!filters.area ||
     !!filters.ferramenta ||
     !!filters.priority ||
     !!filters.status ||
     !!filters.dateFrom ||
     !!filters.dateTo ||
+    !!filters.assignee ||
+    !!filters.cargo ||
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
@@ -214,21 +223,6 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
       {/* Linha 2: filtros + ordenação + limpar + counts */}
       <div className="flex flex-wrap items-center gap-2">
         <select
-          value={filters.source ?? ''}
-          onChange={(e) =>
-            applyChange({
-              source:
-                (e.target.value as 'persona' | 'formulario') || undefined,
-            })
-          }
-          className={selectClass}
-          aria-label="Filtrar por fonte"
-        >
-          <option value="">Todas as Fontes</option>
-          <option value="persona">Personas</option>
-          <option value="formulario">Formulários</option>
-        </select>
-        <select
           value={filters.area ?? ''}
           onChange={(e) => applyChange({ area: e.target.value || undefined })}
           className={selectClass}
@@ -241,6 +235,36 @@ export function Toolbar({ counts, areas, tenantSlug }: Props) {
             </option>
           ))}
         </select>
+        <select
+          value={filters.cargo ?? ''}
+          onChange={(e) =>
+            applyChange({ cargo: (e.target.value as Cargo) || undefined })
+          }
+          className={selectClass}
+          aria-label="Filtrar por papel de quem está atribuído"
+        >
+          <option value="">Todos os Papéis</option>
+          {CARGOS.map((c) => (
+            <option key={c} value={c}>
+              {CARGO_LABEL[c]}
+            </option>
+          ))}
+        </select>
+        {members.length > 0 && (
+          <select
+            value={filters.assignee ?? ''}
+            onChange={(e) => applyChange({ assignee: e.target.value || undefined })}
+            className={selectClass}
+            aria-label="Filtrar por membro atribuído"
+          >
+            <option value="">Todos os Membros</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {assigneeName(m)}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={filters.ferramenta ?? ''}
           onChange={(e) =>

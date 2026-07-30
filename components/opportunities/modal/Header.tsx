@@ -4,7 +4,6 @@ import type { Opportunity } from '@/lib/opportunities/types';
 import { getInitials, scoreColor } from '@/lib/opportunities/utils';
 import { StatusSelector } from './StatusSelector';
 import { DeleteButton } from './DeleteButton';
-import { EditButton } from './EditButton';
 import { AiEnrichmentBadge } from './AiEnrichmentBadge';
 
 type Props = {
@@ -96,8 +95,8 @@ export function ModalHeader({
               👁️ Somente leitura
             </span>
           )}
-          {/* D-12: UM fluxo global Editar ↔ Salvar/Cancelar (in-modal).
-              EditButton.tsx (rota /edit) permanece separado p/ D-14.
+          {/* D-12: UM único fluxo global Editar ↔ Salvar/Cancelar (in-modal).
+              (O EditButton p/ rota /edit foi removido — edição é só in-modal.)
               RBAC (v0.3): viewer nunca vê nenhum destes botões. */}
           {!readOnly &&
             (!editMode ? (
@@ -131,7 +130,6 @@ export function ModalHeader({
                 </button>
               </>
             ))}
-          {!readOnly && !editMode && <EditButton opportunityId={o.id} />}
           {!readOnly && (
             <DeleteButton
               opportunityId={o.id}

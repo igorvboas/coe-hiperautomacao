@@ -17,6 +17,7 @@ import { fetchOpportunities } from '@/lib/opportunities/queries';
 import { fetchTenantIdBySlug } from '@/lib/tenants/queries';
 import { parseFilters } from '@/lib/opportunities/filters';
 import { opportunitiesToCsv } from '@/lib/opportunities/csv';
+import { fetchAssigneesForOpportunities } from '@/lib/opportunities/assignees';
 
 export async function GET(request: NextRequest) {
   // Exige sessão — sem usuário, 401 (o RLS já barraria, mas falha explícito).
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
   }
 
   const opportunities = await fetchOpportunities({ ...filters, tenant: tenantId });
-  const csv = opportunitiesToCsv(opportunities);
+  const assignees = await fetchAssigneesForOpportunities(opportunities.map((o) => o.id));
+  const csv = opportunitiesToCsv(opportunities, assignees);
 
   const stamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const filename = `oportunidades-${stamp}.csv`;

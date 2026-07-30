@@ -5,6 +5,7 @@ import type {
   PriorityLevel,
 } from './types';
 import { SEGMENTO_STATUSES, type Segmento } from './status';
+import { CARGOS, type Cargo } from '@/lib/security/cargo';
 
 export type SortKey =
   | 'score_desc'
@@ -38,6 +39,15 @@ export type OpportunityFilters = {
   dateTo?: string;
   /** Segmentação de portfólio (v0.3) — grupo de status, além do filtro fino de `status`. */
   segmento?: Segmento;
+  /** Filtro "Membro" (v0.4, 0032) — `profiles.id` de quem está atribuído. Vem
+   *  da URL (`?assignee=<uuid>`), então é validado como UUID e depois checado
+   *  contra a lista de pessoas do tenant; a RLS de `opportunity_assignees`
+   *  fecha o resto (um id de outro tenant simplesmente não casa com nada). */
+  assignee?: string;
+  /** Filtro "Cargo" (v0.4, 0031+0032) — casa com QUALQUER pessoa atribuída que
+   *  tenha esse cargo. Independente de `assignee`: os dois podem ser usados
+   *  juntos (interseção). */
+  cargo?: Cargo;
   /** Filtro de empresa — `tenant_id` JÁ RESOLVIDO (a URL carrega o slug em
    *  `?empresa=`, resolvido server-side via `fetchTenantIdBySlug`; NUNCA expõe
    *  UUID). Só efetivo para platform_admin — NÃO vem de `parseFilters` (não é
@@ -82,6 +92,14 @@ function pickEnum<T extends string>(value: string | null, allowed: T[]): T | und
   return (allowed as string[]).includes(value) ? (value as T) : undefined;
 }
 
+/** Aceita só UUID v4-ish; qualquer outra coisa vira undefined. */
+function pickUuid(value: string | null): string | undefined {
+  if (!value) return undefined;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : undefined;
+}
+
 /** Aceita só `YYYY-MM-DD` válido; qualquer outra coisa vira undefined. */
 function pickDate(value: string | null): string | undefined {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
@@ -109,6 +127,8 @@ export function parseFilters(
     dateFrom: pickDate(get('dateFrom')),
     dateTo: pickDate(get('dateTo')),
     segmento: pickEnum(get('segmento'), SEGMENTO_VALUES),
+    assignee: pickUuid(get('assignee')),
+    cargo: pickEnum(get('cargo'), [...CARGOS]),
   };
 }
 
@@ -141,6 +161,8 @@ export function buildQuery(
   if (filters.dateFrom) next.set('dateFrom', filters.dateFrom);
   if (filters.dateTo) next.set('dateTo', filters.dateTo);
   if (filters.segmento && filters.segmento !== 'todos') next.set('segmento', filters.segmento);
+  if (filters.assignee) next.set('assignee', filters.assignee);
+  if (filters.cargo) next.set('cargo', filters.cargo);
 
   return next.toString();
 }
@@ -156,6 +178,8 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
   'dateFrom',
   'dateTo',
   'segmento',
+  'assignee',
+  'cargo',
 ];
 
 export const SORT_LABELS: Record<SortKey, string> = {

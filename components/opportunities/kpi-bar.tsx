@@ -65,15 +65,38 @@ const TotalIcon = (
   </svg>
 );
 
+// Ícone "FTE Total" (relógio) — horas/mês de esforço humano acumulado.
+const FteIcon = (
+  <svg
+    className="w-[18px] h-[18px]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
 export function KpiBar({ kpis }: Props) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       <KpiCard
         label="Total"
         value={kpis.total}
         sub={`Score médio: ${kpis.scoreMedio}`}
         icon={TotalIcon}
         color="#64748b"
+      />
+      <KpiCard
+        label="FTE Total"
+        value={kpis.fteTotal.toLocaleString('pt-BR')}
+        sub="Horas/mês estimadas"
+        icon={FteIcon}
+        color="#7c3aed"
       />
       {STAGES.map((s) => {
         const meta = STATUS_META[s];

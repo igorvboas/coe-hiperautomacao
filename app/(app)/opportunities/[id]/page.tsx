@@ -8,7 +8,17 @@ import {
   fetchNotesForOpportunity,
   fetchHistoryForOpportunity,
 } from '@/lib/opportunities/queries';
-import { isReadOnlyViewer } from '@/lib/security/role';
+import {
+  isReadOnlyViewer,
+  getCurrentProfile,
+  isPlatformAdmin,
+  isTenantAdmin,
+} from '@/lib/security/role';
+import {
+  fetchAssigneesForOpportunity,
+  fetchAssignableProfiles,
+} from '@/lib/opportunities/assignees';
+import { AssigneesPanel } from '@/components/opportunities/AssigneesPanel';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
 
 /**
@@ -23,14 +33,25 @@ export default async function OpportunityDetailPage({
   const { id } = await params;
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) notFound();
-  const [phases, risks, documents, notes, history, readOnly] = await Promise.all([
-    fetchPhasesForOpportunity(id),
-    fetchRisksForOpportunity(id),
-    fetchDocumentsForOpportunity(id),
-    fetchNotesForOpportunity(id),
-    fetchHistoryForOpportunity(id),
-    isReadOnlyViewer(),
-  ]);
+  const [phases, risks, documents, notes, history, readOnly, assignees, profile] =
+    await Promise.all([
+      fetchPhasesForOpportunity(id),
+      fetchRisksForOpportunity(id),
+      fetchDocumentsForOpportunity(id),
+      fetchNotesForOpportunity(id),
+      fetchHistoryForOpportunity(id),
+      isReadOnlyViewer(),
+      fetchAssigneesForOpportunity(id),
+      getCurrentProfile(),
+    ]);
+
+  // Atribuir é privilégio de admin (0032). O platform_admin atribui em qualquer
+  // empresa; o tenant_admin, só na sua — e os candidatos saem sempre do tenant
+  // da OPORTUNIDADE, não do usuário (a trigger de 0032 recusa vínculo cruzado).
+  const canAssign = isTenantAdmin(profile) || isPlatformAdmin(profile);
+  const assignableProfiles = canAssign
+    ? await fetchAssignableProfiles(opportunity.tenant_id)
+    : [];
 
   return (
     <div className="px-6 lg:px-8 py-6">
@@ -43,6 +64,15 @@ export default async function OpportunityDetailPage({
             ← Voltar para a lista
           </Link>
         </div>
+        <div className="mb-4">
+          <AssigneesPanel
+            opportunityId={opportunity.id}
+            assignees={assignees}
+            options={assignableProfiles}
+            canAssign={canAssign}
+          />
+        </div>
+
         <OpportunityDetail
           opportunity={opportunity}
           phases={phases}

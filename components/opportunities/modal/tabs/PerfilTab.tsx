@@ -23,7 +23,6 @@ export function PerfilTab({ opportunity: o }: Props) {
       </div>
 
       <Field label="Principais Responsabilidades" value={extras.papel} multiline />
-      <Field label="Responsável CoE" value={o.responsavel} hideIfEmpty />
       <Field label="Notas" value={o.notas} multiline hideIfEmpty />
     </div>
   );

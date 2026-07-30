@@ -7,7 +7,7 @@ import {
   updateOpportunity,
 } from '@/lib/opportunities/actions';
 import type { OpportunityInput } from '@/lib/opportunities/schema';
-import { deriveFteBucket } from '@/lib/opportunities/fte';
+import { computeFteHoras, deriveFteBucket } from '@/lib/opportunities/fte';
 import {
   defaultFormData,
   stepsFor,
@@ -131,12 +131,18 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
 
     async function doSubmit() {
       if (mode === 'create') {
-        // Deriva o 5º fator (bucket FTE) de fte_horas — fonte única (D-01), mesma
-        // fn do display em Priorização → impossível divergir preview × persistência.
-        // Sem isto, actions.ts persiste `fte: data.prioridade_fte` como null.
-        const fteH = data.fte_horas;
+        // No CRIAÇÃO o FTE é CALCULADO (execuções/mês × horas/execução × pessoas),
+        // não digitado — mesma fn do display em Priorização → display ===
+        // persistência. O bucket (5º fator de score) deriva do mesmo valor.
+        const fteH = computeFteHoras({
+          execucoesMes: data.execucoes_mes,
+          tempo: data.tempo,
+          tempoExecucao: data.tempo_execucao,
+          numPessoas: data.num_pessoas,
+        });
         const payload = {
           ...data,
+          fte_horas: fteH ?? undefined,
           prioridade_fte:
             fteH != null ? deriveFteBucket(Number(fteH)) : undefined,
         };
@@ -222,7 +228,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
         )}
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {renderStep(currentStep?.id, data, patch, errors)}
+          {renderStep(currentStep?.id, data, patch, errors, mode)}
         </div>
 
         {submitError && (
@@ -284,9 +290,14 @@ function renderStep(
   id: StepId | undefined,
   data: WizardFormData,
   patch: (p: Partial<WizardFormData>) => void,
-  errors: Record<string, string>
+  errors: Record<string, string>,
+  mode: 'create' | 'edit'
 ) {
   if (!id) return null;
+  // Nos fluxos de CRIAÇÃO, campos AI-owned (Ferramenta/Esforço/Complexidade) e o
+  // input manual de FTE ficam ocultos — a IA preenche / o FTE é calculado. No
+  // mode='edit' voltam (CoE corrige a IA).
+  const hideEnriched = mode === 'create';
   switch (id) {
     case 'tipo':
       return <TipoStep data={data} onChange={patch} />;
@@ -295,17 +306,24 @@ function renderStep(
     case 'identificacao':
       return <IdentificacaoStep data={data} onChange={patch} errors={errors} />;
     case 'processo':
-      return <ProcessoStep data={data} onChange={patch} />;
+      return <ProcessoStep data={data} onChange={patch} hideEnriched={hideEnriched} />;
     case 'automacao':
       return <AutomacaoStep data={data} onChange={patch} />;
     case 'priorizacao':
-      return <PriorizacaoStep data={data} onChange={patch} errors={errors} />;
+      return (
+        <PriorizacaoStep
+          data={data}
+          onChange={patch}
+          errors={errors}
+          hideEnriched={hideEnriched}
+        />
+      );
     case 'contexto':
       return <ContextoStep data={data} onChange={patch} />;
     case 'criterios':
       return <CriteriosStep data={data} onChange={patch} errors={errors} />;
     case 'beneficios':
-      return <BeneficiosStep data={data} onChange={patch} />;
+      return <BeneficiosStep data={data} onChange={patch} hideEnriched={hideEnriched} />;
     default:
       return null;
   }

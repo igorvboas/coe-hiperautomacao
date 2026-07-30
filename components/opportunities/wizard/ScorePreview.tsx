@@ -1,18 +1,24 @@
 'use client';
 
-import { calcScore, priorityLevel, type Prioridade } from '@/lib/opportunities/score';
+import {
+  calcPriorityScore,
+  priorityLevel,
+  type Prioridade,
+} from '@/lib/opportunities/score';
 import { scoreColor } from '@/lib/opportunities/utils';
 
-// SCORE-04: consome a fórmula ÚNICA de lib/opportunities/score.ts (5 fatores,
-// incl. o bucket de FTE como 5º fator) — sem fórmula própria. Props segue
-// Prioridade: domínio de frequência para `tempo` ('diario'..'anual') e `fte`
-// ('muito_baixo'..'muito_alto'). Call-sites legados que ainda passam o domínio
-// antigo de `tempo` caem no fallback do calcScore (16) até a Phase 11 colar os
-// novos campos no wizard — comportamento aditivo aceito (P10 não reescreve o wizard).
-type Props = Prioridade;
+// SCORE v0.4: consome a fórmula ÚNICA de lib/opportunities/score.ts. O score de
+// prioridade agora é o blend 50/30/20 (Fatores + Benefícios + Critérios); por
+// isso o preview recebe também `criterios` e `beneficios`. Props segue Prioridade
+// (frequência p/ `tempo`, bucket p/ `fte`). A função SQL `opportunity_score()`
+// (0027) replica o mesmo blend (parity-tested).
+type Props = Prioridade & {
+  criterios?: Record<string, string | null | undefined> | null;
+  beneficios?: Record<string, number | null | undefined> | null;
+};
 
-export function ScorePreview(props: Props) {
-  const score = calcScore(props);
+export function ScorePreview({ criterios, beneficios, ...prioridade }: Props) {
+  const score = calcPriorityScore({ prioridade, criterios, beneficios });
   const color = scoreColor(score);
   const level = priorityLevel(score);
   const pct = Math.min(100, score);

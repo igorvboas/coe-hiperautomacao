@@ -92,6 +92,15 @@ export const formularioExtrasSchema = z
   .object({
     tipo_processo: z.string().max(200, 'Máximo 200 caracteres').optional(),
     sistemas: z.string().max(1000, 'Máximo 1000 caracteres').optional(),
+    // Discovery v2 — perguntas de levantamento (só o solicitante sabe; NÃO são
+    // AI-owned). Guardadas em formulario_extras (jsonb) → viram insumo do
+    // enrichment (prompts.ts serializa o objeto) sem exigir migration. Promover
+    // a colunas first-class é follow-up se virarem facetas de dashboard.
+    gatilho: z.string().max(60, 'Máximo 60 caracteres').optional(),
+    formato_entrada: z.string().max(40, 'Máximo 40 caracteres').optional(),
+    descricao: z.string().max(2000, 'Máximo 2000 caracteres').optional(),
+    dor: z.string().max(2000, 'Máximo 2000 caracteres').optional(),
+    dados_sensiveis: z.string().max(20, 'Máximo 20 caracteres').optional(),
     criterios: z
       .object({
         regras_claras: legacyCriterioEnum.optional(),

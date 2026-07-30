@@ -156,17 +156,11 @@ export function ProcessoStep({ data, onChange, hideEnriched }: Props) {
           onChange={(v) => onChange({ num_pessoas: v })}
           placeholder="Ex: De 2 a 4 pessoas"
         />
-        {/* Responsável CoE e Criticidade saíram dos fluxos de CRIAÇÃO (2026-07-29):
-            quem preenche não sabe quem vai conduzir, e a criticidade passa a ser
-            inferida pela IA. Continuam editáveis no mode='edit' (CoE ajusta). */}
+        {/* Criticidade saiu do fluxo de CRIAÇÃO (2026-07-29) — inferida pela IA,
+            editável no mode='edit'. "Responsável CoE" saiu de vez (0032): quem
+            conduz agora são os assignees, atribuídos pelo admin no detalhe. */}
         {!hideEnriched && (
           <>
-            <TextField
-              label="Responsável CoE"
-              value={data.responsavel ?? ''}
-              onChange={(v) => onChange({ responsavel: v })}
-              placeholder="Quem vai conduzir a automação"
-            />
             <SelectField
               label="Criticidade"
               value={data.criticidade ?? ''}

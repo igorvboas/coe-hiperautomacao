@@ -6,6 +6,11 @@ import {
   fetchRisksForOpportunities,
 } from '@/lib/opportunities/queries';
 import { parseFilters } from '@/lib/opportunities/filters';
+import {
+  fetchAssigneesForOpportunities,
+  fetchAssignableProfiles,
+  fetchAllAssignableProfiles,
+} from '@/lib/opportunities/assignees';
 import { getCurrentTenant, fetchTenantIdBySlug } from '@/lib/tenants/queries';
 import { isReadOnlyViewer, getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
 import { KpiBar } from '@/components/opportunities/kpi-bar';
@@ -64,6 +69,20 @@ export default async function OpportunitiesPage({
   ]);
   const kpis = computeKpis(opportunities);
 
+  // Atribuições (0032). `assigneesByOpportunity` alimenta a coluna da lista;
+  // `members` alimenta o filtro "Membro" da toolbar. O recorte de pessoas é o
+  // tenant selecionado; o platform_admin em "Todas as empresas" vê todo mundo
+  // (a RLS de 0021 permite) para o filtro não sumir da toolbar.
+  const membersTenantId = scopedTenantId ?? (isAdmin ? undefined : profile?.tenantId);
+  const [assigneesByOpportunity, members] = await Promise.all([
+    empresaNotFound
+      ? Promise.resolve({})
+      : fetchAssigneesForOpportunities(opportunities.map((o) => o.id)),
+    membersTenantId
+      ? fetchAssignableProfiles(membersTenantId)
+      : fetchAllAssignableProfiles(),
+  ]);
+
   // Gantt: fases das oportunidades da lista filtrada (mesmo recorte de table/kanban).
   const ganttPhases =
     view === 'gantt' && !empresaNotFound
@@ -96,6 +115,7 @@ export default async function OpportunitiesPage({
           total: opportunities.length,
         }}
         areas={areas}
+        members={members}
         tenantSlug={tenant?.slug ?? null}
         readOnly={readOnly}
       />
@@ -127,7 +147,10 @@ export default async function OpportunitiesPage({
         ) : view === 'gantt' ? (
           <GanttChart opportunities={opportunities} phases={ganttPhases} />
         ) : (
-          <OpportunityTable opportunities={opportunities} />
+          <OpportunityTable
+            opportunities={opportunities}
+            assigneesByOpportunity={assigneesByOpportunity}
+          />
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@
 // =============================================================================
 
 import type { Opportunity } from '@/lib/opportunities/types';
+import { assigneeName, type Assignee } from '@/lib/opportunities/assignee-types';
 
 type Column = {
   /** Cabeçalho pt-BR exibido na primeira linha do CSV. */
@@ -39,7 +40,7 @@ const COLUMNS: Column[] = [
   { header: 'Subárea', value: (o) => o.subarea },
   { header: 'Processo', value: (o) => o.processo },
   { header: 'Frequência', value: (o) => o.frequencia },
-  { header: 'Volume médio', value: (o) => o.volume_medio },
+  { header: 'Número de execuções', value: (o) => o.volume_medio },
   { header: 'Tempo de execução', value: (o) => o.tempo_execucao },
   { header: 'Nº de pessoas', value: (o) => o.num_pessoas },
   { header: 'Ferramenta', value: (o) => o.ferramenta },
@@ -55,7 +56,9 @@ const COLUMNS: Column[] = [
   { header: 'Prioridade', value: (o) => o.priority_level },
   { header: 'RPA Score (0-6)', value: (o) => o.rpa_score },
   { header: 'Status', value: (o) => o.status },
-  { header: 'Responsável', value: (o) => o.responsavel },
+  // Legado: a UI não mostra mais `responsavel` (0032), mas o dado histórico
+  // continua no banco e sai no export. "Atribuído a" é o campo atual.
+  { header: 'Responsável (legado)', value: (o) => o.responsavel },
   { header: 'Rótulo de origem', value: (o) => o.fonte },
   { header: 'Tipo de processo', value: (o) => o.tipo_processo },
   { header: 'Benefício qualitativo', value: (o) => o.beneficio_qualitativo },
@@ -114,10 +117,19 @@ const BOM = '﻿';
  * Serializa Opportunity[] → string CSV completa (com cabeçalho + BOM).
  * Função pura: nunca busca dados nem persiste.
  */
-export function opportunitiesToCsv(opps: Opportunity[]): string {
-  const headerRow = COLUMNS.map((c) => escape(c.header)).join(SEP);
+export function opportunitiesToCsv(
+  opps: Opportunity[],
+  /** Assignees por opportunity_id (0032). Omitido = coluna sai vazia. */
+  assigneesByOpportunity: Record<string, Assignee[]> = {}
+): string {
+  const headerRow = [...COLUMNS.map((c) => escape(c.header)), escape('Atribuído a')].join(
+    SEP
+  );
   const rows = opps.map((o) =>
-    COLUMNS.map((c) => escape(toCell(c.value(o)))).join(SEP)
+    [
+      ...COLUMNS.map((c) => escape(toCell(c.value(o)))),
+      escape((assigneesByOpportunity[o.id] ?? []).map(assigneeName).join(' | ')),
+    ].join(SEP)
   );
   return BOM + [headerRow, ...rows].join(EOL) + EOL;
 }
