@@ -7,7 +7,9 @@ type Props = { opportunity: Opportunity };
 // (Ferramenta Sugerida · Status · Responsável · Escopo do Projeto). Os benefícios
 // esperados (texto livre) ficam na aba Benefícios, não aqui.
 export function AutomacaoTab({ opportunity: o }: Props) {
-  const escopo = o.escopo_automacao ?? [];
+  const escopo = (o.escopo_automacao ?? []).filter(
+    (s) => s && s.trim() !== '',
+  );
 
   return (
     <div className="px-5 py-5">
@@ -19,14 +21,6 @@ export function AutomacaoTab({ opportunity: o }: Props) {
 
       <Section title="Status">
         <StatusBadge status={o.status} />
-      </Section>
-
-      <Section title="Responsável">
-        {o.responsavel && o.responsavel.trim() !== '' ? (
-          <div className="text-[13px] text-txt">{o.responsavel}</div>
-        ) : (
-          <div className="text-[13px] text-mut">Não atribuído</div>
-        )}
       </Section>
 
       <Section title="Escopo do Projeto" last>

@@ -17,7 +17,7 @@ import {
   validateStep,
   type WizardFormData,
 } from '@/components/opportunities/wizard/state';
-import { calcScore, priorityLevel } from '@/lib/opportunities/score';
+import { calcPriorityScore, priorityLevel } from '@/lib/opportunities/score';
 import { deriveFteBucket } from '@/lib/opportunities/fte';
 import { deriveRpaScore } from '@/lib/opportunities/rpa';
 import { ModalHeader } from './Header';
@@ -37,6 +37,7 @@ import { TextField, SelectField } from '@/components/opportunities/wizard/steps/
 import { CriteriosStep } from '@/components/opportunities/wizard/steps/CriteriosStep';
 import { BeneficiosStep } from '@/components/opportunities/wizard/steps/BeneficiosStep';
 import { PriorizacaoStep } from '@/components/opportunities/wizard/steps/PriorizacaoStep';
+import { DynamicList } from '@/components/opportunities/wizard/steps/DynamicList';
 
 // D-07/D-08/D-09: conjunto ÚNICO de 8 abas para QUALQUER oportunidade, na ordem
 // do mockup (`_giba_wsi-dashboard.html:959-968`). Sem ramificação por `source`.
@@ -182,12 +183,16 @@ export function OpportunityDetail({
   // em modo leitura o Header usa os valores DB-authoritative da row.
   const fteBucket =
     form.fte_horas != null ? deriveFteBucket(Number(form.fte_horas)) : undefined;
-  const liveScore = calcScore({
-    esforco: form.esforco,
-    complexidade: form.complexidade,
-    tempo: form.tempo,
-    objetivo: form.objetivo,
-    fte: fteBucket,
+  const liveScore = calcPriorityScore({
+    prioridade: {
+      esforco: form.esforco,
+      complexidade: form.complexidade,
+      tempo: form.tempo,
+      objetivo: form.objetivo,
+      fte: fteBucket,
+    },
+    criterios: form.criterios,
+    beneficios: form.beneficios,
   });
   const livePriority = priorityLevel(liveScore);
   const liveRpaScore = deriveRpaScore(
@@ -354,8 +359,9 @@ function renderTab(args: {
               }
               options={FREQUENCY_OPTIONS}
             />
+            {/* Semântica: execuções = Frequência × Número de Execuções (ex.: Semanal × 4). */}
             <TextField
-              label="Volume Médio"
+              label="Número de Execuções"
               value={form.volume_medio ?? ''}
               onChange={(v) => patch({ volume_medio: v })}
             />
@@ -376,11 +382,8 @@ function renderTab(args: {
               onChange={(v) => patch({ email: v })}
               error={errors.email}
             />
-            <TextField
-              label="Responsável CoE"
-              value={form.responsavel ?? ''}
-              onChange={(v) => patch({ responsavel: v })}
-            />
+            {/* "Responsável CoE" saiu daqui (0032): a atribuição virou vínculo
+                com perfis reais, no painel do topo do detalhe. */}
             <SelectField
               label="Criticidade"
               value={form.criticidade ?? ''}
@@ -388,12 +391,6 @@ function renderTab(args: {
                 patch({ criticidade: (v || undefined) as WizardFormData['criticidade'] })
               }
               options={CRITICIDADE_OPTIONS}
-            />
-            <TextField
-              label="Execuções/mês"
-              type="number"
-              value={form.execucoes_mes != null ? String(form.execucoes_mes) : ''}
-              onChange={(v) => patch({ execucoes_mes: v === '' ? null : Number(v) })}
             />
           </div>
 
@@ -445,7 +442,7 @@ function renderTab(args: {
       return <PriorizacaoStep data={form} onChange={patch} errors={errors} />;
     case 'automacao':
       return (
-        <div className="px-5 py-4">
+        <div className="px-5 py-4 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <SelectField
               label="Ferramenta Sugerida"
@@ -454,6 +451,30 @@ function renderTab(args: {
                 patch({ ferramenta: v as WizardFormData['ferramenta'] })
               }
               options={TOOL_OPTIONS}
+            />
+          </div>
+
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+              Escopo do Projeto
+            </div>
+            <DynamicList
+              items={form.escopo_automacao ?? ['']}
+              onChange={(next) => patch({ escopo_automacao: next })}
+              placeholder="Ex: Geração automática de relatório X"
+              addLabel="+ Adicionar item ao escopo"
+            />
+          </div>
+
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
+              Benefícios Esperados
+            </div>
+            <DynamicList
+              items={form.beneficios_esperados ?? ['']}
+              onChange={(next) => patch({ beneficios_esperados: next })}
+              placeholder="Ex: Redução de 60% no tempo"
+              addLabel="+ Adicionar benefício"
             />
           </div>
         </div>

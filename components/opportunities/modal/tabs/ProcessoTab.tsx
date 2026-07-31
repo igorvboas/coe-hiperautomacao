@@ -4,6 +4,31 @@ import { tempoAbertoCoe } from '@/lib/opportunities/coe';
 
 type Props = { opportunity: Opportunity };
 
+// Discovery v2 — rótulos legíveis dos códigos guardados em formulario_extras.
+const GATILHO_LABELS: Record<string, string> = {
+  email: 'Chega um e-mail / mensagem',
+  horario: 'Horário / agenda',
+  solicitacao: 'Alguém solicita / abre chamado',
+  evento_sistema: 'Evento em um sistema',
+  planilha: 'Atualização de planilha / arquivo',
+  outro: 'Outro',
+};
+const FORMATO_ENTRADA_LABELS: Record<string, string> = {
+  estruturado: 'Estruturado (planilha, sistema, formulário)',
+  nao_estruturado: 'Não estruturado (PDF, e-mail, imagem, papel)',
+  misto: 'Misto',
+};
+const DADOS_SENSIVEIS_LABELS: Record<string, string> = {
+  sim: 'Sim — dados pessoais/sensíveis',
+  nao: 'Não',
+  nao_sei: 'Não sei',
+};
+
+function labelOf(map: Record<string, string>, code?: string | null): string | null {
+  if (!code) return null;
+  return map[code] ?? code;
+}
+
 // Grid de cards (bg-bg, label uppercase + valor 14px) que preenche a largura —
 // 1 col (mobile) / 2 (tablet) / 3 (desktop). Campos longos ocupam a linha inteira.
 export function ProcessoTab({ opportunity: o }: Props) {
@@ -22,17 +47,28 @@ export function ProcessoTab({ opportunity: o }: Props) {
     <div className="px-5 py-5 flex flex-col gap-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
         <InfoItem label="Frequência de Execução" value={o.frequencia} />
-        <InfoItem label="Volume Médio" value={o.volume_medio} />
+        <InfoItem label="Número de Execuções" value={o.volume_medio} />
         <InfoItem label="Tempo Médio de Execução" value={o.tempo_execucao} />
         <InfoItem label="Pessoas Envolvidas" value={o.num_pessoas} />
-        <InfoItem
-          label="Execuções / mês"
-          value={o.execucoes_mes != null ? String(o.execucoes_mes) : null}
-        />
         <InfoItem label="E-mail do Solicitante" value={o.email} small />
         <InfoItem label="Área Responsável" value={o.area} />
         <InfoItem label="Subárea / Time" value={o.subarea} />
         <InfoItem label="Tipo do Processo" value={extras.tipo_processo} />
+        <InfoItem
+          label="Gatilho (o que inicia)"
+          value={labelOf(GATILHO_LABELS, extras.gatilho)}
+          hideIfEmpty
+        />
+        <InfoItem
+          label="Formato das Entradas"
+          value={labelOf(FORMATO_ENTRADA_LABELS, extras.formato_entrada)}
+          hideIfEmpty
+        />
+        <InfoItem
+          label="Dados Sensíveis (LGPD)"
+          value={labelOf(DADOS_SENSIVEIS_LABELS, extras.dados_sensiveis)}
+          hideIfEmpty
+        />
         <InfoItem label="Status Atual">
           <StatusBadge status={o.status} />
         </InfoItem>
@@ -57,8 +93,19 @@ export function ProcessoTab({ opportunity: o }: Props) {
 
       {/* Campos de texto livre — largura total */}
       <div className="grid grid-cols-1 gap-2.5">
+        <InfoItem
+          label="Como o Processo Funciona Hoje"
+          value={extras.descricao}
+          multiline
+          hideIfEmpty
+        />
         <InfoItem label="Sistemas Utilizados" value={extras.sistemas} multiline />
-        <InfoItem label="Responsável CoE" value={o.responsavel} hideIfEmpty />
+        <InfoItem
+          label="Dor Atual / Motivação"
+          value={extras.dor}
+          multiline
+          hideIfEmpty
+        />
         <InfoItem label="Notas" value={o.notas} multiline hideIfEmpty />
       </div>
 

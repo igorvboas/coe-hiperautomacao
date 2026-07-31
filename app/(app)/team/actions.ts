@@ -20,18 +20,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile, isTenantAdmin } from '@/lib/security/role';
+import { parseRoleAndCargo } from '@/lib/security/cargo';
 
 export type InviteResult = { error: string } | { ok: true };
-
-/** Papéis que um admin da empresa pode conceder dentro do próprio tenant. */
-const ALLOWED_ROLES = ['member', 'viewer', 'tenant_admin'] as const;
-type AllowedRole = (typeof ALLOWED_ROLES)[number];
-
-function parseRole(raw: string): AllowedRole {
-  return (ALLOWED_ROLES as readonly string[]).includes(raw)
-    ? (raw as AllowedRole)
-    : 'member';
-}
 
 export async function inviteTeamMember(formData: FormData): Promise<InviteResult> {
   const profile = await getCurrentProfile();
@@ -40,7 +31,10 @@ export async function inviteTeamMember(formData: FormData): Promise<InviteResult
   const email = String(formData.get('email') ?? '')
     .trim()
     .toLowerCase();
-  const role = parseRole(String(formData.get('role') ?? 'member'));
+  // Dropdown único: o mesmo campo carrega nível de acesso OU cargo. `cargo` é
+  // rótulo organizacional; quem manda na permissão continua sendo só `role`, e
+  // todo cargo resolve para 'member' — 'platform_admin' segue inconvidável.
+  const { role, cargo } = parseRoleAndCargo(formData.get('role'));
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { error: 'E-mail inválido.' };
@@ -51,6 +45,7 @@ export async function inviteTeamMember(formData: FormData): Promise<InviteResult
     email,
     tenant_id: profile!.tenantId, // server-derived — NUNCA do formulário
     role,
+    cargo,
     invited_by: profile!.id,
   });
 

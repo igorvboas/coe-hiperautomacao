@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
+import { parseCargo } from '@/lib/security/cargo';
 
 export type InviteResult = { error: string } | { ok: true };
 
@@ -33,6 +34,8 @@ export async function createInvite(formData: FormData): Promise<InviteResult> {
   const roleRaw = String(formData.get('role') ?? 'member');
   const role: 'member' | 'tenant_admin' | 'viewer' =
     roleRaw === 'tenant_admin' || roleRaw === 'viewer' ? roleRaw : 'member';
+  // `cargo` é rótulo organizacional — não influencia permissão nenhuma.
+  const cargo = parseCargo(formData.get('cargo'));
   const tenantMode = String(formData.get('tenant_mode') ?? 'existing');
   const existingTenantId = String(formData.get('tenant_id') ?? '').trim();
   const newCompanyName = String(formData.get('new_company') ?? '').trim();
@@ -77,6 +80,7 @@ export async function createInvite(formData: FormData): Promise<InviteResult> {
     email,
     tenant_id: tenantId,
     role,
+    cargo,
     invited_by: profile!.id,
   });
 

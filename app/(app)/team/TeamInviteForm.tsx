@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { inviteTeamMember } from './actions';
+import { CARGOS, CARGO_LABEL, CARGO_OPTION_PREFIX } from '@/lib/security/cargo';
 
 /**
  * Form de convite do admin da empresa. Note a ausência de qualquer campo de
@@ -59,14 +60,24 @@ export function TeamInviteForm({ tenantName }: { tenantName: string | null }) {
         <label htmlFor="team-invite-role" className={labelCls}>
           Papel
         </label>
-        <select id="team-invite-role" name="role" defaultValue="member" className={inputCls}>
-          <option value="member">Membro — cria e edita oportunidades</option>
-          <option value="viewer">Leitor — somente leitura</option>
+        {/* "Membro" genérico deixou de ser opção: os cargos ocupam o lugar dele
+            — todos com o mesmo acesso de membro por baixo. O prefixo do value é
+            desfeito no servidor (parseRoleAndCargo). */}
+        <select id="team-invite-role" name="role" required defaultValue="" className={inputCls}>
+          <option value="" disabled>
+            Selecione…
+          </option>
           <option value="tenant_admin">Admin da empresa — também convida pessoas</option>
+          <option value="viewer">Leitor — somente leitura</option>
+          {CARGOS.filter((c) => c !== 'outro').map((c) => (
+            <option key={c} value={`${CARGO_OPTION_PREFIX}${c}`}>
+              {CARGO_LABEL[c]}
+            </option>
+          ))}
         </select>
         <p className="mt-1 text-xs text-mut">
-          O Leitor enxerga tudo da empresa, mas não cria, edita nem muda o status
-          de oportunidades.
+          Todos os cargos criam e editam oportunidades, mas não convidam pessoas.
+          O Leitor enxerga tudo e não altera nada.
         </p>
       </div>
 

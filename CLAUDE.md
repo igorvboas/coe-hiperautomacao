@@ -36,7 +36,17 @@ O time usa o framework GSD (pasta [get-shit-done/](get-shit-done/)). Convençõe
 
 ### 3. Score é calculado, nunca persistido
 
-A fórmula de 5 fatores × 20 = 100 está em [_giba_wsi-dashboard.html:483-490](_giba_wsi-dashboard.html#L483-L490):
+**Score de prioridade (v0.4 — blend 50/30/20, migration 0027).** O score deixou de ser só os 5 fatores: agora é a **média ponderada de 3 blocos**, cada um normalizado 0–100 (fonte única: `lib/opportunities/score.ts` `calcPriorityScore` ≡ função SQL `opportunity_score()` 7-args; parity em `tests/schema/score-rule.test.ts`):
+
+```
+score = round( (5·Fat + 3·Ben + 2·Crit) / (5 + 3·[ben?] + 2·[crit?]) )    # 0–100
+  Fat  = 5 fatores × 20 (abaixo)                       — sempre presente
+  Ben  = (média das notas 1–5 pontuadas − 1)/4 × 100   — null se nada pontuado → sai do denominador
+  Crit = favorabilidade dos 8 critérios /8 × 100       — null se criterios null → sai do denominador
+priority_level: alta >=70 / media 40–69 / baixa <40    # limites INALTERADOS
+```
+
+Sub-scores são **arredondados a inteiro ANTES** do blend (garante client `Math.round` ≡ SQL `round` numeric). Bloco Fatores (os 5 fatores, `_giba:483-490`):
 
 ```
 ef = {baixo:8, medio:14, alto:20}                              # esforço (fallback 14)
@@ -44,9 +54,10 @@ cx = {baixo:20, medio:13, alto:6}                              # complexidade �
 tm = {diario:20, semanal:16, quinzenal:12, mensal:8, anual:2}  # tempo = frequência (fallback 16)
 ob = {1:4, 2:8, 3:12, 4:16, 5:20}                              # objetivo × 4 (fallback 12)
 ft = {muito_baixo:4, baixo:8, medio:12, alto:16, muito_alto:20}# FTE (fallback 12)
-score = ef[esforco] + cx[complexidade] + tm[tempo] + ob[objetivo] + ft[fte]   # 0–100
-priority_level: alta >=70 / media 40–69 / baixa <40
+Fat = ef + cx + tm + ob + ft   # 0–100
 ```
+
+Bloco Crit: cada critério `sim=1 / parcial=0.5 / não=0` na direção favorável (`decisaoHumana` INVERTIDO: menos decisão humana pontua mais). **Nota:** isto **desvia do mockup** `_giba` (que só tinha os 5 fatores) — foi decisão de produto (2026-07-22).
 
 Persistir o score gera bug quando a fórmula mudar. Calcular no SELECT (view `opportunities_with_score` / função SQL `opportunity_score()`) ou no client — **nunca persistir**. Idem `rpa_score` (0–6) e `opportunity_risks.priority`: são colunas **GENERATED** (derivadas dos critérios / da matriz impacto×probabilidade), nunca input manual.
 

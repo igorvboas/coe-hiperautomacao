@@ -7,9 +7,12 @@ type Props = {
   data: WizardFormData;
   onChange: (patch: Partial<WizardFormData>) => void;
   errors: Record<string, string>;
+  // Público: e-mail é obrigatório (a RPC exige — é o contato do solicitante).
+  // No wizard da home permanece opcional (default false).
+  emailRequired?: boolean;
 };
 
-export function IdentificacaoStep({ data, onChange, errors }: Props) {
+export function IdentificacaoStep({ data, onChange, errors, emailRequired }: Props) {
   return (
     <div className="px-2 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
@@ -24,6 +27,7 @@ export function IdentificacaoStep({ data, onChange, errors }: Props) {
         <TextField
           label="E-mail"
           type="email"
+          required={emailRequired}
           value={data.email ?? ''}
           onChange={(v) => onChange({ email: v })}
           error={errors.email}
@@ -45,12 +49,12 @@ export function IdentificacaoStep({ data, onChange, errors }: Props) {
         />
         <div className="col-span-2">
           <TextField
-            label="Processo / Oportunidade"
+            label="Nome do processo / oportunidade"
             required
             value={data.processo ?? ''}
             onChange={(v) => onChange({ processo: v })}
             error={errors.processo}
-            placeholder="Nome curto do processo a automatizar"
+            placeholder="Nome curto — ex: Conciliação bancária diária"
           />
         </div>
       </div>

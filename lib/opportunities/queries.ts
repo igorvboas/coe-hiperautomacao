@@ -12,6 +12,10 @@ import type {
 } from './types';
 import type { OpportunityFilters } from './filters';
 import { SEGMENTO_STATUSES, STATUS_ALL } from './status';
+import {
+  fetchOpportunityIdsForAssignee,
+  fetchOpportunityIdsForCargo,
+} from './assignees';
 
 export type { OpportunityPhase };
 
@@ -95,6 +99,23 @@ export async function fetchOpportunities(
   // flag só é alterada via SQL — não há UI. Não é controle de acesso (isso é
   // RLS/tenant_id), é curadoria de listagem.
   q = q.eq('visivel', true);
+
+  // Filtro "Membro" (0032): resolve os ids atribuídos ao profile e restringe a
+  // lista. Nenhuma atribuição = nenhum resultado (não é o mesmo que "sem
+  // filtro"), por isso o early return.
+  if (filters.assignee) {
+    const assigned = await fetchOpportunityIdsForAssignee(filters.assignee);
+    if (assigned.length === 0) return [];
+    q = q.in('id', assigned);
+  }
+
+  // Filtro "Cargo" (0031+0032): oportunidades com alguém daquele cargo. Mesma
+  // semântica do filtro de membro — sem nenhuma, resultado vazio.
+  if (filters.cargo) {
+    const assigned = await fetchOpportunityIdsForCargo(filters.cargo);
+    if (assigned.length === 0) return [];
+    q = q.in('id', assigned);
+  }
 
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);

@@ -78,6 +78,19 @@ export type PhaseKey =
 // aditiva (0021). Nunca concedido via convite self-service (0022, só SQL).
 export type TenantRole = 'member' | 'tenant_admin' | 'viewer' | 'platform_admin';
 
+// v0.4 (0031) — CARGO é rótulo organizacional, NÃO permissão. A RLS só olha
+// `role`. Fonte da lista: lib/security/cargo.ts (espelha o CHECK da 0031).
+export type Cargo =
+  | 'tech_lead'
+  | 'coe_manager'
+  | 'dev'
+  | 'arquiteto'
+  | 'devops'
+  | 'engenheiro_dados'
+  | 'pm'
+  | 'scrum_master'
+  | 'outro';
+
 // v0.3 (0017/0018)
 export type CriticidadeLevel = 'baixa' | 'media' | 'alta' | 'critica';
 export type DocumentKind = 'link' | 'arquivo';
@@ -119,6 +132,12 @@ export type FormularioExtras = {
   tipo_processo?: string;
   sistemas?: string;
   cargo_solicitante?: string;
+  // Discovery v2 — perguntas de levantamento (ver formularioExtrasSchema).
+  gatilho?: string;
+  formato_entrada?: string;
+  descricao?: string;
+  dor?: string;
+  dados_sensiveis?: string;
   criterios?: {
     regras_claras?: CriterioValor;
     totalmente_manual?: CriterioValor;
@@ -163,6 +182,11 @@ export type Database = {
           name: string;
           slug: string;
           status: 'active' | 'suspended';
+          // v0.4 (0033) — identidade visual por empresa (/configuracoes).
+          // brand_color: hex '#rrggbb' (CHECK); logo_path: path no bucket
+          // público 'tenant-branding'. null nos dois = padrão PSW.
+          brand_color: string | null;
+          logo_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -171,6 +195,8 @@ export type Database = {
           name: string;
           slug: string;
           status?: 'active' | 'suspended';
+          brand_color?: string | null;
+          logo_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -178,6 +204,8 @@ export type Database = {
           name: string;
           slug: string;
           status: 'active' | 'suspended';
+          brand_color: string | null;
+          logo_path: string | null;
           updated_at: string;
         }>;
         Relationships: [];
@@ -190,6 +218,7 @@ export type Database = {
           email: string;
           full_name: string | null;
           role: TenantRole;
+          cargo: Cargo | null;
           created_at: string;
           updated_at: string;
         };
@@ -199,6 +228,7 @@ export type Database = {
           email: string;
           full_name?: string | null;
           role?: TenantRole;
+          cargo?: Cargo | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -207,6 +237,7 @@ export type Database = {
           email: string;
           full_name: string | null;
           role: TenantRole;
+          cargo: Cargo | null;
           updated_at: string;
         }>;
         Relationships: [
@@ -228,6 +259,7 @@ export type Database = {
           email: string;
           tenant_id: string;
           role: 'member' | 'tenant_admin' | 'viewer';
+          cargo: Cargo | null;
           invited_by: string | null;
           created_at: string;
           used_at: string | null;
@@ -237,6 +269,7 @@ export type Database = {
           email: string;
           tenant_id: string;
           role?: 'member' | 'tenant_admin' | 'viewer';
+          cargo?: Cargo | null;
           invited_by?: string | null;
           created_at?: string;
           used_at?: string | null;
@@ -245,6 +278,7 @@ export type Database = {
           email: string;
           tenant_id: string;
           role: 'member' | 'tenant_admin' | 'viewer';
+          cargo: Cargo | null;
           invited_by: string | null;
           used_at: string | null;
         }>;
@@ -264,6 +298,53 @@ export type Database = {
         ];
       };
 
+      // v0.4 (0032) — atribuição de pessoas a oportunidades (N:N). Escrita só
+      // por tenant_admin (do próprio tenant) ou platform_admin — ver RLS 0032.
+      opportunity_assignees: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          profile_id: string;
+          tenant_id: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          profile_id: string;
+          tenant_id: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{
+          opportunity_id: string;
+          profile_id: string;
+          tenant_id: string;
+          created_by: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_assignees_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_assignees_profile_id_fkey';
+            columns: ['profile_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_assignees_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       opportunities: {
         Row: {
           id: string;
@@ -271,6 +352,8 @@ export type Database = {
           seq_id: number;
           source: OpportunitySource;
           request_type: OpportunityRequestType;
+          /** 0035 — automação a que esta solicitação se refere (melhoria/incidente). */
+          parent_opportunity_id: string | null;
           solicitante: string;
           email: string | null;
           area: string;
@@ -327,6 +410,7 @@ export type Database = {
           seq_id?: number;
           source: OpportunitySource;
           request_type?: OpportunityRequestType;
+          parent_opportunity_id?: string | null;
           solicitante: string;
           email?: string | null;
           area: string;
@@ -640,7 +724,25 @@ export type Database = {
       };
       fetch_public_tenant: {
         Args: { p_slug: string };
-        Returns: { id: string; name: string; slug: string }[];
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+          // 0034 — branding no formulário público.
+          brand_color: string | null;
+          logo_path: string | null;
+        }[];
+      };
+      // 0035 — automações existentes oferecidas no seletor de "projeto
+      // associado" do formulário público (Melhoria / Incidente).
+      fetch_public_opportunities: {
+        Args: { p_slug: string };
+        Returns: {
+          id: string;
+          seq_id: number;
+          processo: string | null;
+          area: string | null;
+        }[];
       };
       create_public_opportunity: {
         // Overload canônico (21 params, de 0009 + 0012). O overload antigo de 18

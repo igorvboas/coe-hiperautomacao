@@ -3,12 +3,20 @@
 import type { WizardFormData } from '../state';
 import { SelectField } from './fields';
 import { ScorePreview } from '../ScorePreview';
-import { deriveFteBucket, type FteBucket } from '@/lib/opportunities/fte';
+import {
+  computeFteHoras,
+  deriveFteBucket,
+  type FteBucket,
+} from '@/lib/opportunities/fte';
 
 type Props = {
   data: WizardFormData;
   onChange: (patch: Partial<WizardFormData>) => void;
   errors: Record<string, string>;
+  // Nos fluxos de CRIAÇÃO, Esforço e Complexidade são preenchidos pelo enrichment
+  // da IA (não pela pessoa) e o FTE é CALCULADO (não digitado). Só no mode='edit'
+  // esses campos viram input manual (CoE corrige a IA).
+  hideEnriched?: boolean;
 };
 
 // Pesos alinhados à fórmula de 5 fatores (lib/opportunities/score.ts / _giba:483-490).
@@ -37,34 +45,47 @@ const FTE_BUCKET_DISPLAY: Record<FteBucket, { label: string; weight: string }> =
   muito_alto: { label: 'Muito Alto', weight: '+20' },
 };
 
-export function PriorizacaoStep({ data, onChange, errors }: Props) {
-  // Bucket FTE derivado das horas/mês informadas em Benefícios — fonte única
-  // (mesma fn usada no submit → display === persistência). Não editável aqui.
+export function PriorizacaoStep({ data, onChange, errors, hideEnriched }: Props) {
+  // FTE (horas/mês): no CRIAÇÃO é CALCULADO (execuções/mês × horas/execução ×
+  // pessoas); na EDIÇÃO usa o valor manual de fte_horas. Mesma fn do submit →
+  // display === persistência.
+  const fteHoras = hideEnriched
+    ? computeFteHoras({
+        execucoesMes: data.execucoes_mes,
+        tempo: data.tempo,
+        tempoExecucao: data.tempo_execucao,
+        numPessoas: data.num_pessoas,
+      })
+    : data.fte_horas ?? null;
   const fteBucket =
-    data.fte_horas != null ? deriveFteBucket(Number(data.fte_horas)) : undefined;
+    fteHoras != null ? deriveFteBucket(Number(fteHoras)) : undefined;
 
   return (
     <div className="px-2 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-        <SelectField
-          label="Esforço de Implementação"
-          required
-          value={data.esforco}
-          onChange={(v) => onChange({ esforco: v as 'baixo' | 'medio' | 'alto' })}
-          options={EFFORT_OPTIONS}
-          error={errors.esforco}
-        />
-        <SelectField
-          label="Complexidade Técnica"
-          required
-          value={data.complexidade}
-          onChange={(v) =>
-            onChange({ complexidade: v as 'baixo' | 'medio' | 'alto' })
-          }
-          options={COMPLEXITY_OPTIONS}
-          error={errors.complexidade}
-        />
-        <div className="mb-3">
+        {!hideEnriched && (
+          <>
+            <SelectField
+              label="Esforço de Implementação"
+              required
+              value={data.esforco}
+              onChange={(v) => onChange({ esforco: v as 'baixo' | 'medio' | 'alto' })}
+              options={EFFORT_OPTIONS}
+              error={errors.esforco}
+            />
+            <SelectField
+              label="Complexidade Técnica"
+              required
+              value={data.complexidade}
+              onChange={(v) =>
+                onChange({ complexidade: v as 'baixo' | 'medio' | 'alto' })
+              }
+              options={COMPLEXITY_OPTIONS}
+              error={errors.complexidade}
+            />
+          </>
+        )}
+        <div className={'mb-3' + (hideEnriched ? ' sm:col-span-2' : '')}>
           <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-1">
             Alinhamento Estratégico <span className="text-red-500">*</span>
           </div>
@@ -110,18 +131,30 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
               </span>
             </div>
             <span className="text-[11px] text-mut">
-              {Number(data.fte_horas)} h/mês
+              {Number(fteHoras)} h/mês
             </span>
           </div>
         ) : (
           <div className="text-[12px] text-mut">
-            Informe o FTE (h/mês) no passo Benefícios.
+            {hideEnriched
+              ? 'Informe execuções/mês (ou frequência), tempo de execução e pessoas no passo Processo.'
+              : 'Informe o FTE (h/mês) no passo Benefícios.'}
           </div>
         )}
         <div className="text-[10px] text-mut mt-1.5">
-          Calculado a partir das horas/mês informadas em Benefícios.
+          {hideEnriched
+            ? 'Calculado: execuções/mês × horas por execução × pessoas envolvidas.'
+            : 'Calculado a partir das horas/mês informadas em Benefícios.'}
         </div>
       </div>
+
+      {hideEnriched && (
+        <div className="mb-3 rounded-lg border border-bdr bg-bg px-3 py-2 text-[11px] text-mut leading-relaxed">
+          🤖 <strong className="text-txt">Ferramenta sugerida, esforço e
+          complexidade</strong> são preenchidos automaticamente pela IA após o
+          envio — você não precisa informar.
+        </div>
+      )}
 
       <div className="mt-3">
         <ScorePreview
@@ -130,6 +163,8 @@ export function PriorizacaoStep({ data, onChange, errors }: Props) {
           tempo={data.tempo}
           objetivo={data.objetivo}
           fte={fteBucket}
+          criterios={data.criterios}
+          beneficios={data.beneficios}
         />
       </div>
     </div>

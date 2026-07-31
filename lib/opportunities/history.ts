@@ -52,7 +52,7 @@ const SCALAR_FIELDS: { key: keyof OpportunityDiffSnapshot & keyof OpportunityInp
   { key: 'subarea', label: 'Subárea' },
   { key: 'processo', label: 'Processo' },
   { key: 'frequencia', label: 'Frequência' },
-  { key: 'volume_medio', label: 'Volume Médio' },
+  { key: 'volume_medio', label: 'Número de Execuções' },
   { key: 'tempo_execucao', label: 'Tempo de Execução' },
   { key: 'num_pessoas', label: 'Pessoas Envolvidas' },
   { key: 'ferramenta', label: 'Ferramenta' },

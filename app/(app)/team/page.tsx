@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile, isTenantAdmin } from '@/lib/security/role';
 import type { TenantRole } from '@/lib/opportunities/types';
+import { cargoLabel } from '@/lib/security/cargo';
 import { TeamInviteForm } from './TeamInviteForm';
 import { revokeTeamInvite } from './actions';
 
@@ -12,6 +13,13 @@ import { revokeTeamInvite } from './actions';
 // Só `tenant_admin` entra. O platform_admin da PSW não usa esta tela: ele tem
 // /admin/invites, com alcance global e criação de empresas.
 // =============================================================================
+
+// O dropdown de convite não oferece mais "Membro" genérico: quem tem acesso de
+// membro aparece pelo cargo. Perfis antigos (sem cargo) caem no rótulo do role.
+function papelLabel(role: TenantRole, cargo: string | null): string {
+  if (role === 'member' && cargo) return cargoLabel(cargo);
+  return ROLE_LABEL[role] ?? role;
+}
 
 const ROLE_LABEL: Record<TenantRole, string> = {
   platform_admin: 'Administrador da plataforma',
@@ -24,6 +32,7 @@ type InviteRow = {
   id: string;
   email: string;
   role: TenantRole;
+  cargo: string | null;
   used_at: string | null;
   created_at: string;
 };
@@ -33,6 +42,7 @@ type MemberRow = {
   email: string;
   full_name: string | null;
   role: TenantRole;
+  cargo: string | null;
 };
 
 export default async function TeamPage() {
@@ -46,12 +56,12 @@ export default async function TeamPage() {
   const [invitesRes, membersRes] = await Promise.all([
     supabase
       .from('invited_emails')
-      .select('id, email, role, used_at, created_at')
+      .select('id, email, role, cargo, used_at, created_at')
       .eq('tenant_id', profile!.tenantId)
       .order('created_at', { ascending: false }),
     supabase
       .from('profiles')
-      .select('id, email, full_name, role')
+      .select('id, email, full_name, role, cargo')
       .eq('tenant_id', profile!.tenantId)
       .order('email'),
   ]);
@@ -103,7 +113,7 @@ export default async function TeamPage() {
                 pending.map((inv) => (
                   <tr key={inv.id} className="border-t border-slate-100 dark:border-slate-800">
                     <td className="px-4 py-2.5">{inv.email}</td>
-                    <td className="px-4 py-2.5">{ROLE_LABEL[inv.role] ?? inv.role}</td>
+                    <td className="px-4 py-2.5">{papelLabel(inv.role, inv.cargo)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <form action={revokeTeamInvite} className="inline">
                         <input type="hidden" name="id" value={inv.id} />
@@ -140,7 +150,7 @@ export default async function TeamPage() {
                 <tr key={m.id} className="border-t border-slate-100 dark:border-slate-800">
                   <td className="px-4 py-2.5">{m.full_name ?? '—'}</td>
                   <td className="px-4 py-2.5">{m.email}</td>
-                  <td className="px-4 py-2.5">{ROLE_LABEL[m.role] ?? m.role}</td>
+                  <td className="px-4 py-2.5">{papelLabel(m.role, m.cargo)}</td>
                 </tr>
               ))}
             </tbody>

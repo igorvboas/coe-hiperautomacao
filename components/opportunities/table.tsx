@@ -11,6 +11,11 @@ import {
 } from './cells';
 import { getInitials } from '@/lib/opportunities/utils';
 import { buildQuery, parseFilters, type SortKey } from '@/lib/opportunities/filters';
+import {
+  assigneeInitials,
+  assigneeName,
+  type Assignee,
+} from '@/lib/opportunities/assignee-types';
 
 // Data de registro (created_at) — formata a partir do ISO por slicing, sem
 // `new Date()`/locale, para não divergir entre SSR e hidratação (timezone).
@@ -20,7 +25,11 @@ function fmtDataRegistro(iso: string | null | undefined): string {
   return y && m && d ? `${d}/${m}/${y}` : '—';
 }
 
-type Props = { opportunities: Opportunity[] };
+type Props = {
+  opportunities: Opportunity[];
+  /** Assignees por opportunity_id (0032) — buscados em uma query só na page. */
+  assigneesByOpportunity: Record<string, Assignee[]>;
+};
 
 type SortableColumn = {
   asc: SortKey;
@@ -37,7 +46,7 @@ const SORTABLE_COLS: Record<string, SortableColumn> = {
   fte: { asc: 'fte_asc', desc: 'fte_desc' },
 };
 
-export function OpportunityTable({ opportunities }: Props) {
+export function OpportunityTable({ opportunities, assigneesByOpportunity }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const filters = parseFilters(params);
@@ -129,6 +138,7 @@ export function OpportunityTable({ opportunities }: Props) {
               >
                 Score{arrowFor('score')}
               </ThSort>
+              <Th>Atribuído a</Th>
               <Th>Data de Registro</Th>
             </tr>
           </thead>
@@ -189,6 +199,9 @@ export function OpportunityTable({ opportunities }: Props) {
                   <ScoreDisplay score={o.score} />
                 </Td>
                 <Td>
+                  <AssigneeStack assignees={assigneesByOpportunity[o.id] ?? []} />
+                </Td>
+                <Td>
                   <span className="text-[11px] text-mut whitespace-nowrap">
                     {fmtDataRegistro(o.created_at)}
                   </span>
@@ -198,6 +211,38 @@ export function OpportunityTable({ opportunities }: Props) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Avatares empilhados das pessoas atribuídas. Acima de 3, condensa em "+N"
+ * para a linha não estourar — os nomes completos ficam no `title`.
+ */
+function AssigneeStack({ assignees }: { assignees: Assignee[] }) {
+  if (assignees.length === 0) {
+    return <span className="text-[11px] text-mut">—</span>;
+  }
+
+  const shown = assignees.slice(0, 3);
+  const rest = assignees.length - shown.length;
+  const allNames = assignees.map(assigneeName).join(', ');
+
+  return (
+    <div className="flex items-center -space-x-1.5" title={allNames}>
+      {shown.map((a) => (
+        <span
+          key={a.profileId}
+          className="w-6 h-6 rounded-full bg-pri text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-wh"
+        >
+          {assigneeInitials(a)}
+        </span>
+      ))}
+      {rest > 0 && (
+        <span className="w-6 h-6 rounded-full bg-bg text-mut text-[9px] font-bold flex items-center justify-center ring-2 ring-wh">
+          +{rest}
+        </span>
+      )}
     </div>
   );
 }

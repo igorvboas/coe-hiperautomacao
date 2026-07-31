@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -11,11 +10,21 @@ import {
   type SortKey,
 } from '@/lib/opportunities/filters';
 import { STATUS_OPTIONS } from '@/lib/opportunities/status';
+import {
+  assigneeName,
+  type AssignableProfile,
+} from '@/lib/opportunities/assignee-types';
+import { CARGOS, CARGO_LABEL, type Cargo } from '@/lib/security/cargo';
 
 type Props = {
   counts: { visible: number; total: number };
   areas: string[];
+  /** Pessoas do tenant, para o filtro "Membro" (0032). Vazio = filtro escondido
+   *  (ex: platform_admin sem empresa selecionada). */
+  members: AssignableProfile[];
   tenantSlug: string | null;
+  /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
+   *  botão "Nova Oportunidade" (a criação agora é só pelo formulário público). */
   readOnly?: boolean;
 };
 
@@ -35,7 +44,7 @@ function parseView(raw: string | null): View {
   return 'table';
 }
 
-export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) {
+export function Toolbar({ counts, areas, members, tenantSlug }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {
@@ -117,13 +126,14 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
 
   const hasAnyFilter =
     !!filters.q ||
-    !!filters.source ||
     !!filters.area ||
     !!filters.ferramenta ||
     !!filters.priority ||
     !!filters.status ||
     !!filters.dateFrom ||
     !!filters.dateTo ||
+    !!filters.assignee ||
+    !!filters.cargo ||
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
@@ -157,16 +167,6 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           />
         </div>
 
-        {!readOnly && (
-          <Link
-            href="/opportunities/new"
-            className="px-4 py-2 bg-acc hover:opacity-90 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-opacity whitespace-nowrap"
-          >
-            <span className="text-base leading-none">+</span>
-            <span className="hidden sm:inline">Nova Oportunidade</span>
-          </Link>
-        )}
-
         <a
           href={exportHref}
           title="Exportar oportunidades (com os filtros atuais) em CSV"
@@ -180,7 +180,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           <button
             type="button"
             onClick={copyPublicLink}
-            title="Copiar link do formulário público"
+            title="Copiar o link do formulário público para cadastrar uma nova oportunidade — envie para quem vai preencher"
             className={
               'px-3 py-2 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-colors border whitespace-nowrap ' +
               (copied
@@ -190,7 +190,7 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
           >
             <span>{copied ? '✓' : '🔗'}</span>
             <span className="hidden md:inline">
-              {copied ? 'Link copiado!' : 'Copiar link'}
+              {copied ? 'Link copiado!' : 'Copiar link do formulário'}
             </span>
           </button>
         )}
@@ -223,21 +223,6 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
       {/* Linha 2: filtros + ordenação + limpar + counts */}
       <div className="flex flex-wrap items-center gap-2">
         <select
-          value={filters.source ?? ''}
-          onChange={(e) =>
-            applyChange({
-              source:
-                (e.target.value as 'persona' | 'formulario') || undefined,
-            })
-          }
-          className={selectClass}
-          aria-label="Filtrar por fonte"
-        >
-          <option value="">Todas as Fontes</option>
-          <option value="persona">Personas</option>
-          <option value="formulario">Formulários</option>
-        </select>
-        <select
           value={filters.area ?? ''}
           onChange={(e) => applyChange({ area: e.target.value || undefined })}
           className={selectClass}
@@ -250,6 +235,36 @@ export function Toolbar({ counts, areas, tenantSlug, readOnly = false }: Props) 
             </option>
           ))}
         </select>
+        <select
+          value={filters.cargo ?? ''}
+          onChange={(e) =>
+            applyChange({ cargo: (e.target.value as Cargo) || undefined })
+          }
+          className={selectClass}
+          aria-label="Filtrar por papel de quem está atribuído"
+        >
+          <option value="">Todos os Papéis</option>
+          {CARGOS.map((c) => (
+            <option key={c} value={c}>
+              {CARGO_LABEL[c]}
+            </option>
+          ))}
+        </select>
+        {members.length > 0 && (
+          <select
+            value={filters.assignee ?? ''}
+            onChange={(e) => applyChange({ assignee: e.target.value || undefined })}
+            className={selectClass}
+            aria-label="Filtrar por membro atribuído"
+          >
+            <option value="">Todos os Membros</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {assigneeName(m)}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={filters.ferramenta ?? ''}
           onChange={(e) =>

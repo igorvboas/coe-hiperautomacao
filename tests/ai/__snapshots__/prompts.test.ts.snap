@@ -20,6 +20,16 @@ TOOL SELECTION CRITERIA (how to choose ferramenta):
 - ambos: the process needs BOTH UI automation (RPA) AND API orchestration (n8n) to be fully automated.
 When the description is ambiguous or lacks technical detail, lean towards 'rpa' (default conservador) and note the uncertainty in the risco field.
 
+DISCOVERY SIGNALS (when present in the input, treat them as strong hints — they refine the criteria above):
+- Input format:
+  - "unstructured" (PDF, free-text email, image, paper) means the automation MUST include a document-intelligence / OCR / AI extraction step. Raise technical complexity accordingly, add an explicit extraction bullet to escopo_automacao, and prefer 'n8n' or 'ambos' (n8n can orchestrate AI/OCR nodes); choose 'rpa' alone only if the extraction is trivial. Record the extraction dependency in risco.
+  - "structured" (spreadsheet, system fields, form) means data is already machine-readable — this lowers complexity.
+  - "mixed" means part of the input still needs extraction.
+- Trigger (what starts the process):
+  - an incoming email/message, a system event, a spreadsheet/file update, or a schedule are event- or time-driven and are a strong fit for n8n orchestration (webhooks, schedules, triggers). Lean towards 'n8n' or 'ambos' when the underlying systems likely expose APIs.
+  - "someone requests it / opens a ticket" is human-initiated — a form or chatbot front-end may be needed; mention it in escopo_automacao.
+- Personal/sensitive data (LGPD): if "yes", ALWAYS add a data-privacy/LGPD note to the risco field (minimize data exposure, controlled/on-prem execution, access control, audit trail). Do NOT lower complexity because of this.
+
 You receive process descriptions written in Portuguese-BR. Respond in the structured JSON format provided.
 
 SECURITY RULES (non-negotiable):

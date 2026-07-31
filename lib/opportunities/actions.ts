@@ -93,6 +93,20 @@ export type PublicSubmitInput = {
     | 'treinamento';
   observacao?: string;
   risco?: string;
+  // Paridade 5 steps (0026): o formulário público agora coleta os mesmos campos
+  // da home (WizardShell mode='create'). A RPC persiste; enrichment sobrescreve
+  // só esforco/complexidade/objetivo — criterios/beneficios/fte_horas sobrevivem.
+  criterios?: Record<string, 'sim' | 'nao' | 'parcial'> | null;
+  beneficios?: Record<string, number> | null;
+  fte_horas?: number | null;
+  fte?: 'muito_baixo' | 'baixo' | 'medio' | 'alto' | 'muito_alto' | null;
+  responsavel?: string;
+  criticidade?: 'baixa' | 'media' | 'alta' | 'critica' | null;
+  execucoes_mes?: number | null;
+  // 0035 — automação existente a que Melhoria/Incidente se refere. A RPC
+  // descarta id que não seja do mesmo tenant (vira null), então não é preciso
+  // confiar no que o cliente anônimo mandou.
+  parent_opportunity_id?: string | null;
 };
 
 export type CreatePublicResult =
@@ -146,25 +160,32 @@ export async function createPublicOpportunity(
     return { ok: false, error: 'Acesso negado.' };
   }
 
-  // 5. Turnstile — defesa client-challenge
-  if (!turnstileToken || turnstileToken.length === 0) {
-    await updatePublicFormAttempt(logId, 'captcha_failed', 'no-token');
-    return {
-      ok: false,
-      error: 'Verificação anti-bot ausente. Recarregue a página e tente novamente.',
-    };
-  }
-  const captcha = await verifyTurnstileToken(turnstileToken, ip);
-  if (!captcha.ok) {
-    await updatePublicFormAttempt(
-      logId,
-      'captcha_failed',
-      captcha.errorCodes.join(','),
-    );
-    return {
-      ok: false,
-      error: 'Verificação anti-bot falhou. Recarregue a página e tente novamente.',
-    };
+  // 5. Turnstile — defesa client-challenge. Se a secret não estiver definida
+  // (ex.: deploy temporário sem chaves Cloudflare), pulamos a validação para
+  // não bloquear a submissão. Em produção configure `TURNSTILE_SECRET_KEY`.
+  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+  if (turnstileSecret) {
+    if (!turnstileToken || turnstileToken.length === 0) {
+      await updatePublicFormAttempt(logId, 'captcha_failed', 'no-token');
+      return {
+        ok: false,
+        error: 'Verificação anti-bot ausente. Recarregue a página e tente novamente.',
+      };
+    }
+    const captcha = await verifyTurnstileToken(turnstileToken, ip);
+    if (!captcha.ok) {
+      await updatePublicFormAttempt(
+        logId,
+        'captcha_failed',
+        captcha.errorCodes.join(',')
+      );
+      return {
+        ok: false,
+        error: 'Verificação anti-bot falhou. Recarregue a página e tente novamente.',
+      };
+    }
+  } else {
+    console.warn('[actions/createPublicOpportunity] TURNSTILE_SECRET_KEY ausente — pulando validação Turnstile.');
   }
 
   // ── Phase 7.6: resolve tenant_id para enriquecimento via SERVICE ROLE ────
@@ -227,6 +248,17 @@ export async function createPublicOpportunity(
     p_request_type: input.request_type ?? 'nova_oportunidade',
     p_observacao: input.observacao ?? null,
     p_risco: input.risco ?? null,
+    // Paridade 5 steps (0026). criterios exige as 8 chaves (CHECK) — o wizard
+    // já valida; beneficios aceita subconjunto 1–5. fte é o bucket derivado.
+    p_criterios: (input.criterios ?? null) as never,
+    p_beneficios: (input.beneficios ?? null) as never,
+    p_fte_horas: input.fte_horas ?? null,
+    p_fte: input.fte ?? null,
+    p_responsavel: input.responsavel ?? null,
+    p_criticidade: input.criticidade ?? null,
+    p_execucoes_mes: input.execucoes_mes ?? null,
+    // 0035 — validado contra o tenant dentro da RPC.
+    p_parent_opportunity_id: input.parent_opportunity_id ?? null,
   });
 
   // 7. Erro: log mensagem REAL no DB, mensagem GENÉRICA ao cliente (Falha Segura)

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { createInvite } from './actions';
+import { CARGOS, CARGO_LABEL } from '@/lib/security/cargo';
 
 type TenantOption = { id: string; name: string };
 
@@ -110,6 +111,23 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
         <p className="mt-1 text-xs text-slate-500">
           Leitor enxerga tudo da empresa, mas não cria, edita nem muda status de
           oportunidades.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="invite-cargo" className={labelCls}>
+          Cargo
+        </label>
+        <select id="invite-cargo" name="cargo" defaultValue="" className={inputCls}>
+          <option value="">Não informado</option>
+          {CARGOS.map((c) => (
+            <option key={c} value={c}>
+              {CARGO_LABEL[c]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-slate-500">
+          Só descritivo — quem pode editar é definido pelo Papel acima.
         </p>
       </div>
 
