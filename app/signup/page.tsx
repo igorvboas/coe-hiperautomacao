@@ -65,6 +65,7 @@ export default function SignupPage() {
                 id="full_name"
                 name="full_name"
                 type="text"
+                required
                 autoComplete="name"
                 autoFocus
                 className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"

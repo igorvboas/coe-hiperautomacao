@@ -352,6 +352,8 @@ export type Database = {
           seq_id: number;
           source: OpportunitySource;
           request_type: OpportunityRequestType;
+          /** 0035 — automação a que esta solicitação se refere (melhoria/incidente). */
+          parent_opportunity_id: string | null;
           solicitante: string;
           email: string | null;
           area: string;
@@ -408,6 +410,7 @@ export type Database = {
           seq_id?: number;
           source: OpportunitySource;
           request_type?: OpportunityRequestType;
+          parent_opportunity_id?: string | null;
           solicitante: string;
           email?: string | null;
           area: string;
@@ -721,7 +724,25 @@ export type Database = {
       };
       fetch_public_tenant: {
         Args: { p_slug: string };
-        Returns: { id: string; name: string; slug: string }[];
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+          // 0034 — branding no formulário público.
+          brand_color: string | null;
+          logo_path: string | null;
+        }[];
+      };
+      // 0035 — automações existentes oferecidas no seletor de "projeto
+      // associado" do formulário público (Melhoria / Incidente).
+      fetch_public_opportunities: {
+        Args: { p_slug: string };
+        Returns: {
+          id: string;
+          seq_id: number;
+          processo: string | null;
+          area: string | null;
+        }[];
       };
       create_public_opportunity: {
         // Overload canônico (21 params, de 0009 + 0012). O overload antigo de 18

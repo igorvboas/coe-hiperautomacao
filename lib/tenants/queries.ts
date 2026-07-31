@@ -47,6 +47,49 @@ export async function fetchPublicTenantBySlug(
   };
 }
 
+/** Item do seletor "projeto associado" do formulário público (0035). */
+export type PublicOpportunityOption = {
+  id: string;
+  seqId: number;
+  processo: string;
+  area: string | null;
+};
+
+/**
+ * Automações existentes da empresa, para o seletor de projeto que aparece
+ * quando a solicitação pública é Melhoria ou Incidente.
+ *
+ * Recorte MÍNIMO e definido no banco (`fetch_public_opportunities`, 0035 +
+ * 0036): só tenant ativo, só `visivel`, `processo` truncado em 160 chars.
+ * Nenhum dado de contato, status ou score sai daqui. Falha vira lista vazia — o
+ * formulário degrada para "não encontrei meu projeto" em vez de quebrar a
+ * página pública.
+ */
+export async function fetchPublicOpportunities(
+  slug: string
+): Promise<PublicOpportunityOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('fetch_public_opportunities', {
+    p_slug: slug,
+  });
+  if (error) {
+    console.error('[tenants/queries] fetch_public_opportunities:', error.message);
+    return [];
+  }
+  const rows = (data ?? []) as {
+    id: string;
+    seq_id: number;
+    processo: string | null;
+    area: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    seqId: r.seq_id,
+    processo: r.processo ?? 'Sem descrição',
+    area: r.area,
+  }));
+}
+
 /**
  * Resolve um slug de empresa → tenant_id, para o filtro do seletor de empresa
  * (platform_admin). Usa o client autenticado: o RLS de `tenants` garante que só

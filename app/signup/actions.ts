@@ -20,6 +20,9 @@ export async function signUp(formData: FormData): Promise<SignUpResult> {
   const password = String(formData.get('password') ?? '');
   const fullName = String(formData.get('full_name') ?? '').trim();
 
+  if (!fullName) {
+    return { error: 'Informe seu nome completo.' };
+  }
   if (!email || !password) {
     return { error: 'Informe e-mail e senha.' };
   }

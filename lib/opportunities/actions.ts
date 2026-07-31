@@ -103,6 +103,10 @@ export type PublicSubmitInput = {
   responsavel?: string;
   criticidade?: 'baixa' | 'media' | 'alta' | 'critica' | null;
   execucoes_mes?: number | null;
+  // 0035 — automação existente a que Melhoria/Incidente se refere. A RPC
+  // descarta id que não seja do mesmo tenant (vira null), então não é preciso
+  // confiar no que o cliente anônimo mandou.
+  parent_opportunity_id?: string | null;
 };
 
 export type CreatePublicResult =
@@ -253,6 +257,8 @@ export async function createPublicOpportunity(
     p_responsavel: input.responsavel ?? null,
     p_criticidade: input.criticidade ?? null,
     p_execucoes_mes: input.execucoes_mes ?? null,
+    // 0035 — validado contra o tenant dentro da RPC.
+    p_parent_opportunity_id: input.parent_opportunity_id ?? null,
   });
 
   // 7. Erro: log mensagem REAL no DB, mensagem GENÉRICA ao cliente (Falha Segura)

@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation';
-import { fetchPublicTenantBySlug } from '@/lib/tenants/queries';
+import {
+  fetchPublicOpportunities,
+  fetchPublicTenantBySlug,
+} from '@/lib/tenants/queries';
 import { brandingCss } from '@/lib/branding/theme';
 import { PublicForm } from './PublicForm';
 
 export const metadata = {
-  title: 'Registrar Oportunidade',
+  title: 'Registrar Solicitação',
 };
 
 export default async function PublicFormPage({
@@ -15,6 +18,11 @@ export default async function PublicFormPage({
   const { slug } = await params;
   const tenant = await fetchPublicTenantBySlug(slug);
   if (!tenant) notFound();
+
+  // Automações existentes para o seletor de "projeto associado" (Melhoria /
+  // Incidente). Recorte mínimo definido na RPC 0035; lista vazia é caso normal
+  // (tenant sem automação em andamento) e o formulário lida com isso.
+  const projects = await fetchPublicOpportunities(slug);
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
   const turnstileSecret = process.env.TURNSTILE_SECRET_KEY ?? '';
@@ -33,7 +41,11 @@ export default async function PublicFormPage({
   return (
     <>
       {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
-      <PublicForm tenant={tenant} siteKey={enableTurnstile ? siteKey : ''} />
+      <PublicForm
+        tenant={tenant}
+        siteKey={enableTurnstile ? siteKey : ''}
+        projects={projects}
+      />
     </>
   );
 }

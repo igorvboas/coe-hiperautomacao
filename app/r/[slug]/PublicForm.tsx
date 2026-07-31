@@ -6,7 +6,13 @@ import {
   createPublicOpportunity,
   type PublicSubmitInput,
 } from '@/lib/opportunities/actions';
-import type { PublicTenant } from '@/lib/tenants/queries';
+import type { PublicOpportunityOption, PublicTenant } from '@/lib/tenants/queries';
+import {
+  IntroStep,
+  REQUEST_TYPE_LABEL,
+  TYPES_REQUIRING_PROJECT,
+  type PublicRequestType,
+} from './IntroStep';
 import { computeFteHoras, deriveFteBucket } from '@/lib/opportunities/fte';
 import {
   defaultFormData,
@@ -26,11 +32,16 @@ import { PriorizacaoStep } from '@/components/opportunities/wizard/steps/Prioriz
 // Phase 11/D-04): mesmos 5 steps, mesmos componentes de step, mesma máquina de
 // estado (state.ts). Muda só o CHROME — aqui é uma PÁGINA pública split de duas
 // colunas (não o modal flutuante da home) — e a action de submit (RPC anônima).
-// Sem step de Classificação (request_type → default 'nova_oportunidade' no server).
+// Antes do wizard há a porta de entrada (IntroStep, 2026-07-31): tipo da
+// solicitação e, em Melhoria/Incidente, a automação existente a que ela se
+// refere. Ela NÃO é um step do wizard — mora no estado local desta página, para
+// não mexer na máquina de estado compartilhada com o modal autenticado.
 
 type Props = {
   tenant: PublicTenant;
   siteKey: string;
+  /** Automações do tenant oferecidas no seletor de projeto (0035). */
+  projects: PublicOpportunityOption[];
 };
 
 // Título + subtítulo por step (o chrome público; os componentes de step não
@@ -64,8 +75,13 @@ const STEP_COPY: Record<StepId, { title: string; subtitle: string }> = {
   contexto: { title: '', subtitle: '' },
 };
 
-export function PublicForm({ tenant, siteKey }: Props) {
+export function PublicForm({ tenant, siteKey, projects }: Props) {
   const [data, setData] = useState<WizardFormData>(defaultFormData());
+  // Porta de entrada — `started` false enquanto o tipo não for confirmado.
+  const [started, setStarted] = useState(false);
+  const [requestType, setRequestType] = useState<PublicRequestType | null>(null);
+  const [parentId, setParentId] = useState<string | null>(null);
+  const [introError, setIntroError] = useState<string | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
   const [reachedIdx, setReachedIdx] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,10 +97,16 @@ export function PublicForm({ tenant, siteKey }: Props) {
   // Fluxo único de criação (paridade): 5 steps, independe de source.
   const steps: StepDef[] = stepsFor('formulario', 'create');
   const currentStep = steps[stepIdx];
-  const isFirst = stepIdx === 0;
   const isLast = stepIdx === steps.length - 1;
-  const progressPct = ((stepIdx + 1) / steps.length) * 100;
   const copy = currentStep ? STEP_COPY[currentStep.id] : undefined;
+
+  // A porta de entrada conta como passo 1 na barra e no tracker — para quem
+  // preenche, "escolher o tipo" é um passo como qualquer outro.
+  const totalSteps = steps.length + 1;
+  const displayIdx = started ? stepIdx + 1 : 0;
+  const progressPct = ((displayIdx + 1) / totalSteps) * 100;
+  const needsProject =
+    requestType != null && TYPES_REQUIRING_PROJECT.includes(requestType);
 
   function patch(p: Partial<WizardFormData>) {
     setData((d) => ({ ...d, ...p }));
@@ -121,14 +143,44 @@ export function PublicForm({ tenant, siteKey }: Props) {
 
   function prev() {
     setErrors({});
-    setStepIdx(Math.max(stepIdx - 1, 0));
+    // Voltar do primeiro step do wizard devolve à porta de entrada (o tipo e o
+    // projeto continuam escolhidos — nada é perdido).
+    if (stepIdx === 0) {
+      setStarted(false);
+      return;
+    }
+    setStepIdx(stepIdx - 1);
   }
 
-  function jump(i: number) {
+  /** Índice na numeração de exibição (0 = porta de entrada). */
+  function jump(displayTarget: number) {
+    if (displayTarget === 0) {
+      setErrors({});
+      setStarted(false);
+      return;
+    }
+    const i = displayTarget - 1;
     if (i <= reachedIdx) {
       setErrors({});
       setStepIdx(i);
+      setStarted(true);
     }
+  }
+
+  /** Confirma a porta de entrada e entra no wizard. */
+  function startWizard() {
+    if (!requestType) {
+      setIntroError('Escolha o tipo da sua solicitação.');
+      return;
+    }
+    // Projeto só é exigível quando há projeto para escolher — tenant sem
+    // automações cadastradas não pode ficar preso na primeira tela.
+    if (needsProject && projects.length > 0 && !parentId) {
+      setIntroError('Selecione a automação a que a solicitação se refere.');
+      return;
+    }
+    setIntroError(null);
+    setStarted(true);
   }
 
   function buildPayload(): PublicSubmitInput {
@@ -144,6 +196,10 @@ export function PublicForm({ tenant, siteKey }: Props) {
     const fteBucket = fteHoras != null ? deriveFteBucket(fteHoras) : null;
 
     return {
+      // Porta de entrada — a RPC valida o parent contra o tenant do slug e
+      // ignora id alheio; o vínculo só é enviado nos tipos que o pedem.
+      request_type: requestType ?? 'nova_oportunidade',
+      parent_opportunity_id: needsProject ? parentId : null,
       solicitante: (data.solicitante ?? '').trim(),
       email: (data.email ?? '').trim(),
       area: (data.area ?? '').trim(),
@@ -249,7 +305,11 @@ export function PublicForm({ tenant, siteKey }: Props) {
           <div className="bg-gradient-to-br from-acc to-emerald-600 text-white px-8 py-10 text-center">
             <div className="text-6xl mb-3">✅</div>
             <h1 className="text-2xl font-extrabold">Obrigado!</h1>
-            <p className="text-sm opacity-90 mt-1.5">Sua oportunidade foi registrada.</p>
+            <p className="text-sm opacity-90 mt-1.5">
+              {requestType
+                ? `Sua solicitação (${REQUEST_TYPE_LABEL[requestType]}) foi registrada.`
+                : 'Sua solicitação foi registrada.'}
+            </p>
           </div>
           <div className="p-8 text-center space-y-4">
             <p className="text-[15px] text-txt leading-relaxed">
@@ -264,10 +324,16 @@ export function PublicForm({ tenant, siteKey }: Props) {
                 setStepIdx(0);
                 setReachedIdx(0);
                 setSubmitted(false);
+                // Volta à porta de entrada — a nova solicitação pode ser de
+                // outro tipo, então tipo e projeto também zeram.
+                setStarted(false);
+                setRequestType(null);
+                setParentId(null);
+                setIntroError(null);
               }}
               className="px-5 py-2.5 bg-pri hover:bg-pril text-white text-sm font-bold rounded-lg"
             >
-              ➕ Registrar outra oportunidade
+              ➕ Registrar outra solicitação
             </button>
           </div>
         </div>
@@ -306,20 +372,21 @@ export function PublicForm({ tenant, siteKey }: Props) {
 
         <div className="mt-6 md:mt-10">
           <h2 className="text-xl md:text-2xl font-extrabold leading-snug">
-            Registrar oportunidade de automação
+            Registrar solicitação ao CoE
           </h2>
           <p className="text-sm opacity-80 mt-2 leading-relaxed">
-            Conte pro time do CoE um processo que você acha que dá pra automatizar.
+            Nova oportunidade de automação, melhoria, incidente ou treinamento.
             Leva cerca de 2 minutos.
           </p>
         </div>
 
         {/* Tracker vertical de steps (desktop) — também funciona como progresso. */}
         <nav className="hidden md:block mt-10 space-y-1">
-          {steps.map((s, i) => {
-            const isActive = i === stepIdx;
-            const isDone = i < stepIdx;
-            const reachable = i <= reachedIdx;
+          {[{ id: '__intro', label: 'Tipo', icon: '🔀' }, ...steps].map((s, i) => {
+            const isActive = i === displayIdx;
+            const isDone = i < displayIdx;
+            // A porta de entrada é sempre alcançável (voltar para trocar o tipo).
+            const reachable = i === 0 || (started && i - 1 <= reachedIdx);
             return (
               <button
                 key={s.id}
@@ -367,10 +434,10 @@ export function PublicForm({ tenant, siteKey }: Props) {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-mut">
-                Passo {stepIdx + 1} de {steps.length}
+                Passo {displayIdx + 1} de {totalSteps}
               </span>
               <span className="text-[11px] font-semibold text-mut md:hidden">
-                {currentStep?.icon} {currentStep?.label}
+                {started ? `${currentStep?.icon} ${currentStep?.label}` : '🔀 Tipo'}
               </span>
             </div>
             <div className="h-1.5 w-full bg-bg rounded-full overflow-hidden border border-bdr">
@@ -381,9 +448,35 @@ export function PublicForm({ tenant, siteKey }: Props) {
             </div>
           </div>
 
+          {!started ? (
+            <IntroStep
+              requestType={requestType}
+              parentId={parentId}
+              projects={projects}
+              error={introError}
+              onSelectType={(t) => {
+                setRequestType(t);
+                setIntroError(null);
+                // Trocar para um tipo que não pede projeto limpa o vínculo —
+                // senão um parent escolhido antes vazaria para o payload.
+                if (!TYPES_REQUIRING_PROJECT.includes(t)) setParentId(null);
+              }}
+              onSelectParent={(id) => {
+                setParentId(id);
+                setIntroError(null);
+              }}
+              onContinue={startWizard}
+            />
+          ) : (
+            <>
           {/* Cabeçalho do step */}
           {copy && (
             <div className="mb-5">
+              {requestType && (
+                <span className="inline-block mb-2 px-2.5 py-1 rounded-full bg-pri/10 text-pri text-[11px] font-bold">
+                  {REQUEST_TYPE_LABEL[requestType]}
+                </span>
+              )}
               <h2 className="text-xl md:text-2xl font-extrabold text-txt leading-tight">
                 {copy.title}
               </h2>
@@ -426,18 +519,15 @@ export function PublicForm({ tenant, siteKey }: Props) {
 
           {/* Navegação */}
           <footer className="mt-8 pt-5 border-t border-bdr flex items-center justify-between gap-3 flex-wrap">
-            {!isFirst ? (
-              <button
-                type="button"
-                onClick={prev}
-                disabled={pending}
-                className="px-4 py-2.5 bg-bg border border-bdr hover:bg-slate-100 dark:hover:bg-slate-800 text-txt text-sm font-semibold rounded-lg disabled:opacity-50"
-              >
-                ← Anterior
-              </button>
-            ) : (
-              <span />
-            )}
+            {/* Sempre há para onde voltar: do primeiro step, para a escolha do tipo. */}
+            <button
+              type="button"
+              onClick={prev}
+              disabled={pending}
+              className="px-4 py-2.5 bg-bg border border-bdr hover:bg-slate-100 dark:hover:bg-slate-800 text-txt text-sm font-semibold rounded-lg disabled:opacity-50"
+            >
+              ← Anterior
+            </button>
             {!isLast ? (
               <button
                 type="button"
@@ -453,10 +543,12 @@ export function PublicForm({ tenant, siteKey }: Props) {
                 disabled={pending}
                 className="px-7 py-2.5 bg-acc hover:opacity-90 text-white text-sm font-bold rounded-lg disabled:opacity-50"
               >
-                {pending ? 'Enviando...' : '✓ Enviar oportunidade'}
+                {pending ? 'Enviando...' : '✓ Enviar solicitação'}
               </button>
             )}
           </footer>
+            </>
+          )}
         </div>
       </section>
     </main>

@@ -47,3 +47,7 @@ next-env.d.ts
 
 # GSD framework copy — not project source
 /get-shit-done
+
+# planilhas/CSV de dados de cliente (não versionar)
+/*.xlsx
+/*.csv
