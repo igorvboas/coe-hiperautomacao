@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { cargoLabel } from '@/lib/security/cargo';
 import { InviteForm } from './InviteForm';
+import { ResendButton } from './ResendButton';
 import { revokeInvite } from './actions';
 
 type InviteRow = {
@@ -99,15 +100,18 @@ export default async function InvitesPage() {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {!inv.used_at && (
-                      <form action={revokeInvite} className="inline">
-                        <input type="hidden" name="id" value={inv.id} />
-                        <button
-                          type="submit"
-                          className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Revogar
-                        </button>
-                      </form>
+                      <span className="inline-flex items-center gap-3">
+                        <ResendButton id={inv.id} />
+                        <form action={revokeInvite} className="inline">
+                          <input type="hidden" name="id" value={inv.id} />
+                          <button
+                            type="submit"
+                            className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline"
+                          >
+                            Revogar
+                          </button>
+                        </form>
+                      </span>
                     )}
                   </td>
                 </tr>

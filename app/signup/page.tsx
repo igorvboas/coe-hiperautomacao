@@ -1,14 +1,22 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { signUp } from './actions';
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [invitedEmail, setInvitedEmail] = useState('');
   const [pending, startTransition] = useTransition();
+
+  // `?email=` vem do botão do e-mail de convite — só pré-preenche o campo.
+  // A autorização real continua sendo a allowlist validada server-side.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('email');
+    if (fromLink) setInvitedEmail(fromLink);
+  }, []);
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -85,6 +93,10 @@ export default function SignupPage() {
                 type="email"
                 required
                 autoComplete="email"
+                // key força o remount quando o e-mail do convite chega (efeito
+                // pós-hidratação) — sem isso o defaultValue já teria sido fixado.
+                key={invitedEmail}
+                defaultValue={invitedEmail}
                 className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
               />
             </div>

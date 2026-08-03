@@ -11,14 +11,24 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
     tenants.length > 0 ? 'existing' : 'new'
   );
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'warn'; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   function onSubmit(formData: FormData) {
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       const result = await createInvite(formData);
       if ('error' in result) setError(result.error);
       else {
+        setNotice(
+          result.emailSent
+            ? { kind: 'ok', text: 'Convite criado e e-mail enviado com o link de cadastro.' }
+            : {
+                kind: 'warn',
+                text: 'Convite criado, mas o e-mail NÃO foi enviado. Use “Reenviar” na lista abaixo ou avise a pessoa manualmente.',
+              }
+        );
         // limpa o form em caso de sucesso
         const form = document.getElementById('invite-form') as HTMLFormElement | null;
         form?.reset();
@@ -130,6 +140,19 @@ export function InviteForm({ tenants }: { tenants: TenantOption[] }) {
           Só descritivo — quem pode editar é definido pelo Papel acima.
         </p>
       </div>
+
+      {notice && (
+        <div
+          role="status"
+          className={
+            notice.kind === 'ok'
+              ? 'text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800'
+              : 'text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-800'
+          }
+        >
+          {notice.text}
+        </div>
+      )}
 
       {error && (
         <div
