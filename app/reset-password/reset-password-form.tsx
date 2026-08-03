@@ -2,26 +2,17 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useTransition } from 'react';
-import { signIn } from './actions';
+import { useState, useTransition } from 'react';
+import { resetPassword } from './actions';
 
-export default function LoginPage() {
+export default function ResetPasswordForm({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  // `?erro=link_invalido` vem do /auth/callback quando o link de recuperação
-  // expirou ou já foi usado. Lido do window (e não de useSearchParams) para não
-  // exigir Suspense boundary numa página inteiramente client-side.
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('erro') === 'link_invalido') {
-      setError('Link inválido ou expirado. Solicite uma nova recuperação de senha.');
-    }
-  }, []);
 
   function onSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const result = await signIn(formData);
+      const result = await resetPassword(formData);
       if (result?.error) setError(result.error);
     });
   }
@@ -35,49 +26,44 @@ export default function LoginPage() {
               <Image src="/brand/psw-icone.png" alt="PSW Digital" width={24} height={24} />
             </div>
             <div>
-              <h1 className="text-base font-bold">CoE Hiperautomação</h1>
-              <p className="text-xs opacity-75">Gestão de Automações · PSW Digital</p>
+              <h1 className="text-base font-bold">Definir nova senha</h1>
+              <p className="text-xs opacity-75">{email}</p>
             </div>
           </div>
         </div>
 
         <form action={onSubmit} className="px-6 py-6 flex flex-col gap-4">
           <div>
-            <label htmlFor="email" className="text-xs font-bold uppercase tracking-wide text-mut">
-              E-mail
+            <label htmlFor="password" className="text-xs font-bold uppercase tracking-wide text-mut">
+              Nova senha
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              autoFocus
-              className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-baseline justify-between gap-2">
-              <label
-                htmlFor="password"
-                className="text-xs font-bold uppercase tracking-wide text-mut"
-              >
-                Senha
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-semibold text-pri hover:underline"
-              >
-                Esqueci minha senha
-              </Link>
-            </div>
             <input
               id="password"
               name="password"
               type="password"
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
+              autoFocus
+              className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
+            />
+            <p className="mt-1 text-[11px] text-mut">Mínimo de 8 caracteres.</p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="password_confirm"
+              className="text-xs font-bold uppercase tracking-wide text-mut"
+            >
+              Confirmar nova senha
+            </label>
+            <input
+              id="password_confirm"
+              name="password_confirm"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
               className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
             />
           </div>
@@ -96,13 +82,12 @@ export default function LoginPage() {
             disabled={pending}
             className="w-full py-2.5 bg-pri hover:bg-pril text-white text-sm font-semibold rounded-lg disabled:opacity-50 transition-colors"
           >
-            {pending ? 'Entrando...' : 'Entrar'}
+            {pending ? 'Salvando...' : 'Salvar nova senha'}
           </button>
 
           <p className="text-xs text-mut text-center">
-            Recebeu um convite?{' '}
-            <Link href="/signup" className="font-semibold text-pri hover:underline">
-              Crie sua conta
+            <Link href="/forgot-password" className="font-semibold text-pri hover:underline">
+              Solicitar outro link
             </Link>
           </p>
         </form>

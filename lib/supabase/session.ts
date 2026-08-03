@@ -47,6 +47,11 @@ export async function updateSession(request: NextRequest) {
     // definição, anônimo. A trava não é o guard e sim o trigger handle_new_user
     // (0022), que rejeita e-mail sem convite pendente na allowlist.
     path === '/signup' ||
+    // Recuperação de senha: quem esqueceu a senha está, por definição, anônimo.
+    path === '/forgot-password' ||
+    // Callback dos links de e-mail (recovery/convite) — precisa rodar anônimo
+    // para poder trocar o code/token_hash por sessão.
+    path.startsWith('/auth/') ||
     path.startsWith('/_next') ||
     path === '/favicon.ico' ||
     path === '/' ||
