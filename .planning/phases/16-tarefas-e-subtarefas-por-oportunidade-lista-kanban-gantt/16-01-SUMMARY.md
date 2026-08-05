@@ -158,3 +158,7 @@ None — a única ação humana era o apply da migration, que já foi concluído
 ---
 *Phase: 16-tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt*
 *Completed: 2026-08-05*
+
+## Self-Check: PASSED
+
+All created files and referenced commits verified to exist on disk / in git history.
