@@ -7,6 +7,7 @@ import {
   fetchDocumentsForOpportunity,
   fetchNotesForOpportunity,
   fetchHistoryForOpportunity,
+  fetchTasksForOpportunity,
 } from '@/lib/opportunities/queries';
 import {
   isReadOnlyViewer,
@@ -19,6 +20,7 @@ import {
   fetchAssignableProfiles,
 } from '@/lib/opportunities/assignees';
 import { AssigneesPanel } from '@/components/opportunities/AssigneesPanel';
+import { TasksEntryCard } from '@/components/opportunities/tasks/TasksEntryCard';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
 
 /**
@@ -33,7 +35,7 @@ export default async function OpportunityDetailPage({
   const { id } = await params;
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) notFound();
-  const [phases, risks, documents, notes, history, readOnly, assignees, profile] =
+  const [phases, risks, documents, notes, history, readOnly, assignees, profile, tasks] =
     await Promise.all([
       fetchPhasesForOpportunity(id),
       fetchRisksForOpportunity(id),
@@ -43,6 +45,7 @@ export default async function OpportunityDetailPage({
       isReadOnlyViewer(),
       fetchAssigneesForOpportunity(id),
       getCurrentProfile(),
+      fetchTasksForOpportunity(id),
     ]);
 
   // Atribuir é privilégio de admin (0032). O platform_admin atribui em qualquer
@@ -71,6 +74,10 @@ export default async function OpportunityDetailPage({
             options={assignableProfiles}
             canAssign={canAssign}
           />
+        </div>
+
+        <div className="mb-4">
+          <TasksEntryCard opportunityId={opportunity.id} taskCount={tasks.length} />
         </div>
 
         <OpportunityDetail
