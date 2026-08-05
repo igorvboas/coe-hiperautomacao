@@ -9,6 +9,7 @@ import type {
   OpportunityDocument,
   OpportunityNote,
   OpportunityHistoryEntry,
+  OpportunityTask,
 } from './types';
 import type { OpportunityFilters } from './filters';
 import { SEGMENTO_STATUSES, STATUS_ALL } from './status';
@@ -63,6 +64,15 @@ const RISK_COLUMNS =
   'id, opportunity_id, tenant_id, descricao, tipo, responsavel, ' +
   'impacto, probabilidade, status, resposta, descricao_impacto, ' +
   'priority, created_by, created_at, updated_at';
+
+/**
+ * Whitelist para `opportunity_tasks` (0037, Phase 16) — mesma motivação de
+ * HARDEN-E-06 (sem `select('*')`). 14 colunas da migration; sem span/percentual
+ * agregado (D-02 — rollup é sempre calculado em runtime, nunca lido daqui).
+ */
+const TASK_COLUMNS =
+  'id, opportunity_id, tenant_id, parent_task_id, title, description, status, ' +
+  'start_date, due_date, assignee_id, blocked_reason, created_by, created_at, updated_at';
 
 /** Whitelist para `opportunity_documents` (v0.3, 0018). */
 const DOCUMENT_COLUMNS =
@@ -356,6 +366,58 @@ export async function fetchRiskById(
 
   if (error) {
     throw new Error(`Erro ao buscar risco: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Busca as tarefas (raiz + subtarefas) de uma oportunidade (`opportunity_tasks`,
+ * 0037, Phase 16). RLS protege por tenant — não precisa passar tenant_id.
+ *
+ * Ordenação: `created_at asc` — é a ordem estável que dá o rótulo T001/T002 da
+ * UI-SPEC (mesma convenção de `fetchRisksForOpportunity`). Neste tracer (16-02)
+ * a Lista renderiza só as tarefas raiz; a expansão hierárquica é do plano 16-04.
+ */
+export async function fetchTasksForOpportunity(
+  opportunityId: string
+): Promise<OpportunityTask[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_tasks')
+    .select(TASK_COLUMNS)
+    .eq('opportunity_id', opportunityId)
+    .order('created_at', { ascending: true })
+    .returns<OpportunityTask[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar tarefas: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Busca uma tarefa por id (usado pelas rotas fullscreen de subtarefa/edição dos
+ * planos seguintes). RLS filtra implicitamente — `null` no not-found E no
+ * cross-tenant (IDOR, T-16-07): a rota converte em `notFound()`, nunca em erro
+ * que revele existência.
+ */
+export async function fetchTaskById(
+  taskId: string
+): Promise<OpportunityTask | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_tasks')
+    .select(TASK_COLUMNS)
+    .eq('id', taskId)
+    .maybeSingle()
+    .returns<OpportunityTask>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar tarefa: ${error.message}`);
   }
 
   return data;
