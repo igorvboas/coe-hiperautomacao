@@ -292,3 +292,61 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 
 ---
 *Seção v0.2 criada em 2026-06-04 pelo gsd-roadmapper. 7 fases (9–15), 35/35 REQ-IDs mapeados. Próximo: `/gsd-plan-phase 9`.*
+
+---
+
+# Milestone v0.5 — Execução: Tarefas e Subtarefas por Oportunidade
+
+> **Numeração:** continua a partir do v0.2 (que terminou na Phase 15). A primeira fase do v0.5 é a **Phase 16**.
+>
+> **Contexto:** entre o fim do v0.2 e esta milestone houve trabalho v0.3/v0.4 entregue fora do roadmap (super-admin de plataforma, e-mails transacionais, blend de score 50/30/20 na migration `0027`, backlog no fluxo de priorização). A Phase 16 parte do estado real do `main`, não do estado registrado no fim do v0.2.
+>
+> **Granularidade:** standard. **Cobertura:** 11/11 REQ-IDs `TASK-*` mapeados.
+
+## Phases
+
+- [ ] **Phase 16: Tarefas e Subtarefas por Oportunidade (Lista / Kanban / Gantt)** — Cada oportunidade ganha um plano de atividades em 2 níveis (tarefa → subtarefa), com responsável do próprio tenant, visível em Lista, Kanban e Gantt.
+
+## Phase Details
+
+### Phase 16: Tarefas e Subtarefas por Oportunidade (Lista / Kanban / Gantt)
+**Goal**: Dentro de uma oportunidade, o usuário mapeia as atividades de execução como tarefas com subtarefas (2 níveis), atribui cada uma a uma pessoa do seu tenant e acompanha o conjunto em três visões — Lista, Kanban e Gantt — expandindo e comprimindo as subtarefas de cada tarefa.
+**Depends on**: Phase 9 (schema/RLS base + padrão `opportunity_risks` como analog de tabela filha), Phase 10 (server actions + Zod + whitelist de colunas), Phase 13 (padrão de Kanban com dnd-kit e de modal por abas)
+**Requirements**: TASK-01, TASK-02, TASK-03, TASK-04, TASK-05, TASK-06, TASK-07, TASK-08, TASK-09, TASK-10, TASK-11
+**Success Criteria** (what must be TRUE):
+  1. Existe a tabela `opportunity_tasks` com `tenant_id uuid not null` (FK → `tenants`), `opportunity_id`, `parent_task_id` self-FK, `title`, `description`, `status`, `start_date`, `due_date`, `assignee_id` (FK → `profiles`) e `blocked_reason`; RLS ativado com as 4 policies padrão via `current_tenant_id()`, e um teste cruzado confirma que tenant A não enxerga tarefas do tenant B.
+  2. O banco impede aninhamento além de 2 níveis: uma linha cujo `parent_task_id` não é nulo não pode ser pai de nenhuma outra (rejeitado por constraint/trigger, não só pela UI). Também é rejeitada no banco a atribuição de um `assignee_id` cujo profile pertence a outro tenant — mesmo trigger de coerência de tenant usado em `opportunity_assignees` (0032).
+  3. A partir de uma oportunidade, o usuário cria uma tarefa preenchendo título, descrição, responsável (select que lista **somente** usuários do tenant corrente), status, início e fim; e a partir dessa tarefa adiciona subtarefas com os mesmos campos. Edição e remoção funcionam para os dois níveis; remover a pai remove as filhas após confirmação explícita.
+  4. A view **Lista** mostra as tarefas com suas subtarefas aninhadas e um controle de expandir/comprimir por tarefa; o estado de expansão é por tarefa, não global.
+  5. A view **Kanban** mostra exatamente 4 colunas na ordem Backlog → Em Andamento → Bloqueio → Finalizado; arrastar um card muda o status persistido; mover para **Bloqueio** exige o motivo do bloqueio antes de concluir a movimentação, e o motivo aparece no card.
+  6. A view **Gantt** posiciona cada tarefa/subtarefa no tempo pelas suas datas, com expandir/comprimir das subtarefas; a barra da tarefa-pai cobre o span do menor início ao maior fim das filhas e exibe o % de conclusão agregado.
+  7. Span agregado e % de conclusão da tarefa-pai são **calculados em runtime** (view SQL ou client) e **não existem como coluna persistida** em `opportunity_tasks`; alterar uma subtarefa reflete imediatamente na pai sem escrita adicional.
+  8. `lib/database.types.ts` (mantido à mão — type-gen bloqueado) inclui `opportunity_tasks` e os enums novos, e `tsc --noEmit` passa limpo.
+**Plans**: TBD (a planejar)
+**UI hint**: yes
+
+### Decisões travadas com o PO (2026-08-04) — não reabrir no planejamento
+
+1. **Hierarquia** — exatamente 2 níveis. Tabela única `opportunity_tasks` com `parent_task_id` self-FK; subtarefa não pode ter filhas (CHECK/trigger no banco).
+2. **Gantt** — `start_date`/`due_date` manuais em tarefa e subtarefa. A pai **exibe** span agregado (min início / max fim das filhas) e % de conclusão agregado, sempre **calculado, nunca persistido** (princípio 3 do CLAUDE.md).
+3. **Status** — enum fixo de 4 valores = 4 colunas do Kanban, na ordem Backlog → Em Andamento → Bloqueio → Finalizado. Sem colunas configuráveis por tenant. Bloqueio exige motivo.
+4. **Responsável** — **um** por tarefa: `assignee_id` FK → `users(id)`, obrigatoriamente do mesmo tenant (validado no banco além do RLS). Sem múltiplos responsáveis, sem nome livre.
+
+## Restrições aplicadas (de PROJECT.md / CLAUDE.md)
+
+1. **Multi-tenant via RLS**: `opportunity_tasks` carrega `tenant_id` + RLS com policy padrão `tenant_id = current_tenant_id()`; critério de sucesso inclui verificação cruzada A≠B.
+2. **Derivado é calculado, nunca persistido**: span e % de conclusão da tarefa-pai seguem a mesma regra do score.
+3. **Sem cross-tenant/admin**: nenhuma rota ou query que cruze tenants.
+4. **Stack**: Next.js 16 (App Router) + Supabase; Server Components por padrão, `"use client"` só em Kanban/Gantt/modais; mutações por Server Actions.
+5. **Reuso obrigatório** (verificado no `main` em 2026-08-04):
+   - `@dnd-kit/core` + `@dnd-kit/sortable` já são dependências; o Kanban de oportunidades (`components/opportunities/kanban/{Board,Column,Card}.tsx`) é o analog do Kanban de tarefas.
+   - **Gantt não precisa de biblioteca nova**: já existem dois Gantt zero-dep em CSS/Tailwind com barras posicionadas por porcentagem — `components/opportunities/gantt/GanttChart.tsx` e `components/proposal/GanttChart.tsx`. O Gantt de tarefas segue esse padrão.
+   - **O seletor de pessoas já existe**: `lib/opportunities/assignees.ts` (`AssignableProfile`, 0032) já lista os profiles atribuíveis do tenant corrente. O select de responsável reusa isso em vez de criar query nova.
+   - Camada de dados de `opportunity_risks` (`lib/opportunities/risk-{schema,actions,labels}.ts` + `components/opportunities/modal/risk/`) é o analog end-to-end mais próximo: Zod strict → server actions com tenant server-derived → tabela + form em sub-rota.
+   - **Não há shadcn/ui instalado** — `components/` é Tailwind escrito à mão (`components/ui/` não existe). Compor no estilo vigente; não introduzir shadcn nesta fase.
+6. **Write-only mode para migrations**: arquivo + handoff de apply manual no SQL Editor do Supabase Cloud. Próximo número livre: **`0037`** (a última no repo é `0036_public_opportunities_no_status_filter.sql` — o `0027` citado no CLAUDE.md está desatualizado).
+7. **`lib/database.types.ts` é hand-maintained** (type-gen bloqueado) — a fase precisa incluir a task de atualizá-lo à mão.
+8. **Responsável é `profiles`, não `users`**: a tabela de pessoas do tenant no schema vivo é `profiles` (`opportunity_assignees.profile_id → profiles(id)`, 0032). O `assignee_id` de tarefa referencia `profiles(id)`.
+
+---
+*Seção v0.5 criada em 2026-08-04. 1 fase (16), 11/11 REQ-IDs `TASK-*` mapeados. Próximo: `/gsd-plan-phase 16`.*

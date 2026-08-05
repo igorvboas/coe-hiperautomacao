@@ -63,6 +63,24 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 - [ ] **CONTRACT-01**: `_giba_wsi-dashboard.html` documentado como a fonte da verdade visual + modelo; CLAUDE.md atualizado (nova fórmula de score, novo modelo de dados, novo wizard)
 - [ ] **CONTRACT-02**: `fgcoop-coe-v2.html` marcado como deprecated (não mais contrato)
 
+## v0.5 Requirements
+
+Milestone **v0.5 — Execução: Tarefas e Subtarefas por Oportunidade**. Adicionado em 2026-08-04 a pedido do PO. Decisões de produto travadas na abertura (ver Phase 16 no ROADMAP).
+
+### TASK — Tarefas e subtarefas de uma oportunidade
+
+- [ ] **TASK-01**: Uma oportunidade tem tarefas (atividades do mapeamento) com título, descrição, status, data de início, data de fim e responsável
+- [ ] **TASK-02**: Uma tarefa tem subtarefas — hierarquia de **exatamente 2 níveis**; uma subtarefa nunca pode ter filhas (garantido no banco, não só na UI)
+- [ ] **TASK-03**: Cada tarefa/subtarefa é atribuída a **no máximo um** usuário, obrigatoriamente do **mesmo tenant** da oportunidade; o seletor de responsável só lista usuários daquele tenant
+- [ ] **TASK-04**: Tarefas são isoladas por tenant — `opportunity_tasks` com `tenant_id not null` + RLS e as 4 policies padrão; tenant A não enxerga tarefas do tenant B
+- [ ] **TASK-05**: O usuário cria uma tarefa e, a partir dela, adiciona subtarefas, preenchendo todos os campos da tarefa/subtarefa em uma interface dedicada (form/modal)
+- [ ] **TASK-06**: O usuário edita e remove tarefas e subtarefas; remover uma tarefa-pai remove suas subtarefas, com confirmação explícita
+- [ ] **TASK-07**: View **Lista** das atividades da oportunidade, com expandir/comprimir (show/hide) das subtarefas de cada tarefa
+- [ ] **TASK-08**: View **Kanban** das atividades com exatamente 4 colunas na ordem Backlog → Em Andamento → Bloqueio → Finalizado, com drag-and-drop para mudar o status
+- [ ] **TASK-09**: Mover uma tarefa para **Bloqueio** exige informar o motivo do bloqueio; o motivo fica visível no card e no detalhe da tarefa
+- [ ] **TASK-10**: View **Gantt** das atividades no tempo, com barras por tarefa/subtarefa e expandir/comprimir das subtarefas
+- [ ] **TASK-11**: No Gantt e na Lista, a tarefa-pai exibe o **span agregado** (menor início / maior fim das subtarefas) e o **% de conclusão agregado** — ambos **calculados em runtime, nunca persistidos** (mesma regra do score)
+
 ## Future Requirements (deferred)
 
 - **AI-GEN**: Geração por IA dos campos derivados (`fteHoras`, `rpaScore`, `prioridade.fte`, `ferramenta`, `riscos`, score) a partir do input bruto — "2º momento", estende a Phase 7.6. Adiado por decisão do PO (2026-06-04); v0.2 entrega preenchimento manual sobre schema já compatível (MODEL-10).
@@ -117,5 +135,16 @@ Fonte da verdade do delta: [`_giba_wsi-dashboard.html`](../_giba_wsi-dashboard.h
 | DATA-01 | 15 |
 | CONTRACT-01 | 9 |
 | CONTRACT-02 | 9 |
+| TASK-01 | 16 |
+| TASK-02 | 16 |
+| TASK-03 | 16 |
+| TASK-04 | 16 |
+| TASK-05 | 16 |
+| TASK-06 | 16 |
+| TASK-07 | 16 |
+| TASK-08 | 16 |
+| TASK-09 | 16 |
+| TASK-10 | 16 |
+| TASK-11 | 16 |
 
-**Cobertura:** 35/35 REQ-IDs mapeados, cada um a exatamente uma fase. (MODEL-10 é uma restrição de compatibilidade satisfeita pelo schema da Phase 9 e verificada na Phase 10 — sem duplicação de entrega.)
+**Cobertura:** 35/35 REQ-IDs do v0.2 mapeados, cada um a exatamente uma fase. (MODEL-10 é uma restrição de compatibilidade satisfeita pelo schema da Phase 9 e verificada na Phase 10 — sem duplicação de entrega.) **v0.5:** 11/11 REQ-IDs `TASK-*` mapeados à Phase 16.
