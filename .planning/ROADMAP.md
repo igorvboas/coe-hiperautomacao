@@ -26,6 +26,7 @@
 **Plans:** 6 plans em 6 waves (paralelismo limitado — cada plan tem dependência clara).
 
 Plans:
+
 - [x] 07.5-01-PLAN.md — Wave 0: Infraestrutura de testes (Vitest + seed + scripts shell) [HARDEN-INFRA-01..04] — **DONE 2026-05-22** (8min, 4 commits 059cddd..4fdfeac)
 - [x] 07.5-02-PLAN.md — Wave 1: Atomicidade `seq_id` (migration 0006 + teste 50 inserts paralelos) [Bloco C, HARDEN-C-01..03] — **DONE 2026-05-22** (~8min, 3 commits f964c69 migration 0006 tenant_sequences + next_seq_id atômico + trigger always-override, d11a110 HANDOFF.md para apply manual no Supabase Cloud, d635d22 atomicity.test.ts com describe.skipIf). **Apply manual no Dashboard SQL Editor pendente** — handoff em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-02-MIGRATION-HANDOFF.md`.
 - [x] 07.5-03-PLAN.md — Wave 2: Zod `.strict()` + audit de Mass Assignment em Server Actions [Bloco B, HARDEN-B-01..04] — **DONE 2026-05-22** (~5min, 4 commits a91e924..e42b486)
@@ -34,6 +35,7 @@ Plans:
 - [x] 07.5-06-PLAN.md — Wave 5: Hardening do formulário público (migration 0007 + Turnstile + BotID + logging) [Bloco D, HARDEN-D-01..04, D-06, D-07; D-05 manual-only] — **DONE 2026-05-22** (~17min, 8 commits f4f17f9..b98bf6d). 4 camadas de defesa: BotID edge + Cloudflare Turnstile invisível + Server Action com log/pt-BR genérico + RPC `create_public_opportunity` com length/array/jsonb limits. IP hashed por construção (THROW sem `IP_HASH_SALT`). **Write-only mode** — migration 0007 + 3 env vars Vercel (NEXT_PUBLIC_TURNSTILE_SITE_KEY + TURNSTILE_SECRET_KEY + IP_HASH_SALT) pendentes de setup manual. Detalhes em `.planning/phases/07.5-hardening-seguranca-mvp/07.5-06-SUMMARY.md`.
 
 **Dependências entre plans:**
+
 - 02, 03, 05 dependem só de 01 (infra de testes)
 - 04 depende de 01 + 02 + 03 (testes RLS usam infra + seq_id atômico + schema strict)
 - 06 depende de 01 + 02 + 03 + 05 (form público usa todas as defesas, inclusive CSP do Plan 05)
@@ -47,6 +49,7 @@ Plans:
 **Plans:** 6 plans em 4 waves (paralelismo otimizado em waves 2-3).
 
 Plans:
+
 - [ ] 07.6-01-PLAN.md — Wave 0: Infra (npm install openai + `serviceRoleClient()` em lib/supabase/server.ts + migration 0010 + handoff doc + OPPORTUNITY_COLUMNS update) [AI-DB-01, AI-DB-02, AI-RLS-01, HARDEN-E-06-EXT]. Inclui **[BLOCKING] apply manual** da migration 0010 no Supabase Cloud Dashboard SQL Editor.
 - [ ] 07.6-02-PLAN.md — Wave 1: Pipeline IA (`lib/ai/schema.ts` Zod 9 campos + `lib/ai/prompts.ts` builder anti prompt-injection + `lib/ai/enrichment.ts` wrapper completo com gpt-4o-mini + parse + zodResponseFormat + WHERE defensivo triplo + testes mockados via `vi.mock('openai')`) [AI-MODEL-01, AI-RLS-01, AI-IDEMP-01, AI-TEST-01, AI-TEST-02].
 - [ ] 07.6-03-PLAN.md — Wave 2: Server Action integration (campos enriquecidos viram opcionais em `opportunityInputSchema` + `createOpportunity`/`createPublicOpportunity` disparam `after(enrichOpportunity)` envolto em try/catch + testes mockam `next/server.after` para verificar wiring) [AI-ASYNC-01, AI-SCHEMA-OPT-01].
@@ -55,6 +58,7 @@ Plans:
 - [ ] 07.6-06-PLAN.md — Wave 3: Modal badge + smoke E2E (componente novo `AiEnrichmentBadge.tsx` com 3 estados pt-BR pending/failed/enriched + integração em `ModalHeader.tsx` ao lado do StatusSelector + instalar `@testing-library/react` + `jsdom` + tests + `checkpoint:human-verify` para smoke A wizard interno + smoke B form público + smoke C path de falha com `OPENAI_API_KEY` inválida) [AI-UI-01, AI-ADMIN-01]. **Paralelo com 04 e 05.**
 
 **Dependências entre plans (encoded em frontmatter `depends_on`):**
+
 - Wave 0: Plan 01 sozinho (sem deps; bloqueia tudo).
 - Wave 1: Plan 02 depende de 01 (precisa do openai npm pkg + `serviceRoleClient()` para implementar enrichment).
 - Wave 2: Plan 03 depende de 01 + 02 (importa `enrichOpportunity` de Plan 02).
@@ -64,6 +68,7 @@ Plans:
 **Tasks com [BLOCKING] smoke verification:** Plan 06 Task 3 (smoke E2E manual com `OPENAI_API_KEY` real).
 
 **User setup pendente antes de executar:**
+
 - `SUPABASE_SERVICE_ROLE_KEY` em `.env.local` (gerado em Supabase Dashboard → Project Settings → API → service_role)
 - `OPENAI_API_KEY` em `.env.local` populado com chave real (gerado em https://platform.openai.com/api-keys; já presente vazio em `.env.example` e `.env.local`)
 - Aplicar migration 0010 no Dashboard SQL Editor + rodar `npm run gen:types` (gates de Plan 01 Task 6)
@@ -128,7 +133,6 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 ---
 *Última atualização: 2026-05-26 — Phase 7.6 planejada em 6 plans/4 waves. `/gsd-plan-phase 7.6` produziu plans `07.6-01-PLAN.md` a `07.6-06-PLAN.md` em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`. Próximo: rodar Plan 01 (Wave 0 — `npm install openai` + `serviceRoleClient()` + migration 0010 + [BLOCKING] apply manual + handoff doc), depois Plans 02 (Wave 1, depende de 01) → 03 (Wave 2, depende de 02) → 04+05+06 em paralelo (Wave 3, todos dependem só de 01 com 06 também dependendo de 02+03 para smoke).*
 
-
 ---
 
 # Milestone v0.2 — Roadmap (Evolução do Modelo / Workshop I — Unidasul)
@@ -156,106 +160,138 @@ Listado em PROJECT.md → Out of Scope. Resumo:
 ## Phase Details
 
 ### Phase 9: Schema Evolution + Score/Risk/Contract Foundation
+
 **Goal**: O banco passa a suportar o novo modelo (FTE, RPA Fit, fonte, tipoProcesso, benefício qualitativo, 8 critérios first-class, score de 5 fatores e registro de riscos), aplicado a todos os tenants sem perda de dados — e o contrato visual/modelo é oficialmente trocado.
 **Depends on**: Phase 8 (v0.1 — schema base existente)
 **Requirements**: MODEL-01, MODEL-02, MODEL-03, MODEL-04, MODEL-05, MODEL-06, MODEL-07, MODEL-08, MODEL-09, MODEL-10, SCORE-01, SCORE-02, SCORE-03, RISK-04, CONTRACT-01, CONTRACT-02
 **Success Criteria** (what must be TRUE):
+
   1. Uma migration aplicada (write-only mode: arquivo + handoff de apply manual no Supabase Cloud SQL Editor) adiciona `fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo` e os 8 critérios first-class (SIM/NÃO/PARCIAL) às oportunidades, com backfill dos critérios antigos de `formulario_extras` sem perda de dados.
   2. A função `opportunity_score()` recriada retorna 5 fatores × 20 = 100 (esforço + complexidade + tempo[frequência] + objetivo + fte) batendo com `_giba:483-490`; a view `opportunities_with_score` expõe `score` + `priority_level` (alta ≥70 / média 40–69 / baixa <40). Score continua calculado em runtime, nunca persistido em coluna.
   3. `rpaScore` (0–6) é derivado dos 8 critérios por regra determinística documentada (em função SQL ou na view), não persistido como input manual arbitrário.
   4. A tabela `opportunity_risks` existe com `tenant_id not null` + RLS ativado e as 4 policies padrão (select/insert/update/delete por `current_tenant_id()`); um teste cruzado confirma que tenant A não enxerga riscos do tenant B.
   5. `_giba_wsi-dashboard.html` está documentado como a fonte da verdade visual/modelo e o `CLAUDE.md` reflete a nova fórmula de score, o novo modelo e o novo wizard; `fgcoop-coe-v2.html` está marcado como deprecated.
+
 **Plans**: 3 plans (planejados em 2026-06-04) — Wave 0: 01 (migration) ‖ 02 (docs); Wave 1: 03 (testes)
+
 - [ ] 09-01-PLAN.md — Migração 0011 (enums, colunas, rpa_score GENERATED, tempo→frequência, opportunity_score 5-fatores, backfill FGCoop, opportunity_risks + RLS) + handoff de apply manual [BLOCKING]
 - [ ] 09-02-PLAN.md — Troca de contrato: CLAUDE.md (nova fórmula/modelo/wizard/risco) + fgcoop-coe-v2.html marcado deprecated
 - [ ] 09-03-PLAN.md — Validação: testes de regra puros (rpa_score, score, matriz priority) + isolamento cross-tenant A≠B em opportunity_risks (skipIf)
 
 ### Phase 10: Backend — Queries, Validação e Paridade de Score
+
 **Goal**: A camada de aplicação (queries de leitura, server actions de mutação, Zod schema e tipos gerados) cobre o novo modelo, e o preview de score exibido no cliente é idêntico ao calculado no backend.
 **Depends on**: Phase 9
 **Requirements**: SCORE-04
 **Success Criteria** (what must be TRUE):
+
   1. Tipos TypeScript regenerados (`gen:types`) expõem os novos campos e a tabela `opportunity_risks`; as queries de leitura selecionam os novos campos via whitelist de colunas (sem `select('*')` cego).
   2. O `opportunityInputSchema` (Zod `.strict()` / discriminatedUnion) aceita e valida `fteHoras`, `rpaScore`, `fonte`, `tipoProcesso`, `beneficioQualitativo`, os 8 critérios e o bucket `prioridade.fte`, rejeitando campos não reconhecidos (defesa anti mass-assignment preservada).
   3. O preview de score calculado no cliente (durante o wizard) produz exatamente o mesmo número que `opportunity_score()` no backend para o mesmo input — verificado por um teste de paridade que compara as duas fórmulas em casos representativos.
   4. O schema permanece compatível com o enrichment por IA (MODEL-10): campos derivados são preenchíveis manualmente agora e por IA depois, sem exigir refatoração de schema.
+
 **Plans**: 4 plans (planejados em 2026-06-04) — Wave 1: 01 (tipos+RPC) ‖ 02 (paridade score); Wave 2: 03 (schema+whitelist); Wave 3: 04 (testes legados+AI-compat)
+
 - [ ] 10-01-PLAN.md — Regen de tipos (MCP) + migration 0012 (RPC create_public_opportunity p_tempo→frequency_bucket, BLOCKING apply) + remoção dos any-casts do teste de riscos [SC1, D-04]
 - [ ] 10-02-PLAN.md — Paridade SCORE-04: módulo único lib/opportunities/score.ts + rewire do ScorePreview + teste de paridade 2 níveis (puro + skipIf SQL contra opportunity_score()) [SCORE-04, D-01]
 - [ ] 10-03-PLAN.md — opportunityInputSchema aditivo (campos novos + criterios minúsculo + tempo frequência + bucket prioridade.fte) + riskInputSchema + whitelist OPPORTUNITY_COLUMNS ampliada [SC1, SC2, D-02, D-03]
 - [ ] 10-04-PLAN.md — Migração dos ~7 testes legados ao domínio de frequência + verificação MODEL-10/SC4 (AI-compat) + suite/tsc verdes [SC4, D-04]
 
 ### Phase 11: Wizard de Fluxo Único (5 steps)
+
 **Goal**: O usuário cria uma oportunidade por um único wizard de 5 steps que coleta identificação, processo, os 8 critérios, os 8 benefícios + FTE e a priorização de 5 fatores — substituindo o split persona/formulário.
 **Depends on**: Phase 10
 **Requirements**: WIZARD-01, WIZARD-02, WIZARD-03, WIZARD-04
 **Success Criteria** (what must be TRUE):
+
   1. Ao criar uma oportunidade, o usuário percorre exatamente 5 steps na ordem Identificação → Processo → Critérios → Benefícios → Priorização (sem ramificação persona/formulário).
   2. O step "Critérios" coleta os 8 critérios com valores SIM/NÃO/PARCIAL; o step "Benefícios" coleta os 8 benefícios em escala 1–5 mais a estimativa de FTE em horas/mês.
   3. O step "Priorização" coleta os 5 fatores de score, incluindo o bucket de FTE, com os pesos visíveis ao usuário, e exibe o score resultante.
   4. Validações por step bloqueiam o avanço quando faltam campos obrigatórios (nome + área no step 1; processo no step 2), com mensagem clara em pt-BR.
+
 **Plans**: 3 plans (planejados em 2026-06-04, plan-checker PASSED 1ª passada) — Wave 1: 01 (fundação); Wave 2: 02 ‖ 03 (zero overlap)
+
 - [x] 11-01-PLAN.md — Fundação: `lib/opportunities/fte.ts` `deriveFteBucket` (horas→bucket, fonte única, teste de bordas) + `state.ts` fluxo único create (5 steps, sempre `source='formulario'`, sem Tipo/Classificação) + `validateStep` Identificação(nome+área)/Processo(processo) pt-BR [WIZARD-01, WIZARD-04]
 - [x] 11-02-PLAN.md — Rewrite Critérios + Benefícios p/ modelo first-class v0.2: 8 chaves camelCase em `data.criterios`(sim/nao/parcial, click-to-cycle) e `data.beneficios`(1–5, barras) + captura de `fte_horas`; remove gravação em `formulario_extras` [WIZARD-03, WIZARD-04]
 - [x] 11-03-PLAN.md — Processo: Frequência→select que alimenta `tempo` (fonte única, resolve redundância) + Ferramenta (default n8n); Priorização: 4 fatores manuais com pesos + display read-only do bucket FTE derivado + `ScorePreview` recebe `fte`; `WizardShell` deriva `prioridade_fte` no submit (persiste o 5º fator) [WIZARD-01, WIZARD-02]
+
 **UI hint**: yes
 
 ### Phase 12: Registro de Riscos (UI do modal)
+
 **Goal**: Dentro do modal de uma oportunidade, o usuário gerencia riscos estruturados — cadastra, edita e remove — com prioridade auto-calculada pela matriz impacto×probabilidade.
 **Depends on**: Phase 9 (tabela `opportunity_risks`), Phase 10 (server actions / validação)
 **Requirements**: RISK-01, RISK-02, RISK-03, RISK-05
 **Success Criteria** (what must be TRUE):
+
   1. Na aba "Risco" do modal, o usuário cadastra um risco com descrição, tipo (Impedimento/Risco/Oportunidade), responsável (PSW/UnidaSul), impacto, probabilidade, status (Novo/Gerenciado/Mitigado/Ocorrido), resposta ao risco e descrição do impacto.
   2. A prioridade do risco (Crítica/Alta/Média/Baixa) é exibida automaticamente conforme a matriz impacto×probabilidade de `_giba:1180-1185`, sem o usuário escolhê-la manualmente.
   3. O usuário edita e remove riscos existentes de uma oportunidade, e as mudanças persistem (refletem após reabrir o modal).
   4. A aba "Risco" lista os riscos da oportunidade em tabela com ID (Rxxx), descrição, tipo, responsável, impacto, probabilidade, prioridade, status e ações.
+
 **Plans**: 2 plans (planejados em 2026-06-05) — Wave 1: 01 (camada de dados); Wave 2: 02 (UI, depende de 01)
+
 - [x] 12-01-PLAN.md — Camada de dados: query whitelisted (fetchRisksForOpportunity/fetchRiskById), server actions create/update/deleteRisk (Zod + tenant server-derived, priority via trigger), módulo de labels enum→PT [RISK-01, RISK-02, RISK-03] — **DONE 2026-06-05** (~5min, 4 commits `4fb21eb`/`26d22d0`/`e68b693`/`a9eb080`). Zero deviations, zero migration. tsc clean; tests/security+schema 78 passed/32 skipped/0 failed. Detalhes em `.planning/phases/12-registro-riscos-modal/12-01-SUMMARY.md`.
 - [x] 12-02-PLAN.md — UI da aba Risco: tabela estruturada (RISK-05, remove campo legado), RiskForm + dialog empilhado (?risco, z-[60]) + prioridade read-only só após salvar (D-04), exclusão com confirmação (D-06), rotas fullscreen de deep-link (D-02) [RISK-01, RISK-02, RISK-03, RISK-05]
+
 **UI hint**: yes
 
 ### Phase 13: Atualizações de Tela (KPI / Tabela / Kanban / Modal)
+
 **Goal**: As telas existentes (KPI bar, tabela, kanban e modal de detalhe) refletem o novo modelo — FTE, frequência, complexidade, RPA Fit e novo score — em paridade com `_giba_wsi-dashboard.html`.
 **Depends on**: Phase 10 (dados do novo modelo disponíveis no front)
 **Requirements**: VIEW-01, VIEW-02, VIEW-03, VIEW-04, VIEW-05
 **Success Criteria** (what must be TRUE):
+
   1. A KPI bar exibe FTE Total/mês mais contadores de Novos/Produção/Concluídos.
   2. A tabela exibe as colunas Frequência, Pessoas, Complexidade, FTE/mês e RPA Fit; a ordenação oferece classificar por FTE e pelo novo score.
   3. No kanban (Gestão à Vista), cada coluna de status mostra o FTE somado das oportunidades naquela coluna.
   4. O modal de detalhe exibe as 8 abas alinhadas ao novo modelo (Processo / Critérios / Automação / Benefícios / Score / Fases / Risco / Observação).
+
 **Plans**: 5 plans (planejados em 2026-06-05) — Wave 1: 01 (fundação/testes) ‖ 04 (modal display 8 abas); Wave 2: 02 (KPI+tabela, dep 01) ‖ 05 (modal editável, dep 01+04); Wave 3: 03 (kanban, dep 02)
+
 - [x] 13-01-PLAN.md — Fundação Wave 0: extrai `lib/opportunities/rpa.ts` `deriveRpaScore` (do teste existente) + specs de contrato (kpis/rpa-badge/filters) [VIEW-01, VIEW-03] ✅ 2026-06-05
 - [x] 13-02-PLAN.md — KPI bar 9 KPIs (FTE Total + Novos/Produção/Concluídos) + tabela colunas FTE/mês+RPA Fit (mantém Fonte) + sort por FTE; `FteCell`/`RpaFitBadge`/`rpaTier` em cells.tsx [VIEW-01, VIEW-02, VIEW-03] ✅ 2026-06-05
 - [x] 13-03-PLAN.md — Kanban: FTE somado por coluna + chip FTE/badge RPA por card (reusa RpaFitBadge) [VIEW-04] ✅ 2026-06-05
 - [x] 13-04-PLAN.md — Modal display: colapsa 2 conjuntos em 1 de 8 abas, realinha Critérios/Benefícios/Score ao first-class v0.2, move `risco` legado → Observação; Perfil/Desafios/CoE desligados [VIEW-05] ✅ 2026-06-05
 - [x] 13-05-PLAN.md — Modal editável (modo global D-12): Editar/Salvar/Cancelar reusando WizardShell recipe + `updateOpportunity`; derivados read-only que recalculam; checkpoint human-verify APROVADO pelo PO (commits 15f4f28+86bb78c+7555049) [VIEW-05] ✅ 2026-06-05
+
 **UI hint**: yes
 
 ### Phase 14: View "Relatório"
+
 **Goal**: O usuário acessa uma nova view analítica "Relatório" que sintetiza o portfólio de oportunidades em cards, distribuição por área e gráficos de pizza.
 **Depends on**: Phase 10 (dados agregáveis do novo modelo)
 **Requirements**: REPORT-01, REPORT-02, REPORT-03, REPORT-04
 **Success Criteria** (what must be TRUE):
+
   1. Uma nova view "📈 Relatório" é selecionável pelo seletor de views da toolbar.
   2. A view exibe cards de portfólio: total de oportunidades, FTE Total/mês, prioridade Alta/Média, RPA Ideal, RPA+n8n e nº de áreas.
   3. A view mostra a distribuição por área de negócio com barras de quantidade somada ao FTE estimado por área.
   4. A view renderiza dois pie charts SVG: oportunidades por área e FTE por área.
+
 **Plans**: 2 plans (planejados em 2026-06-05) — Wave 1: 14-01 (núcleo: agregação + SVG donut + Server Component Relatorio); Wave 2: 14-02 (wiring toolbar + page.tsx fetch não-filtrado, dep 01)
+
 - [x] 14-01-PLAN.md — Núcleo do Relatório: `lib/opportunities/report.ts` (buildReport — agregação por área), `relatorio/pie.tsx` (PieCard donut SVG portado de _giba:818-850, zero-dep), `relatorio/relatorio.tsx` (Server Component: 7 cards + distribuição + 2 donuts + empty state) [REPORT-02, REPORT-03, REPORT-04]
 - [x] 14-02-PLAN.md — Wiring: registra view 📈 Relatório na toolbar (VIEWS/View/parseView) + branch de render no page.tsx com fetch não-filtrado do portfólio (D-01a, RLS-scoped) [REPORT-01]
+
 **UI hint**: yes
 
 ### Phase 15: Seed dos Dados Reais do Workshop I (Unidasul)
+
 **Goal**: As 64 oportunidades reais do Workshop I existem no sistema como dados de um tenant "Unidasul", isolado dos demais tenants.
 **Depends on**: Phase 9 (schema novo pronto — o import depende dos novos campos), Phase 10 (validação do novo modelo)
 **Requirements**: DATA-01
 **Success Criteria** (what must be TRUE):
+
   1. Existe um tenant "Unidasul" e as 64 oportunidades do Workshop I aparecem associadas a ele (migration de dados isolada por tenant).
   2. As oportunidades importadas trazem os novos campos preenchidos (fonte = "Workshop I", critérios, benefícios, FTE), e o score/`priority_level`/`rpaScore` calculam corretamente sobre elas.
   3. Um usuário de outro tenant não enxerga nenhuma das 64 oportunidades da Unidasul (verificação cruzada de RLS).
+
 **Plans**: 1 plan
 
 Plans:
+
 - [~] 15-01-PLAN.md — Migration write-only 0013 (tenant+admin Unidasul + 64 opportunities, guard de idempotência) + teste cross-tenant SC3 + handoff de apply manual [DATA-01] — **artefatos escritos+commitados (76cdbf0/5a62f2b/aca6c19); AGUARDANDO apply manual da 0013 no SQL Editor (checkpoint:human-action)** 2026-06-05
 
 ## Progresso v0.2
@@ -310,10 +346,12 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 ## Phase Details
 
 ### Phase 16: Tarefas e Subtarefas por Oportunidade (Lista / Kanban / Gantt)
+
 **Goal**: Dentro de uma oportunidade, o usuário mapeia as atividades de execução como tarefas com subtarefas (2 níveis), atribui cada uma a uma pessoa do seu tenant e acompanha o conjunto em três visões — Lista, Kanban e Gantt — expandindo e comprimindo as subtarefas de cada tarefa.
 **Depends on**: Phase 9 (schema/RLS base + padrão `opportunity_risks` como analog de tabela filha), Phase 10 (server actions + Zod + whitelist de colunas), Phase 13 (padrão de Kanban com dnd-kit e de modal por abas)
 **Requirements**: TASK-01, TASK-02, TASK-03, TASK-04, TASK-05, TASK-06, TASK-07, TASK-08, TASK-09, TASK-10, TASK-11
 **Success Criteria** (what must be TRUE):
+
   1. Existe a tabela `opportunity_tasks` com `tenant_id uuid not null` (FK → `tenants`), `opportunity_id`, `parent_task_id` self-FK, `title`, `description`, `status`, `start_date`, `due_date`, `assignee_id` (FK → `profiles`) e `blocked_reason`; RLS ativado com as 4 policies padrão via `current_tenant_id()`, e um teste cruzado confirma que tenant A não enxerga tarefas do tenant B.
   2. O banco impede aninhamento além de 2 níveis: uma linha cujo `parent_task_id` não é nulo não pode ser pai de nenhuma outra (rejeitado por constraint/trigger, não só pela UI). Também é rejeitada no banco a atribuição de um `assignee_id` cujo profile pertence a outro tenant — mesmo trigger de coerência de tenant usado em `opportunity_assignees` (0032).
   3. A partir de uma oportunidade, o usuário cria uma tarefa preenchendo título, descrição, responsável (select que lista **somente** usuários do tenant corrente), status, início e fim; e a partir dessa tarefa adiciona subtarefas com os mesmos campos. Edição e remoção funcionam para os dois níveis; remover a pai remove as filhas após confirmação explícita.
@@ -322,14 +360,17 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
   6. A view **Gantt** posiciona cada tarefa/subtarefa no tempo pelas suas datas, com expandir/comprimir das subtarefas; a barra da tarefa-pai cobre o span do menor início ao maior fim das filhas e exibe o % de conclusão agregado.
   7. Span agregado e % de conclusão da tarefa-pai são **calculados em runtime** (view SQL ou client) e **não existem como coluna persistida** em `opportunity_tasks`; alterar uma subtarefa reflete imediatamente na pai sem escrita adicional.
   8. `lib/database.types.ts` (mantido à mão — type-gen bloqueado) inclui `opportunity_tasks` e os enums novos, e `tsc --noEmit` passa limpo.
-**Plans**: 7 plans (6 waves; a wave 2 roda 16-02 e 16-03 em paralelo)
-- [ ] 16-01-PLAN.md — Migration `0037` (`opportunity_tasks`, enum, 2 triggers de guarda, 4 policies), tipos hand-maintained e handoff de apply write-only **[BLOQUEIA todos os demais]**
+
+**Plans**: 1/7 plans executed
+
+- [x] 16-01-PLAN.md — Migration `0037` (`opportunity_tasks`, enum, 2 triggers de guarda, 4 policies), tipos hand-maintained e handoff de apply write-only **[BLOQUEIA todos os demais]**
 - [ ] 16-02-PLAN.md — **TRACER** ponta-a-ponta: Zod + labels + queries + `createTask` + sub-rota `/tarefas` com a Lista + formulário de criação + entrada no detalhe
 - [ ] 16-03-PLAN.md — Testes de banco: guarda de 2 níveis, coerência de tenant do responsável, isolamento cross-tenant e autorização de escrita por papel
 - [ ] 16-04-PLAN.md — `computeTaskRollup` (span + % agregados, runtime) e Lista hierárquica com expandir/comprimir por tarefa
 - [ ] 16-05-PLAN.md — CRUD completo: editar, excluir com confirmação em cascata, criar subtarefa, diálogo e deep-links
 - [ ] 16-06-PLAN.md — Kanban de 4 colunas com arraste e prompt obrigatório de motivo no Bloqueio + controle de views
 - [ ] 16-07-PLAN.md — Gantt de 2 níveis com barra agregada da pai + checkpoint de verificação humana das 3 views
+
 **UI hint**: yes
 
 ### Decisões travadas com o PO (2026-08-04) — não reabrir no planejamento

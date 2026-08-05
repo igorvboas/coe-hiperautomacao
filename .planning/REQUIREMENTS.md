@@ -69,10 +69,10 @@ Milestone **v0.5 — Execução: Tarefas e Subtarefas por Oportunidade**. Adicio
 
 ### TASK — Tarefas e subtarefas de uma oportunidade
 
-- [ ] **TASK-01**: Uma oportunidade tem tarefas (atividades do mapeamento) com título, descrição, status, data de início, data de fim e responsável
-- [ ] **TASK-02**: Uma tarefa tem subtarefas — hierarquia de **exatamente 2 níveis**; uma subtarefa nunca pode ter filhas (garantido no banco, não só na UI)
-- [ ] **TASK-03**: Cada tarefa/subtarefa é atribuída a **no máximo um** usuário, obrigatoriamente do **mesmo tenant** da oportunidade; o seletor de responsável só lista usuários daquele tenant
-- [ ] **TASK-04**: Tarefas são isoladas por tenant — `opportunity_tasks` com `tenant_id not null` + RLS e as 4 policies padrão; tenant A não enxerga tarefas do tenant B
+- [x] **TASK-01**: Uma oportunidade tem tarefas (atividades do mapeamento) com título, descrição, status, data de início, data de fim e responsável
+- [x] **TASK-02**: Uma tarefa tem subtarefas — hierarquia de **exatamente 2 níveis**; uma subtarefa nunca pode ter filhas (garantido no banco, não só na UI)
+- [x] **TASK-03**: Cada tarefa/subtarefa é atribuída a **no máximo um** usuário, obrigatoriamente do **mesmo tenant** da oportunidade; o seletor de responsável só lista usuários daquele tenant
+- [x] **TASK-04**: Tarefas são isoladas por tenant — `opportunity_tasks` com `tenant_id not null` + RLS e as 4 policies padrão; tenant A não enxerga tarefas do tenant B
 - [ ] **TASK-05**: O usuário cria uma tarefa e, a partir dela, adiciona subtarefas, preenchendo todos os campos da tarefa/subtarefa em uma interface dedicada (form/modal)
 - [ ] **TASK-06**: O usuário edita e remove tarefas e subtarefas; remover uma tarefa-pai remove suas subtarefas, com confirmação explícita
 - [ ] **TASK-07**: View **Lista** das atividades da oportunidade, com expandir/comprimir (show/hide) das subtarefas de cada tarefa

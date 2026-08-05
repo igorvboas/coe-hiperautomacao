@@ -2,16 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
-status: phase_planned
-last_updated: 2026-08-04T00:00:00.000Z
-last_activity: 2026-08-04 -- `/gsd-plan-phase 16` completo. Milestone v0.5 aberta com a Phase 16 (Tarefas e Subtarefas por Oportunidade -- Lista/Kanban/Gantt), 11 requisitos TASK-01..11. Artefatos: CONTEXT (13 decisoes travadas), RESEARCH, UI-SPEC (aprovado pelo gsd-ui-checker na iteracao 1), PATTERNS (24/24 analogs), VALIDATION (nyquist_compliant) e 7 PLAN.md em 6 waves. gsd-plan-checker PASSOU na 1a passada, zero blockers. Pronto para `/gsd-execute-phase 16`.
+current_phase: 16
+current_phase_name: tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt
+status: executing
+stopped_at: Completed 16-01-PLAN.md (checkpoint de apply manual resolvido)
+last_updated: "2026-08-05T13:34:17.464Z"
+last_activity: 2026-08-05
+last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 7
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
-stopped_at: Phase 16 planejada (7 plans, 6 waves) -- aguardando execucao
 ---
 
 # Project State
@@ -51,14 +54,14 @@ alterar datas, notificar o responsável por e-mail, comentários/anexos/log de h
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Milestone complete
+**Current focus:** Phase 16 — tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-05
+Phase: 16 (tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-08-05 — Phase 16 execution started
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -66,7 +69,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [█████████░] 89%
+Progress: [█░░░░░░░░░] 14%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -112,6 +115,11 @@ Progress: [█████████░] 89%
 - Trend: 12-01 rápido (5min) — fase de "wiring" puro de `lib/` sem UI/install; 3 tasks reusando padrões consolidados (`actions.ts`/`queries.ts`/`risk-schema.ts`). Zero deviations, zero migration.
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 16 P01 | 12min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -137,6 +145,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Formulário público hardened (Plan 07.5-06)**: 4 camadas de defesa em `/r/[slug]` — (1) Vercel BotID edge classifier, (2) Cloudflare Turnstile invisível (challenge → siteverify single-use), (3) Server Action valida ambos + loga em `public_form_submissions`, (4) RPC `create_public_opportunity` enforce length/array/jsonb limits no DB (SECURITY DEFINER). Rate limit por janela fixa NÃO implementado — deferido para backlog 999.x (CONTEXT.md `<deferred>` lock); BotID+Turnstile+limits cobrem ~95%, Upstash custo só justifica com monitoring real de abuso. IP hashado por construção (`hashIp()` THROW sem `IP_HASH_SALT` env). `error.message` raw NUNCA retornado ao cliente — só para `public_form_submissions.error_message` (audit). pt-BR genérico em todas as respostas. Token Turnstile single-use, reset() após cada submit. `withBotId(nextConfig)` + `initBotId({protect: [{ path: '/r/*', method: 'POST' }]})` em `instrumentation-client.ts`. BotID retorna `isBot:false` em local dev (RESEARCH Pitfall 1) — E2E ficam manuais em preview deploy.
 - **server-only stub para Vitest (Plan 07.5-06)**: `vitest.config.ts` alias `'server-only' → ./tests/setup/server-only-stub.ts` (módulo vazio). Pacote `server-only` é dev-dep do Next bundler — não existe em Node puro de teste. Padrão recomendado pela própria doc do Next. Zero impacto em produção. Necessário para que helpers `lib/security/*` (todos abrem com `import 'server-only';`) sejam importáveis em test.
 - **Camada de dados/mutação de riscos (Plan 12-01)**: `risk-actions.ts` (`'use server'`) modela `actions.ts` — `riskInputSchema.safeParse` → `auth.getUser` → `profiles.tenant_id` server-derived → enumeração explícita de colunas (sem spread) → `revalidatePath`. **`priority` NUNCA no payload** (insert/update): o trigger `set_risk_priority()` é `before insert OR update` (0011:294), única autoridade; `updateRisk` não faz nada de especial — editar impacto/probabilidade recalcula sozinho (RISK-02/03 = app-layer puro, sem migration). `updateRisk`/`deleteRisk` recebem `opportunityId` só p/ `revalidatePath` e escopam por `.eq('tenant_id', profile.tenant_id)` (defesa em profundidade). Query `fetchRisksForOpportunity`/`fetchRiskById` com whitelist `RISK_COLUMNS` (sem `select('*')`), ordenadas por `created_at asc` (rank de severidade `critica>alta>media>baixa` fica no client em 12-02 — `.order('priority')` é alfabético, não semântico; Pitfall 6). `risk-labels.ts` = módulo único enum minúsculo→PT Title-Case (`Record<Enum,string>` type-safe) + badges (🚧/⚠️/💡, `PRIORITY_BADGE_CLASS` por cor) + `RESPONSAVEL_SUGGESTIONS` p/ datalist (D-08, tenant-agnóstico).
+- [Phase ?]: Migration 0037 (opportunity_tasks) aplicada no Supabase Cloud pelo PO — 10/10 verificacoes passaram (14 colunas, enum de 4 status, 2 guards de trigger, RLS com 4 policies); planos 16-02+ destravados
+- [Phase ?]: Verificacao 7 do handoff (UPDATE de re-parentamento) exercitou o ramo 'pai ja e subtarefa' do guard check_task_depth, nao o ramo 'linha ja tem filhas' — ambos os ramos existem na funcao, D-01 se sustenta nos dois sentidos
 
 ### Pending Todos
 
@@ -163,7 +173,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-07-16 (parte 4) — **Shell trocado de topbar para sidebar esquerda + identidade visual PSW Digital, depois de um desvio corrigido em duas rodadas.** (1) Sessão começou aplicando cores/tipografia/logo/favicon da PSW num HEADER NO TOPO — o PO apontou que isso estava errado: uma sidebar esquerda que existia antes tinha sumido. Investigação revelou que essa sidebar nunca existiu no `main` — vive só numa **branch remota não mesclada `origin/feat/v0.3-produtizacao`** (6 commits em cima do mesmo commit-base do `main`: shell+sidebar navy/verde/Inter, rebuild da tela de Oportunidades, restyle modal/wizard/relatório, overlay de IA, CSV export+seed GSMM, e um **painel admin `platform_admin`/`invited_emails` que contradiz o não-negociável "sem painel admin no MVP"**). Confirmado que as migrations dessa branch (também numeradas 0014-0019, conteúdo diferente) já tinham sido aplicadas nesse MESMO banco Supabase por outra sessão — `platform_admin` e `invited_emails` já existiam no banco antes desta sessão tocar em qualquer coisa. (2) PO decidiu: trazer só o shell da sidebar (sem admin), com a "nova identidade visual" (PSW) por cima. Sidebar portada manualmente (não cherry-pick — `main` tem trabalho uncommitted que a branch não conhece): `components/shell/Sidebar.tsx`+`icons.tsx` (sem CompanySelector/nav admin), `app/(app)/layout.tsx` reescrito (perfil buscado inline, sem depender do helper `lib/auth/roles.ts` daquela branch). (3) No processo, descoberto que **`_giba_wsi-dashboard.html` (mockup citado o tempo todo no CLAUDE.md como fonte da verdade visual) não existe em lugar nenhum do histórico do `main`** — só existe dentro da branch (commit `6ce45d1`). Recuperado para a working tree (untracked) e usado como árbitro para decidir cada divergência entre o `main` e a branch: **KPI de 9 células já existente no `main` confirmado fiel ao mockup linha-a-linha** (`_giba:296-306`) — NÃO trocado pela versão simplificada de 4 cards da branch; cabeçalho da tabela virou gradiente azul (`_giba:48` usa `linear-gradient`, a branch tinha simplificado pra cinza — não adotado); rótulos da view-switcher corrigidos pro texto do mockup ("Lista"/"Gestão", `_giba:335-338`); botão verde "Nova Oportunidade" confirmado mockup-correto (`.tbtn.grn`, `_giba:39` — semântico, não é a cor da marca). Paleta final: `--color-pri:#183799`/`--color-pril:#2341e1` (PSW, substituindo o azul FGCoop original) + novos tokens `--color-primary`/`--color-nav`/`--color-nav-active` também em azul PSW (não o verde/navy genérico que a branch tinha) + Poppins (não o Inter da branch — Poppins é a extração real do site da PSW). `tsc --noEmit`/`npm run build`/`vitest run` limpos em cada etapa (186 passed, mesma falha pré-existente não-relacionada de sempre). Verificado visualmente no browser em cada passo. **3 memórias de longo prazo criadas/atualizadas**: `psw-digital-brand-identity` (estado final dos tokens), `feat-v03-produtizacao-branch-conflict` (a descoberta da branch + decisão de escopo), e Key Decisions do PROJECT.md ganhou 2 linhas novas. **Nada commitado.** **PRÓXIMO:** revisar e commitar tudo (pacote v0.3 + sidebar/identidade + migration 0019 + o `_giba_wsi-dashboard.html` recuperado, que precisa entrar no repo).
+Last session: 2026-08-05T13:34:17.457Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -208,7 +218,7 @@ Previous session: 2026-06-04 — `/gsd-discuss-phase 11`. Contexto da Phase 11 (
 Previous session: 2026-06-04 — `/gsd-discuss-phase 10`. Contexto da Phase 10 (Backend — Queries, Validação e Paridade de Score) capturado em `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md` (+ DISCUSSION-LOG, commit 38a94c6). 4 áreas discutidas, **todas delegadas pelo PO ("Você decide")** → direções recomendadas travadas (D-01..D-04): (1) **Paridade SCORE-04** = módulo único `lib/opportunities/score.ts` (5 fatores `_giba`) importado por ScorePreview + teste, com 2º nível de teste SQL `skipIf` contra `opportunity_score()`; achado: `ScorePreview.tsx` tem a fórmula v0.1 obsoleta, `tests/schema/score-rule.test.ts` já tem a nova travada. (2) **Schema Zod aditivo** — adiciona campos novos, corrige `criterioEnum`→minúsculo (D-08) e `timeBucketEnum`→frequência, **mantém** o split persona/formulário (P11 reestrutura). (3) **opportunity_risks** = só tipos + `riskInputSchema` Zod; CRUD vai p/ Phase 12. (4) **Tipos** via MCP Supabase `generate_typescript_types` (fallback `npm run gen:types`, ref já no `.env.local`) + migrar ~7 testes legados (`tempo:'medio'/'pequeno'`) ao domínio de frequência. Riscos de execução flagados: confirmar domínio de `p_tempo` da RPC `create_public_opportunity` pós-0011; checar compat MODEL-10 (`enrichment.ts`). Próximo: `/gsd-plan-phase 10 --skip-research`.
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: `.planning/phases/12-registro-riscos-modal/12-02-PLAN.md` (Plan 12-01 ✅ completo — próximo: executar 12-02, termina em checkpoint `human-verify`)
+Resume file: None
 
 ---
 
@@ -246,5 +256,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: **Phase 7.5 COMPLETA** (6/6 plans). Plan 07.5-06 (Wave 5 — formulário público hardened) completo em **write-only mode**. 8 commits atômicos (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min. Próximo: `/gsd-verify-work 7.5` (UAT — recomendado aguardar apply de 0006+0007 + setup de Turnstile/BotID/IP_HASH_SALT para E2E real em preview), depois Phase 8 (Polish & Deploy).
+Stopped at: Completed 16-01-PLAN.md (checkpoint de apply manual resolvido)
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
