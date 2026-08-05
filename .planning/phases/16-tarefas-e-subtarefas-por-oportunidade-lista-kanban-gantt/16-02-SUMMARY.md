@@ -184,3 +184,7 @@ None - nenhuma configuração externa necessária. A migration 0037 já foi apli
 ---
 *Phase: 16-tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt*
 *Completed: 2026-08-05*
+
+## Self-Check: PASSED
+
+All created files and referenced commits verified to exist on disk / in git history.
