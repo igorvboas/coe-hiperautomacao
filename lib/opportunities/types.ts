@@ -63,6 +63,18 @@ export type OpportunityHistoryEntry =
 
 export type TenantRole = Database['public']['Enums']['tenant_role'];
 
+// ─── Phase 16: Tarefas e Subtarefas ─────────────────────────────────────
+// Linha de `opportunity_tasks` (0037). `parent_task_id` nulo identifica a
+// tarefa raiz; a hierarquia é de EXATAMENTE 2 níveis, garantida no banco por
+// trigger (D-01) — nunca uma árvore livre. Span e percentual de conclusão
+// agregados da tarefa-pai são SEMPRE calculados em runtime a partir das
+// subtarefas (lib/opportunities/task-rollup.ts, Plan 16-04), nunca lidos de
+// uma coluna desta tabela (D-02, mesma regra do score — CLAUDE.md §3).
+export type OpportunityTask =
+  Database['public']['Tables']['opportunity_tasks']['Row'];
+
+export type TaskStatus = Database['public']['Enums']['task_status'];
+
 /**
  * Buckets de KPI usados pela KPI bar.
  * Calculado a partir do array de Opportunity no Server Component.

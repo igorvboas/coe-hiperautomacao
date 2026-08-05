@@ -65,6 +65,10 @@ export type RiskProbability = 'provavel' | 'possivel' | 'improvavel' | 'remota';
 export type RiskStatus = 'novo' | 'gerenciado' | 'mitigado' | 'ocorrido';
 export type RiskPriority = 'critica' | 'alta' | 'media' | 'baixa';
 
+// opportunity_tasks (0037, Phase 16) — 4 valores fixos = as 4 colunas do
+// Kanban de tarefas (D-03): Backlog → Em Andamento → Bloqueio → Finalizado.
+export type TaskStatus = 'backlog' | 'em_andamento' | 'bloqueio' | 'finalizado';
+
 export type PhaseKey =
   | 'em_analise'
   | 'planejamento'
@@ -578,6 +582,82 @@ export type Database = {
         ];
       };
 
+      // v0.4/Phase 16 (0037) — tarefas e subtarefas de execução de uma
+      // oportunidade. Hand-maintained (gen:types bloqueado — ver header do
+      // arquivo). Hierarquia de 2 níveis (parent_task_id self-FK, garantida
+      // no banco por trigger, D-01). Nenhuma coluna de span/percentual de
+      // conclusão agregado existe aqui — o rollup é SEMPRE calculado em
+      // runtime (lib/opportunities/task-rollup.ts), nunca persistido (D-02).
+      opportunity_tasks: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          parent_task_id: string | null;
+          title: string;
+          description: string | null;
+          status: TaskStatus;
+          start_date: string | null;
+          due_date: string | null;
+          assignee_id: string | null;
+          blocked_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          tenant_id: string;
+          parent_task_id?: string | null;
+          title: string;
+          description?: string | null;
+          status?: TaskStatus;
+          start_date?: string | null;
+          due_date?: string | null;
+          assignee_id?: string | null;
+          blocked_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['opportunity_tasks']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'opportunity_tasks_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_tasks_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          // self-FK — sem precedente no bloco de opportunity_risks (riscos
+          // não têm hierarquia). parent_task_id aponta para a própria tabela.
+          {
+            foreignKeyName: 'opportunity_tasks_parent_task_id_fkey';
+            columns: ['parent_task_id'];
+            referencedRelation: 'opportunity_tasks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_tasks_assignee_id_fkey';
+            columns: ['assignee_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'opportunity_tasks_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       // v0.3 (0018)
       opportunity_documents: {
         Row: {
@@ -789,6 +869,7 @@ export type Database = {
       risk_probability: RiskProbability;
       risk_status: RiskStatus;
       risk_priority: RiskPriority;
+      task_status: TaskStatus;
       ai_enrichment_status: AiEnrichmentStatus;
       phase_key: PhaseKey;
       tenant_role: TenantRole;
