@@ -32,6 +32,18 @@ bar for a true user-visible fork with material consequences.
 
 ---
 
+## Visual Hierarchy
+
+**Focal point declaration:** on the Tarefas page header, the primary visual anchor is the **"+ Nova
+Tarefa" button** (green, top-right of the header row — the one CTA the eye should land on first).
+Within every row/card in Lista/Kanban/Gantt, the primary visual anchor is the **status pill (icon +
+color + label)** — it is what tells the user, at a glance, what state each task/subtask is in, ahead
+of title, dates, or assignee. Everything else (task ID, dates, assignee chip, hierarchy captions) is
+secondary and rendered smaller/muted relative to those two anchors, consistent with the Typography
+and Color contracts above.
+
+---
+
 ## Spacing Scale
 
 The project does **not** run a strict 8-pt scale — it uses Tailwind's default spacing scale
@@ -71,12 +83,19 @@ Exceptions:
 | Heading (dialog titles, Tarefas page title, column headers) | 14px | bold (700) | 1.2 |
 | Emphasis (task IDs, buttons, status pill text, card titles) | 11px | semibold (600) | 1.4 |
 
-Only **2 weights** used across new components: **bold (700)** for labels/headings/IDs, **regular
-(400)** for body copy, with **semibold (600)** reserved specifically for interactive emphasis
-(buttons, pills, card titles) — mirrors the exact bold/semibold split already dominant in
-`risk/*` and `kanban/*` (`font-bold` 139 uses / `font-semibold` 38 uses across
-`components/opportunities`). Do not introduce `font-extrabold`/`font-medium` in this phase's new
-components — those are reserved elsewhere (score numbers, KPI displays) and are out of scope here.
+**3 weights** used across new components: **bold (700)** for labels/headings/IDs, **regular
+(400)** for body copy, and **semibold (600)** reserved specifically for interactive emphasis
+(buttons, pills, card titles). This is a deliberate exception to a stricter 2-weight rule, kept
+because it matches the live app's established convention exactly — the same justification pattern
+as the Spacing section's half-step exception. Verified directly against production code: `bold` +
+`semibold` are both real, distinct weights on the same component family this phase extends
+(`components/opportunities/kanban/Card.tsx:61` card title `font-semibold` vs. `:66` FTE badge
+`font-bold`; `components/opportunities/modal/risk/RiskForm.tsx:281` Cancelar `font-semibold` vs.
+`:288` Salvar `font-bold`), alongside the unweighted **regular (400)** body
+copy inherited from `body{}` in `app/globals.css` wherever no `font-*` class is applied (form
+textarea values, blocked-reason text). Do not introduce `font-extrabold`/`font-medium` in this
+phase's new components — those are reserved elsewhere (score numbers, KPI displays) and are out of
+scope here; the 3-weight set above (bold/semibold/regular) is the full, closed set for Phase 16.
 
 "Display" role from the generic template is **not used** in this phase — Lista/Kanban/Gantt are
 dense data views, not marketing/KPI surfaces. No component in this phase needs a size above 14px.
