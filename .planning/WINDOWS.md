@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 1
+open_count: 5
 waived_count: 0
 fixed_count: 0
-total_count: 1
-last_updated: 2026-08-05T13:32:43.937Z
+total_count: 5
+last_updated: 2026-08-05T13:54:59.558Z
 ---
 
 # Broken Windows Ledger
@@ -16,6 +16,10 @@ last_updated: 2026-08-05T13:32:43.937Z
 | id | phase | kind | file | line | description | status | reason | recorded_at | resolved_at |
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 16 | deviation | tests/opportunities/report-strategic.test.ts | 107 | typecheck pre-existente TS2322 (null not assignable), nao relacionado a 16-01, confirmado no main antes das alteracoes | open |  | 2026-08-05T13:32:43.937Z |  |
+| 2 | 16 | unrun-verify | tests/schema/task-depth-guard.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.404Z |  |
+| 3 | 16 | unrun-verify | tests/schema/task-tenant-coherence.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.460Z |  |
+| 4 | 16 | unrun-verify | tests/security/opportunity-tasks-isolation.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.510Z |  |
+| 5 | 16 | unrun-verify | tests/security/opportunity-tasks-viewer-write.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.558Z |  |
 
 ````json
 [
@@ -29,6 +33,54 @@ last_updated: 2026-08-05T13:32:43.937Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-05T13:32:43.937Z",
+    "resolved_at": null
+  },
+  {
+    "id": 2,
+    "kind": "unrun-verify",
+    "phase": "16",
+    "file": "tests/schema/task-depth-guard.test.ts",
+    "line": null,
+    "description": "Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-05T13:54:59.404Z",
+    "resolved_at": null
+  },
+  {
+    "id": 3,
+    "kind": "unrun-verify",
+    "phase": "16",
+    "file": "tests/schema/task-tenant-coherence.test.ts",
+    "line": null,
+    "description": "Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-05T13:54:59.460Z",
+    "resolved_at": null
+  },
+  {
+    "id": 4,
+    "kind": "unrun-verify",
+    "phase": "16",
+    "file": "tests/security/opportunity-tasks-isolation.test.ts",
+    "line": null,
+    "description": "Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-05T13:54:59.510Z",
+    "resolved_at": null
+  },
+  {
+    "id": 5,
+    "kind": "unrun-verify",
+    "phase": "16",
+    "file": "tests/security/opportunity-tasks-viewer-write.test.ts",
+    "line": null,
+    "description": "Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-05T13:54:59.558Z",
     "resolved_at": null
   }
 ]
