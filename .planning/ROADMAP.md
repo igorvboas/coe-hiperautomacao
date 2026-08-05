@@ -361,12 +361,12 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
   7. Span agregado e % de conclusão da tarefa-pai são **calculados em runtime** (view SQL ou client) e **não existem como coluna persistida** em `opportunity_tasks`; alterar uma subtarefa reflete imediatamente na pai sem escrita adicional.
   8. `lib/database.types.ts` (mantido à mão — type-gen bloqueado) inclui `opportunity_tasks` e os enums novos, e `tsc --noEmit` passa limpo.
 
-**Plans**: 3/7 plans executed
+**Plans**: 4/7 plans executed
 
 - [x] 16-01-PLAN.md — Migration `0037` (`opportunity_tasks`, enum, 2 triggers de guarda, 4 policies), tipos hand-maintained e handoff de apply write-only **[BLOQUEIA todos os demais]**
 - [x] 16-02-PLAN.md — **TRACER** ponta-a-ponta: Zod + labels + queries + `createTask` + sub-rota `/tarefas` com a Lista + formulário de criação + entrada no detalhe
 - [x] 16-03-PLAN.md — Testes de banco: guarda de 2 níveis, coerência de tenant do responsável, isolamento cross-tenant e autorização de escrita por papel
-- [ ] 16-04-PLAN.md — `computeTaskRollup` (span + % agregados, runtime) e Lista hierárquica com expandir/comprimir por tarefa
+- [x] 16-04-PLAN.md — `computeTaskRollup` (span + % agregados, runtime) e Lista hierárquica com expandir/comprimir por tarefa
 - [ ] 16-05-PLAN.md — CRUD completo: editar, excluir com confirmação em cascata, criar subtarefa, diálogo e deep-links
 - [ ] 16-06-PLAN.md — Kanban de 4 colunas com arraste e prompt obrigatório de motivo no Bloqueio + controle de views
 - [ ] 16-07-PLAN.md — Gantt de 2 níveis com barra agregada da pai + checkpoint de verificação humana das 3 views
