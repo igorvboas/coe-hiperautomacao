@@ -4,6 +4,7 @@ import type {
   OpportunityStatus,
   PriorityLevel,
 } from './types';
+import type { OpportunityRequestType } from '@/lib/database.types';
 import { SEGMENTO_STATUSES, type Segmento } from './status';
 import { CARGOS, type Cargo } from '@/lib/security/cargo';
 
@@ -54,6 +55,10 @@ export type OpportunityFilters = {
    *  lido direto da URL) para não virar um vetor de `tenant_id` arbitrário;
    *  quem popula este campo é a page, depois de resolver o slug. */
   tenant?: string;
+  /** Tipo de solicitação (0008/0035) — Nova Oportunidade / Melhoria / Incidente /
+   *  Treinamento. `duvidas_terceiros` continua no enum (histórico) mas saiu do
+   *  formulário público, então não aparece no dropdown. */
+  requestType?: OpportunityRequestType;
 };
 
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
@@ -72,7 +77,19 @@ const STATUS_VALUES: OpportunityStatus[] = [
   'manutencao',
   'descontinuado',
 ];
-const SEGMENTO_VALUES: Segmento[] = ['todos', 'legado', 'gestao', 'novas', 'manutencao'];
+/** Opções do dropdown "Tipo" — ordem e rótulos curtos da toolbar. */
+export const REQUEST_TYPE_OPTIONS: { value: OpportunityRequestType; label: string }[] = [
+  { value: 'nova_oportunidade', label: 'Nova Oportunidade' },
+  { value: 'incidente', label: 'Incidente' },
+  { value: 'melhoria_automacao', label: 'Melhoria' },
+  { value: 'treinamento', label: 'Treinamento' },
+];
+// Aceito na URL: as 4 opções + o legado `duvidas_terceiros`.
+const REQUEST_TYPE_VALUES: OpportunityRequestType[] = [
+  ...REQUEST_TYPE_OPTIONS.map((o) => o.value),
+  'duvidas_terceiros',
+];
+const SEGMENTO_VALUES: Segmento[] =['todos', 'legado', 'gestao', 'novas', 'manutencao'];
 export const SORT_VALUES: SortKey[] = [
   'score_desc',
   'score_asc',
@@ -129,6 +146,7 @@ export function parseFilters(
     segmento: pickEnum(get('segmento'), SEGMENTO_VALUES),
     assignee: pickUuid(get('assignee')),
     cargo: pickEnum(get('cargo'), [...CARGOS]),
+    requestType: pickEnum(get('requestType'), REQUEST_TYPE_VALUES),
   };
 }
 
@@ -163,6 +181,7 @@ export function buildQuery(
   if (filters.segmento && filters.segmento !== 'todos') next.set('segmento', filters.segmento);
   if (filters.assignee) next.set('assignee', filters.assignee);
   if (filters.cargo) next.set('cargo', filters.cargo);
+  if (filters.requestType) next.set('requestType', filters.requestType);
 
   return next.toString();
 }
@@ -180,6 +199,7 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
   'segmento',
   'assignee',
   'cargo',
+  'requestType',
 ];
 
 export const SORT_LABELS: Record<SortKey, string> = {

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   buildQuery,
   parseFilters,
+  REQUEST_TYPE_OPTIONS,
   SORT_LABELS,
   type OpportunityFilters,
   type SortKey,
@@ -134,6 +135,7 @@ export function Toolbar({ counts, areas, members, tenantSlug }: Props) {
     !!filters.dateTo ||
     !!filters.assignee ||
     !!filters.cargo ||
+    !!filters.requestType ||
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
@@ -222,6 +224,24 @@ export function Toolbar({ counts, areas, members, tenantSlug }: Props) {
 
       {/* Linha 2: filtros + ordenação + limpar + counts */}
       <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={filters.requestType ?? ''}
+          onChange={(e) =>
+            applyChange({
+              requestType:
+                (e.target.value as OpportunityFilters['requestType']) || undefined,
+            })
+          }
+          className={selectClass}
+          aria-label="Filtrar por tipo de solicitação"
+        >
+          <option value="">Todos os Tipos</option>
+          {REQUEST_TYPE_OPTIONS.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
         <select
           value={filters.area ?? ''}
           onChange={(e) => applyChange({ area: e.target.value || undefined })}

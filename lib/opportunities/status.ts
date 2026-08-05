@@ -26,21 +26,19 @@ export type StatusMeta = {
 };
 
 // Ordem canônica exibida (dropdown de status, filtro, colunas do kanban):
-// primeiro o PIPELINE linear (Registrado → … → Concluído), depois as etapas
-// fora do fluxo mas com cronologia própria (Backlog, Descontinuado).
-// `gestao`/`manutencao` foram removidos da seleção (continuam no STATUS_META
+// primeiro os status do pipeline de oportunidades, com Backlog posicionado
+// entre Em Análise e Planejamento para refletir o fluxo de priorização.
+// `gestao`/`manutencao` foram removidos da seleção (continuam no STATUS_ORDER
 // só para renderizar registros legados que ainda os tenham — ver STATUS_ALL).
 export const STATUS_ORDER: OpportunityStatus[] = [
-  // Pipeline linear
   'novo',
   'em_analise',
+  'backlog',
   'planejamento',
   'desenvolvimento',
   'homologacao',
   'producao',
   'concluido',
-  // Etapas temporais fora do pipeline
-  'backlog',
   'descontinuado',
 ];
 

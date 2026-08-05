@@ -122,6 +122,7 @@ export async function fetchOpportunities(
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
   if (filters.priority) q = q.eq('priority_level', filters.priority);
   if (filters.status) q = q.eq('status', filters.status);
+  if (filters.requestType) q = q.eq('request_type', filters.requestType);
   if (filters.segmento && filters.segmento !== 'todos') {
     q = q.in('status', SEGMENTO_STATUSES[filters.segmento]);
   }

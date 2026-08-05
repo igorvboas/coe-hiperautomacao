@@ -31,6 +31,16 @@ const COLUMNS = STATUS_ORDER.map((status) => ({
 export function KanbanBoard({ opportunities, readOnly = false }: Props) {
   const [opps, setOpps] = useState(opportunities);
   const [error, setError] = useState<string | null>(null);
+
+  // O estado local existe só para o drag otimista — o servidor continua sendo a
+  // fonte da verdade. Quando a lista muda (filtro da toolbar, revalidate após o
+  // drag), ressincroniza durante o render em vez de manter a cópia velha.
+  const [syncedFrom, setSyncedFrom] = useState(opportunities);
+  if (syncedFrom !== opportunities) {
+    setSyncedFrom(opportunities);
+    setOpps(opportunities);
+  }
+
   const [, startTransition] = useTransition();
 
   // Movimento só inicia após 5px de drag — preserva click pra navegação
