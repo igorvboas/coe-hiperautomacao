@@ -142,3 +142,24 @@ Re-rodar a migration inteira depois do rollback recria tudo (é idempotente).
 > **Esta é a fronteira humana write-only (CLAUDE.md):** o agente NÃO aplica a migration. Após aplicar no SQL Editor (incluindo a segunda execução de idempotência), **cole o resultado das 8 verificações** para fechar o checkpoint.
 
 *Handoff gerado em 2026-08-05 (Phase 16 / Plan 16-01).*
+
+---
+
+## Resultado do apply (2026-08-05)
+
+**Status: APLICADA — checkpoint fechado.** O PO rodou o arquivo no SQL Editor do Supabase Cloud (incluindo a segunda execução de idempotência) e colou o resultado consolidado das 8 verificações. Todas passaram:
+
+1. **Colunas** — exatamente 14: `id`, `opportunity_id`, `tenant_id`, `parent_task_id`, `title`, `description`, `status`, `start_date`, `due_date`, `assignee_id`, `blocked_reason`, `created_by`, `created_at`, `updated_at`. Nenhuma coluna de span/percentual agregado. ✓ (TASK-11/D-02)
+2. **Enum `task_status`** — 4 valores, na ordem `backlog`, `em_andamento`, `bloqueio`, `finalizado`. ✓ (D-03)
+3. **RLS habilitada** — `true`. ✓
+4. **Policies** — 4 no total; SELECT cita `is_platform_admin()` (D-12); as 3 policies de escrita citam `current_user_role() <> 'viewer'` (D-11). ✓
+5. **Triggers** — `opportunity_tasks_depth_guard`, `opportunity_tasks_set_updated_at`, `opportunity_tasks_tenant_guard`. ✓
+6. **Guard de profundidade, 3º nível via INSERT** — REJEITADO: "Uma subtarefa não pode ser filha de outra subtarefa (limite de 2 níveis)." ✓ (TASK-02/D-01)
+7. **Guard de profundidade, re-parentamento via UPDATE** — REJEITADO com a mesma mensagem de limite de 2 níveis. Nota: o teste do PO bateu no ramo "irmão" do guard (dar como pai uma tarefa que já é subtarefa) em vez do ramo "já tem subtarefas" (dar pai a uma tarefa que já tem filhas) — ambos os ramos existem na função `check_task_depth()`, e o caminho de UPDATE está coberto de qualquer forma. D-01 se sustenta. ✓
+8. **Coerência de tenant** — assignee de outra empresa REJEITADO: "Responsável de outra empresa não pode ser atribuído a esta tarefa." ✓ (TASK-03/D-04)
+9. **CHECK de bloqueio** — REJEITADO por violar `opportunity_tasks_blocked_reason_chk`. ✓ (D-03)
+10. **Limpeza do smoke-test** — ok, nenhum registro de teste remanescente. ✓
+
+A idempotência foi exercida pelo PO conforme instruído (arquivo rodado duas vezes, segunda execução sem erro de objeto duplicado).
+
+**Os planos 16-02 em diante estão destravados.**
