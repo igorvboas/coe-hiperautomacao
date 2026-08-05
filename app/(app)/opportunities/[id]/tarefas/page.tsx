@@ -10,23 +10,24 @@ import { TaskList } from '@/components/opportunities/tasks/TaskList';
 import { TaskFormDialog } from '@/components/opportunities/tasks/TaskFormDialog';
 import { TaskViewSwitcher, type TaskView } from '@/components/opportunities/tasks/TaskViewSwitcher';
 import { TaskKanbanBoard } from '@/components/opportunities/tasks/kanban/TaskKanbanBoard';
+import { TaskGanttChart } from '@/components/opportunities/tasks/gantt/TaskGanttChart';
 
 // Fallback seguro: valor ausente ou inválido cai em 'lista' — mesmo padrão de
-// `parseView` em `toolbar.tsx` (UI-SPEC §Routes). 16-07 acrescenta 'gantt'.
+// `parseView` em `toolbar.tsx` (UI-SPEC §Routes).
 function parseTaskView(raw: string | undefined): TaskView {
-  return raw === 'kanban' ? 'kanban' : 'lista';
+  return raw === 'kanban' || raw === 'gantt' ? raw : 'lista';
 }
 
 /**
  * Sub-rota fullscreen do Plano de Atividades (RESEARCH §Pattern 6 — o Kanban de
  * 4 colunas e o Gantt não cabem na largura do modal). A view Lista (16-04) já
- * mostra a hierarquia de 2 níveis com rollup; o Kanban (16-06) ramifica pelo
- * parâmetro `?view=`; o Gantt chega em 16-07. Mesmo wrapper de padding/largura
- * máxima de `app/(app)/opportunities/[id]/page.tsx`. Uma única busca do array
- * PLANO de tarefas (raízes + subtarefas juntas) — o agrupamento por
- * `parent_task_id` e o rollup acontecem na renderização da `TaskList`/
- * `TaskKanbanBoard`, nunca em outra query; as duas views consomem o MESMO
- * array já buscado aqui.
+ * mostra a hierarquia de 2 níveis com rollup; o Kanban (16-06) e o Gantt
+ * (16-07) ramificam pelo parâmetro `?view=`, ambos sobre a MESMA busca única
+ * — nenhuma query nova por view. Mesmo wrapper de padding/largura máxima de
+ * `app/(app)/opportunities/[id]/page.tsx`. Uma única busca do array PLANO de
+ * tarefas (raízes + subtarefas juntas) — o agrupamento por `parent_task_id`
+ * e o rollup acontecem na renderização de `TaskList`/`TaskKanbanBoard`/
+ * `TaskGanttChart`, nunca em outra query.
  *
  * 16-05: monta `TaskFormDialog` (soft-path `?tarefa=`) sobre o conteúdo da
  * página, reusando o mesmo array de tarefas e a mesma lista de profiles
@@ -38,6 +39,9 @@ function parseTaskView(raw: string | undefined): TaskView {
  * 16-06: uma oportunidade sem NENHUMA tarefa mostra o mesmo estado vazio
  * (embutido em `TaskList`) independente da view pedida na URL — o switcher
  * continua renderizado (UI-SPEC "zero-one-many"), só o corpo é substituído.
+ *
+ * 16-07: fecha a fase — Gantt de 2 níveis (TASK-10) reusando `computeTaskRollup`
+ * (16-04) como fonte única do span/percentual agregado da pai (TASK-11).
  */
 export default async function TarefasPage({
   params,
@@ -109,12 +113,14 @@ export default async function TarefasPage({
             assignableProfiles={assignableProfiles}
             readOnly={readOnly}
           />
-        ) : (
+        ) : view === 'kanban' ? (
           <TaskKanbanBoard
             tasks={tasks}
             assignableProfiles={assignableProfiles}
             readOnly={readOnly}
           />
+        ) : (
+          <TaskGanttChart tasks={tasks} assignableProfiles={assignableProfiles} />
         )}
 
         <TaskFormDialog

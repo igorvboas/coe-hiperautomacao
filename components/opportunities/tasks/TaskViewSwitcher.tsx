@@ -2,13 +2,14 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-export type TaskView = 'lista' | 'kanban';
+export type TaskView = 'lista' | 'kanban' | 'gantt';
 
-// Neste plano (16-06) o switcher registra Lista e Kanban; 16-07 acrescenta a
-// entrada de Gantt à mesma lista, sem mudar a mecânica.
+// 16-07: terceira e última entrada (Gantt) — mesma mecânica, ícone e rótulo
+// travados pela UI-SPEC §"View switcher".
 const VIEWS: { id: TaskView; icon: string; label: string }[] = [
   { id: 'lista', icon: '☰', label: 'Lista' },
   { id: 'kanban', icon: '📊', label: 'Kanban' },
+  { id: 'gantt', icon: '📅', label: 'Gantt' },
 ];
 
 type Props = {
