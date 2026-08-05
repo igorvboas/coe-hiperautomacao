@@ -196,7 +196,7 @@ export function TaskGanttChart({ tasks, assignableProfiles }: Props) {
         <div className="min-w-[760px]">
           {/* Eixo de datas */}
           <div className="flex border-b border-bdr bg-bg">
-            <div className="w-7 shrink-0" aria-hidden="true" />
+            <div className="w-14 shrink-0" aria-hidden="true" />
             <div className="w-[240px] shrink-0 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
               Tarefa
             </div>
@@ -241,7 +241,7 @@ export function TaskGanttChart({ tasks, assignableProfiles }: Props) {
             return (
               <Fragment key={root.id}>
                 <div className="flex border-b border-bdr/60 hover:bg-blue-50/40 dark:hover:bg-blue-950/30">
-                  <div className="w-7 shrink-0 flex items-start justify-center pt-2.5">
+                  <div className="w-14 shrink-0 flex items-start justify-center pt-2">
                     {hasChildren && (
                       <button
                         type="button"
@@ -251,10 +251,25 @@ export function TaskGanttChart({ tasks, assignableProfiles }: Props) {
                             ? `Comprimir subtarefas de ${root.title}`
                             : `Expandir subtarefas de ${root.title}`
                         }
+                        title={
+                          expanded
+                            ? 'Comprimir subtarefas'
+                            : `Expandir ${children.length} ${children.length === 1 ? 'subtarefa' : 'subtarefas'}`
+                        }
                         onClick={() => toggleExpanded(root.id)}
-                        className="w-7 h-7 rounded-full text-mut hover:text-txt hover:bg-bg flex items-center justify-center text-[11px] focus:outline-none focus:ring-1 focus:ring-pri"
+                        className={`inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-lg border text-[11px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-pri ${
+                          expanded
+                            ? 'bg-pri text-white border-pri'
+                            : 'bg-bg text-pri border-bdr hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
                       >
-                        {expanded ? '▾' : '▸'}
+                        <span
+                          aria-hidden="true"
+                          className={`inline-block transition-transform leading-none ${expanded ? 'rotate-90' : ''}`}
+                        >
+                          ▶
+                        </span>
+                        <span className="leading-none tabular-nums">{children.length}</span>
                       </button>
                     )}
                   </div>
@@ -342,7 +357,7 @@ export function TaskGanttChart({ tasks, assignableProfiles }: Props) {
                         key={child.id}
                         className="flex border-b border-bdr/60 bg-bg/40"
                       >
-                        <div className="w-7 shrink-0" aria-hidden="true" />
+                        <div className="w-14 shrink-0" aria-hidden="true" />
                         <div className="w-[240px] shrink-0 px-3 py-2.5 pl-8 min-w-0">
                           <div className="text-[11px] font-semibold text-pri">
                             {childTid}
