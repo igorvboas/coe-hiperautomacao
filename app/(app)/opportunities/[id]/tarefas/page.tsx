@@ -10,9 +10,12 @@ import { TaskList } from '@/components/opportunities/tasks/TaskList';
 
 /**
  * Sub-rota fullscreen do Plano de Atividades (RESEARCH §Pattern 6 — o Kanban de
- * 4 colunas e o Gantt não cabem na largura do modal). Neste tracer (16-02) só
- * a view Lista existe; Kanban/Gantt são os planos 16-06/16-07. Mesmo wrapper de
- * padding/largura máxima de `app/(app)/opportunities/[id]/page.tsx`.
+ * 4 colunas e o Gantt não cabem na largura do modal). A view Lista (16-04) já
+ * mostra a hierarquia de 2 níveis com rollup; Kanban/Gantt são os planos
+ * 16-06/16-07. Mesmo wrapper de padding/largura máxima de
+ * `app/(app)/opportunities/[id]/page.tsx`. Uma única busca do array PLANO de
+ * tarefas (raízes + subtarefas juntas) — o agrupamento por `parent_task_id` e
+ * o rollup acontecem na renderização da `TaskList`, nunca em outra query.
  */
 export default async function TarefasPage({
   params,
