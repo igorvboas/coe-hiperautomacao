@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { passwordPolicyError } from '@/lib/auth/password-policy';
 
 export type SignUpResult =
   | { error: string }
@@ -26,8 +27,9 @@ export async function signUp(formData: FormData): Promise<SignUpResult> {
   if (!email || !password) {
     return { error: 'Informe e-mail e senha.' };
   }
-  if (password.length < 8) {
-    return { error: 'A senha deve ter ao menos 8 caracteres.' };
+  const weak = passwordPolicyError(password);
+  if (weak) {
+    return { error: weak };
   }
 
   const supabase = await createClient();

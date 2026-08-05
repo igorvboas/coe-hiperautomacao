@@ -4,12 +4,17 @@ import Image from 'next/image';
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { signUp } from './actions';
+import PasswordStrength from '@/components/auth/password-strength';
+import { PASSWORD_MIN_LENGTH, checkPassword } from '@/lib/auth/password-policy';
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [invitedEmail, setInvitedEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [pending, startTransition] = useTransition();
+
+  const { isStrong } = checkPassword(password);
 
   // `?email=` vem do botão do e-mail de convite — só pré-preenche o campo.
   // A autorização real continua sendo a allowlist validada server-side.
@@ -113,11 +118,16 @@ export default function SignupPage() {
                 name="password"
                 type="password"
                 required
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-describedby="password-requisitos"
                 className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
               />
-              <p className="mt-1 text-[11px] text-mut">Mínimo de 8 caracteres.</p>
+              <div id="password-requisitos">
+                <PasswordStrength value={password} />
+              </div>
             </div>
 
             {error && (
@@ -131,7 +141,7 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || !isStrong}
               className="w-full py-2.5 bg-pri hover:bg-pril text-white text-sm font-semibold rounded-lg disabled:opacity-50 transition-colors"
             >
               {pending ? 'Criando...' : 'Criar conta'}

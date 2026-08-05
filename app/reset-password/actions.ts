@@ -2,10 +2,9 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { passwordPolicyError } from '@/lib/auth/password-policy';
 
 export type ResetPasswordResult = { error: string } | void;
-
-const MIN_LENGTH = 8;
 
 /**
  * Grava a nova senha. Só funciona com a sessão de recuperação já estabelecida
@@ -18,8 +17,9 @@ export async function resetPassword(
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('password_confirm') ?? '');
 
-  if (password.length < MIN_LENGTH) {
-    return { error: `A senha deve ter ao menos ${MIN_LENGTH} caracteres.` };
+  const weak = passwordPolicyError(password);
+  if (weak) {
+    return { error: weak };
   }
   if (password !== confirm) {
     return { error: 'As senhas não conferem.' };

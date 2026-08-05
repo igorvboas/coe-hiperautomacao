@@ -4,10 +4,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { resetPassword } from './actions';
+import PasswordStrength from '@/components/auth/password-strength';
+import { PASSWORD_MIN_LENGTH, checkPassword } from '@/lib/auth/password-policy';
 
 export default function ResetPasswordForm({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [pending, startTransition] = useTransition();
+
+  const { isStrong } = checkPassword(password);
+  const matches = password.length > 0 && password === confirm;
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -42,12 +49,17 @@ export default function ResetPasswordForm({ email }: { email: string }) {
               name="password"
               type="password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
               autoComplete="new-password"
               autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-describedby="password-requisitos"
               className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
             />
-            <p className="mt-1 text-[11px] text-mut">Mínimo de 8 caracteres.</p>
+            <div id="password-requisitos">
+              <PasswordStrength value={password} />
+            </div>
           </div>
 
           <div>
@@ -62,10 +74,24 @@ export default function ResetPasswordForm({ email }: { email: string }) {
               name="password_confirm"
               type="password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
               autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               className="mt-1 w-full px-3 py-2 border border-bdr rounded-lg text-sm bg-wh focus:outline-none focus:border-pril focus:ring-2 focus:ring-pril/20"
             />
+            {confirm.length > 0 && (
+              <p
+                aria-live="polite"
+                className={`mt-1 text-[11px] font-semibold ${
+                  matches
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {matches ? '✓ As senhas conferem' : '✗ As senhas não conferem'}
+              </p>
+            )}
           </div>
 
           {error && (
@@ -79,7 +105,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !isStrong || !matches}
             className="w-full py-2.5 bg-pri hover:bg-pril text-white text-sm font-semibold rounded-lg disabled:opacity-50 transition-colors"
           >
             {pending ? 'Salvando...' : 'Salvar nova senha'}
