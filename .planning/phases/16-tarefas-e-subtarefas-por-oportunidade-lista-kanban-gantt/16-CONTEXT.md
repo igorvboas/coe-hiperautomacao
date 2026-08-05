@@ -89,6 +89,23 @@ oportunidade**.
   `select('*')`) → `modal/risk/` (tabela + form + dialog + delete com
   confirmação) → sub-rotas em `app/(app)/opportunities/[id]/riscos/...`.
 
+### Resolvidas após a pesquisa (2026-08-04)
+
+- **D-11 (quem escreve tarefas) — travada pelo PO:** escrita liberada para
+  **todos os papéis exceto `viewer`** (`member` e `tenant_admin` criam, editam,
+  movem e excluem; `viewer` só lê). É o padrão real de `opportunity_risks`
+  pós-0011/0015/0021 — **não** o de `opportunity_assignees`, que é admin-only.
+  Racional: sem isso o Kanban esvazia, porque quem executa não conseguiria
+  mover o próprio card. *(Resolve a Open Question 1 do RESEARCH.md.)*
+- **D-12 (`platform_admin`):** mantém paridade com as tabelas irmãs —
+  `is_platform_admin()` entra nas policies de `opportunity_tasks` como já entra
+  em `opportunity_risks`/`opportunity_assignees`. É consistência de plataforma,
+  não uma rota cross-tenant nova de produto. *(Resolve a Open Question 2.)*
+- **D-13 (expand/collapse):** estado **independente por view** — Lista e Gantt
+  não compartilham expansão. Requisito é apenas que seja por tarefa, não global
+  (TASK-07/TASK-10). Estado local do componente basta; não persistir na URL.
+  *(Resolve a Open Question 3.)*
+
 ### Claude's Discretion
 
 - **Onde as 3 views vivem** (aba nova no modal de oportunidade vs. sub-rota
