@@ -94,9 +94,17 @@ export function TaskForm({
         setFormError(result.error);
         return;
       }
-      router.push(`/opportunities/${opportunityId}/tarefas`);
+      // Quando `onDone` existe (modo diálogo) QUEM fecha é ele — via
+      // `router.replace` sem `?tarefa=`. Um `router.push` aqui competiria com
+      // esse replace no mesmo tick e o diálogo ficava preso aberto depois de
+      // salvar. Sem `onDone` (rotas fullscreen `/tarefas/new` e
+      // `/tarefas/[taskId]/edit`) é este push que devolve o usuário à Lista.
+      if (onDone) {
+        onDone();
+      } else {
+        router.push(`/opportunities/${opportunityId}/tarefas`);
+      }
       router.refresh();
-      onDone?.();
     });
   }
 

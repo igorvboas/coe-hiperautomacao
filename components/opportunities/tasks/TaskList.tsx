@@ -115,7 +115,7 @@ export function TaskList({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-bdr">
-              <th className="px-2 py-2 w-9" aria-hidden="true" />
+              <th className="px-2 py-2 w-16" aria-hidden="true" />
               <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
                 ID
               </th>
@@ -165,10 +165,25 @@ export function TaskList({
                               ? `Comprimir subtarefas de ${root.title}`
                               : `Expandir subtarefas de ${root.title}`
                           }
+                          title={
+                            expanded
+                              ? 'Comprimir subtarefas'
+                              : `Expandir ${children.length} ${children.length === 1 ? 'subtarefa' : 'subtarefas'}`
+                          }
                           onClick={() => toggleExpanded(root.id)}
-                          className="w-7 h-7 rounded-full text-mut hover:text-txt hover:bg-bg flex items-center justify-center text-[11px] focus:outline-none focus:ring-1 focus:ring-pri"
+                          className={`inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-lg border text-[11px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-pri ${
+                            expanded
+                              ? 'bg-pri text-white border-pri'
+                              : 'bg-bg text-pri border-bdr hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
                         >
-                          {expanded ? '▾' : '▸'}
+                          <span
+                            aria-hidden="true"
+                            className={`inline-block transition-transform leading-none ${expanded ? 'rotate-90' : ''}`}
+                          >
+                            ▶
+                          </span>
+                          <span className="leading-none tabular-nums">{children.length}</span>
                         </button>
                       )}
                     </td>
