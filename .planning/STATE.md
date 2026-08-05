@@ -5,15 +5,15 @@ milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
 current_phase: 16
 current_phase_name: tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt
 status: executing
-stopped_at: Completed 16-01-PLAN.md (checkpoint de apply manual resolvido)
-last_updated: "2026-08-05T13:34:17.464Z"
+stopped_at: Completed 16-02-PLAN.md (tracer ponta-a-ponta de tarefas)
+last_updated: "2026-08-05T13:47:23.242Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 7
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -59,7 +59,7 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 16 (tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-08-05 — Phase 16 execution started
 
@@ -69,7 +69,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [█░░░░░░░░░] 14%
+Progress: [███░░░░░░░] 29%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -120,6 +120,7 @@ Progress: [█░░░░░░░░░] 14%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 16 P01 | 12min | 3 tasks | 4 files |
+| Phase 16 P02 | 35min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Camada de dados/mutação de riscos (Plan 12-01)**: `risk-actions.ts` (`'use server'`) modela `actions.ts` — `riskInputSchema.safeParse` → `auth.getUser` → `profiles.tenant_id` server-derived → enumeração explícita de colunas (sem spread) → `revalidatePath`. **`priority` NUNCA no payload** (insert/update): o trigger `set_risk_priority()` é `before insert OR update` (0011:294), única autoridade; `updateRisk` não faz nada de especial — editar impacto/probabilidade recalcula sozinho (RISK-02/03 = app-layer puro, sem migration). `updateRisk`/`deleteRisk` recebem `opportunityId` só p/ `revalidatePath` e escopam por `.eq('tenant_id', profile.tenant_id)` (defesa em profundidade). Query `fetchRisksForOpportunity`/`fetchRiskById` com whitelist `RISK_COLUMNS` (sem `select('*')`), ordenadas por `created_at asc` (rank de severidade `critica>alta>media>baixa` fica no client em 12-02 — `.order('priority')` é alfabético, não semântico; Pitfall 6). `risk-labels.ts` = módulo único enum minúsculo→PT Title-Case (`Record<Enum,string>` type-safe) + badges (🚧/⚠️/💡, `PRIORITY_BADGE_CLASS` por cor) + `RESPONSAVEL_SUGGESTIONS` p/ datalist (D-08, tenant-agnóstico).
 - [Phase ?]: Migration 0037 (opportunity_tasks) aplicada no Supabase Cloud pelo PO — 10/10 verificacoes passaram (14 colunas, enum de 4 status, 2 guards de trigger, RLS com 4 policies); planos 16-02+ destravados
 - [Phase ?]: Verificacao 7 do handoff (UPDATE de re-parentamento) exercitou o ramo 'pai ja e subtarefa' do guard check_task_depth, nao o ramo 'linha ja tem filhas' — ambos os ramos existem na funcao, D-01 se sustenta nos dois sentidos
+- [Phase ?]: 16-02: TaskList/página /tarefas reusam fetchAssignableProfiles(tenant_id) para resolver nome do responsável a partir de assignee_id — zero query nova (D-08)
+- [Phase ?]: 16-02: tracer feedback gate tratado como execução autônoma (plano autonomous:true, <verify> da Task 1 100% automatizada, sem componente visual)
 
 ### Pending Todos
 
@@ -173,7 +176,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-08-05T13:34:17.457Z
+Last session: 2026-08-05T13:47:23.235Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -256,5 +259,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: Completed 16-01-PLAN.md (checkpoint de apply manual resolvido)
+Stopped at: Completed 16-02-PLAN.md (tracer ponta-a-ponta de tarefas)
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
