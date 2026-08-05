@@ -87,7 +87,7 @@ describe('computeGanttDomain — domínio temporal do Gantt de tarefas (TASK-10)
       id: 'child-1',
       parent_task_id: 'parent-1',
       start_date: '2026-01-10',
-      due_date: '2026-01-20',
+      due_date: '2026-02-01',
     });
     const parent2 = mkTask({ id: 'parent-2', start_date: '2026-01-15', due_date: '2026-01-25' });
     const allTasks = [parent1, child1, parent2];
