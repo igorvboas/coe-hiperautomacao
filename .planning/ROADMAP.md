@@ -322,7 +322,14 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
   6. A view **Gantt** posiciona cada tarefa/subtarefa no tempo pelas suas datas, com expandir/comprimir das subtarefas; a barra da tarefa-pai cobre o span do menor início ao maior fim das filhas e exibe o % de conclusão agregado.
   7. Span agregado e % de conclusão da tarefa-pai são **calculados em runtime** (view SQL ou client) e **não existem como coluna persistida** em `opportunity_tasks`; alterar uma subtarefa reflete imediatamente na pai sem escrita adicional.
   8. `lib/database.types.ts` (mantido à mão — type-gen bloqueado) inclui `opportunity_tasks` e os enums novos, e `tsc --noEmit` passa limpo.
-**Plans**: TBD (a planejar)
+**Plans**: 7 plans (6 waves; a wave 2 roda 16-02 e 16-03 em paralelo)
+- [ ] 16-01-PLAN.md — Migration `0037` (`opportunity_tasks`, enum, 2 triggers de guarda, 4 policies), tipos hand-maintained e handoff de apply write-only **[BLOQUEIA todos os demais]**
+- [ ] 16-02-PLAN.md — **TRACER** ponta-a-ponta: Zod + labels + queries + `createTask` + sub-rota `/tarefas` com a Lista + formulário de criação + entrada no detalhe
+- [ ] 16-03-PLAN.md — Testes de banco: guarda de 2 níveis, coerência de tenant do responsável, isolamento cross-tenant e autorização de escrita por papel
+- [ ] 16-04-PLAN.md — `computeTaskRollup` (span + % agregados, runtime) e Lista hierárquica com expandir/comprimir por tarefa
+- [ ] 16-05-PLAN.md — CRUD completo: editar, excluir com confirmação em cascata, criar subtarefa, diálogo e deep-links
+- [ ] 16-06-PLAN.md — Kanban de 4 colunas com arraste e prompt obrigatório de motivo no Bloqueio + controle de views
+- [ ] 16-07-PLAN.md — Gantt de 2 níveis com barra agregada da pai + checkpoint de verificação humana das 3 views
 **UI hint**: yes
 
 ### Decisões travadas com o PO (2026-08-04) — não reabrir no planejamento
