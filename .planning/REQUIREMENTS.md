@@ -76,8 +76,8 @@ Milestone **v0.5 — Execução: Tarefas e Subtarefas por Oportunidade**. Adicio
 - [x] **TASK-05**: O usuário cria uma tarefa e, a partir dela, adiciona subtarefas, preenchendo todos os campos da tarefa/subtarefa em uma interface dedicada (form/modal)
 - [x] **TASK-06**: O usuário edita e remove tarefas e subtarefas; remover uma tarefa-pai remove suas subtarefas, com confirmação explícita
 - [x] **TASK-07**: View **Lista** das atividades da oportunidade, com expandir/comprimir (show/hide) das subtarefas de cada tarefa
-- [ ] **TASK-08**: View **Kanban** das atividades com exatamente 4 colunas na ordem Backlog → Em Andamento → Bloqueio → Finalizado, com drag-and-drop para mudar o status
-- [ ] **TASK-09**: Mover uma tarefa para **Bloqueio** exige informar o motivo do bloqueio; o motivo fica visível no card e no detalhe da tarefa
+- [x] **TASK-08**: View **Kanban** das atividades com exatamente 4 colunas na ordem Backlog → Em Andamento → Bloqueio → Finalizado, com drag-and-drop para mudar o status
+- [x] **TASK-09**: Mover uma tarefa para **Bloqueio** exige informar o motivo do bloqueio; o motivo fica visível no card e no detalhe da tarefa
 - [ ] **TASK-10**: View **Gantt** das atividades no tempo, com barras por tarefa/subtarefa e expandir/comprimir das subtarefas
 - [x] **TASK-11**: No Gantt e na Lista, a tarefa-pai exibe o **span agregado** (menor início / maior fim das subtarefas) e o **% de conclusão agregado** — ambos **calculados em runtime, nunca persistidos** (mesma regra do score)
 
