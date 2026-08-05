@@ -1,20 +1,50 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.2
-milestone_name: Evolução do Modelo (Workshop I / Unidasul)
-status: milestone_complete
-last_updated: 2026-07-16T00:00:00.000Z
-last_activity: 2026-07-16 -- Migrations 0014-0019 aplicadas e verificadas (schema v0.3 live). Shell trocado para sidebar esquerda (portada de branch remota não mesclada feat/v0.3-produtizacao, sem a parte de admin) + identidade visual PSW Digital (azul/Poppins) aplicada por cima. Mockup _giba_wsi-dashboard.html recuperado (só existia naquela branch, sumido do main). Nada commitado ainda -- ver Pending Todos.
+milestone: v0.5
+milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
+status: phase_planned
+last_updated: 2026-08-04T00:00:00.000Z
+last_activity: 2026-08-04 -- `/gsd-plan-phase 16` completo. Milestone v0.5 aberta com a Phase 16 (Tarefas e Subtarefas por Oportunidade -- Lista/Kanban/Gantt), 11 requisitos TASK-01..11. Artefatos: CONTEXT (13 decisoes travadas), RESEARCH, UI-SPEC (aprovado pelo gsd-ui-checker na iteracao 1), PATTERNS (24/24 analogs), VALIDATION (nyquist_compliant) e 7 PLAN.md em 6 waves. gsd-plan-checker PASSOU na 1a passada, zero blockers. Pronto para `/gsd-execute-phase 16`.
 progress:
-  total_phases: 7
-  completed_phases: 6
-  total_plans: 20
-  completed_plans: 58
-  percent: 86
-stopped_at: Milestone complete (Phase 15 was final phase)
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 7
+  completed_plans: 0
+  percent: 0
+stopped_at: Phase 16 planejada (7 plans, 6 waves) -- aguardando execucao
 ---
 
 # Project State
+
+## Milestone v0.5 — Phase 16 (planejada em 2026-08-04)
+
+**Goal:** dentro de uma oportunidade, o usuário mapeia as atividades de execução como tarefas com
+subtarefas (2 níveis), atribui cada uma a uma pessoa do próprio tenant e acompanha o conjunto em
+Lista, Kanban e Gantt, expandindo/comprimindo as subtarefas.
+
+**Decisões travadas com o PO (não reabrir):** 2 níveis exatos com a regra no banco; datas manuais e
+rollup da tarefa-pai calculado em runtime, nunca persistido; enum fixo de 4 status
+(Backlog / Em Andamento / Bloqueio / Finalizado) = as 4 colunas do Kanban, com motivo obrigatório ao
+bloquear; 1 responsável por tarefa, FK para `profiles(id)` do mesmo tenant; escrita liberada a todos
+os papéis exceto `viewer`.
+
+**Correções de premissa descobertas no código** (o CLAUDE.md está desatualizado nestes pontos):
+migration desta fase é a **0037** (a última no repo é a 0036, não a 0027); a tabela de pessoas é
+**`profiles`**, não `users`; **não há shadcn/ui** instalado (`components/ui/` não existe); já existem
+**dois Gantt zero-dep** no projeto, então nenhuma dependência de Gantt é necessária; e a busca de
+pessoas atribuíveis do tenant já existe em `lib/opportunities/assignees.ts`.
+
+**Waves:** 1 → `16-01` (migration 0037 + tipos à mão + checkpoint humano de apply, write-only mode);
+2 → `16-02` (TRACER ponta-a-ponta com a Lista) ‖ `16-03` (testes de banco);
+3 → `16-04` (rollup + Lista hierárquica); 4 → `16-05` (CRUD completo + cascata);
+5 → `16-06` (Kanban + interceptação do bloqueio); 6 → `16-07` (Gantt + checkpoint visual).
+
+**Dois gates humanos no caminho crítico:** o apply manual da `0037` no SQL Editor do Supabase Cloud
+(fim da wave 1 — nada avança sem ele) e a verificação visual das 3 views (fim da wave 6).
+
+**Fora de escopo desta fase** (candidatos a próxima): visão de tarefas cross-oportunidade
+("minhas tarefas"), dependências entre tarefas / caminho crítico, arrastar barras no Gantt para
+alterar datas, notificar o responsável por e-mail, comentários/anexos/log de horas.
 
 ## Project Reference
 
