@@ -2,32 +2,41 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createTask } from '@/lib/opportunities/task-actions';
+import { createTask, updateTask } from '@/lib/opportunities/task-actions';
 import type { TaskInput } from '@/lib/opportunities/task-schema';
 import { TASK_STATUS_ORDER, TASK_STATUS_META } from '@/lib/opportunities/task-labels';
 import { assigneeName, type AssignableProfile } from '@/lib/opportunities/assignee-types';
-import type { TaskStatus } from '@/lib/opportunities/types';
+import type { OpportunityTask, TaskStatus } from '@/lib/opportunities/types';
 
 type Props = {
   opportunityId: string;
   /** Candidatos a responsável — sempre do tenant da OPORTUNIDADE (D-08/TASK-03). */
   assignableProfiles: AssignableProfile[];
-  /** Título da tarefa pai — presente só ao criar/editar subtarefa (expansão 16-05). */
+  /** Título da tarefa pai — presente só ao criar/editar subtarefa. */
   parentTitle?: string;
   /** Id da tarefa pai — nunca editável na UI (D-01 não re-parenta). */
   parentTaskId?: string;
   /** Chamado após salvar com sucesso (fechar dialog / navegar de volta). */
   onDone?: () => void;
+  /** 'create' (default) ou 'edit' — 16-05 acrescenta o modo de edição. */
+  mode?: 'create' | 'edit';
+  /** Obrigatório quando mode === 'edit'. */
+  taskId?: string;
+  /** Valores atuais da tarefa quando mode === 'edit'. */
+  initial?: OpportunityTask;
 };
 
 /**
- * Formulário de tarefa (create), modelado em RiskForm.tsx. Reusa verbatim as
- * constantes de classe `inputCls`/`labelCls` daquele arquivo — Tailwind escrito
- * à mão, nenhum componente de biblioteca de UI é introduzido (D-09).
+ * Formulário de tarefa/subtarefa (create + edit, TASK-03/TASK-05/TASK-06),
+ * modelado em RiskForm.tsx. Reusa verbatim as constantes de classe
+ * `inputCls`/`labelCls` daquele arquivo — Tailwind escrito à mão, nenhum
+ * componente de biblioteca de UI é introduzido (D-09).
  *
- * Nesta plan (16-02, tracer) só cria tarefas RAIZ — edição e subtarefa são a
- * expansão de 16-05; as props `parentTitle`/`parentTaskId` já existem aqui para
- * que o form seja reusado sem retrabalho.
+ * Em modo de edição os campos chegam preenchidos a partir de `initial`
+ * (incluindo `blocked_reason` quando o status atual é `bloqueio`) e o envio
+ * chama `updateTask` em vez de `createTask`. A legenda "Subtarefa de: ..."
+ * (via `parentTitle`) é somente leitura nos dois modos — nunca existe um
+ * controle de seleção de pai (D-01).
  *
  * Submissão: payload SEM tenant_id/opportunity_id/created_by (server-derived,
  * T-16-02). Em sucesso navega para a Lista de tarefas e chama router.refresh().
@@ -38,19 +47,24 @@ export function TaskForm({
   parentTitle,
   parentTaskId,
   onDone,
+  mode = 'create',
+  taskId,
+  initial,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [assigneeId, setAssigneeId] = useState('');
-  const [status, setStatus] = useState<TaskStatus>('backlog');
-  const [startDate, setStartDate] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [blockedReason, setBlockedReason] = useState('');
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [assigneeId, setAssigneeId] = useState(initial?.assignee_id ?? '');
+  const [status, setStatus] = useState<TaskStatus>(initial?.status ?? 'backlog');
+  const [startDate, setStartDate] = useState(initial?.start_date ?? '');
+  const [dueDate, setDueDate] = useState(initial?.due_date ?? '');
+  const [blockedReason, setBlockedReason] = useState(
+    initial?.status === 'bloqueio' ? (initial?.blocked_reason ?? '') : ''
+  );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,7 +84,10 @@ export function TaskForm({
     };
 
     startTransition(async () => {
-      const result = await createTask(opportunityId, payload);
+      const result =
+        mode === 'edit' && taskId
+          ? await updateTask(taskId, opportunityId, payload)
+          : await createTask(opportunityId, payload);
 
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
