@@ -74,7 +74,7 @@ Milestone **v0.5 — Execução: Tarefas e Subtarefas por Oportunidade**. Adicio
 - [x] **TASK-03**: Cada tarefa/subtarefa é atribuída a **no máximo um** usuário, obrigatoriamente do **mesmo tenant** da oportunidade; o seletor de responsável só lista usuários daquele tenant
 - [x] **TASK-04**: Tarefas são isoladas por tenant — `opportunity_tasks` com `tenant_id not null` + RLS e as 4 policies padrão; tenant A não enxerga tarefas do tenant B
 - [x] **TASK-05**: O usuário cria uma tarefa e, a partir dela, adiciona subtarefas, preenchendo todos os campos da tarefa/subtarefa em uma interface dedicada (form/modal)
-- [ ] **TASK-06**: O usuário edita e remove tarefas e subtarefas; remover uma tarefa-pai remove suas subtarefas, com confirmação explícita
+- [x] **TASK-06**: O usuário edita e remove tarefas e subtarefas; remover uma tarefa-pai remove suas subtarefas, com confirmação explícita
 - [x] **TASK-07**: View **Lista** das atividades da oportunidade, com expandir/comprimir (show/hide) das subtarefas de cada tarefa
 - [ ] **TASK-08**: View **Kanban** das atividades com exatamente 4 colunas na ordem Backlog → Em Andamento → Bloqueio → Finalizado, com drag-and-drop para mudar o status
 - [ ] **TASK-09**: Mover uma tarefa para **Bloqueio** exige informar o motivo do bloqueio; o motivo fica visível no card e no detalhe da tarefa
