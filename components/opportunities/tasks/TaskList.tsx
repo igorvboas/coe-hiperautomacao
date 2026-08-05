@@ -2,16 +2,20 @@
 
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { OpportunityTask } from '@/lib/opportunities/types';
 import { TASK_STATUS_META } from '@/lib/opportunities/task-labels';
 import { assigneeName, type AssignableProfile } from '@/lib/opportunities/assignee-types';
 import { computeTaskRollup, groupTasksByParent } from '@/lib/opportunities/task-rollup';
+import { DeleteTaskButton } from './DeleteTaskButton';
 
 type Props = {
   opportunityId: string;
   tasks: OpportunityTask[];
   /** Candidatos a responsável do tenant — reusado de D-08, sem query nova de nomes. */
   assignableProfiles: AssignableProfile[];
+  /** `viewer` não edita/exclui/cria subtarefa — a coluna de Ações some inteira (D-11). */
+  readOnly?: boolean;
 };
 
 // Data de input HTML (YYYY-MM-DD) → dd/mm/aa, sem `new Date()`/locale, para não
@@ -50,10 +54,26 @@ function StatusBadge({ status }: { status: OpportunityTask['status'] }) {
  * nas duas views. Analog: RiskTable.tsx (rótulo sequencial por índice) +
  * table.tsx (convenção geral de markup).
  */
-export function TaskList({ opportunityId, tasks, assignableProfiles }: Props) {
+export function TaskList({
+  opportunityId,
+  tasks,
+  assignableProfiles,
+  readOnly = false,
+}: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { roots, childrenByParent } = groupTasksByParent(tasks);
   const nameById = new Map(assignableProfiles.map((p) => [p.id, assigneeName(p)]));
+
+  // Constrói o href de um soft-path (`?tarefa=...`) preservando os demais
+  // parâmetros correntes (em especial `?view=`) — mesma regra de fechamento
+  // do TaskFormDialog (UI-SPEC "Dialog close behavior").
+  function hrefFor(params: Record<string, string>): string {
+    const qs = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(params)) qs.set(key, value);
+    return `${pathname}?${qs.toString()}`;
+  }
 
   function toggleExpanded(taskId: string) {
     setExpandedIds((prev) => {
@@ -77,12 +97,14 @@ export function TaskList({ opportunityId, tasks, assignableProfiles }: Props) {
           Crie a primeira tarefa desta oportunidade para começar a planejar a
           execução.
         </p>
-        <Link
-          href={`/opportunities/${opportunityId}/tarefas/new`}
-          className="inline-block px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg"
-        >
-          + Nova Tarefa
-        </Link>
+        {!readOnly && (
+          <Link
+            href={hrefFor({ tarefa: 'new' })}
+            className="inline-block px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg"
+          >
+            + Nova Tarefa
+          </Link>
+        )}
       </div>
     );
   }
@@ -112,6 +134,11 @@ export function TaskList({ opportunityId, tasks, assignableProfiles }: Props) {
               <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
                 % Concluído
               </th>
+              {!readOnly && (
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+                  Ações
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -180,6 +207,33 @@ export function TaskList({ opportunityId, tasks, assignableProfiles }: Props) {
                         <span className="text-mut">—</span>
                       )}
                     </td>
+                    {!readOnly && (
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={hrefFor({ tarefa: root.id })}
+                            title="Editar tarefa"
+                            className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
+                          >
+                            ✏️
+                          </Link>
+                          <Link
+                            href={hrefFor({ tarefa: 'new', parent: root.id })}
+                            title="Adicionar subtarefa"
+                            className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded px-2 py-1 text-[10px] whitespace-nowrap"
+                          >
+                            + Subtarefa
+                          </Link>
+                          <DeleteTaskButton
+                            taskId={root.id}
+                            opportunityId={opportunityId}
+                            label={rootTid}
+                            taskTitle={root.title}
+                            childCount={children.length}
+                          />
+                        </div>
+                      </td>
+                    )}
                   </tr>
 
                   {expanded &&
@@ -214,6 +268,26 @@ export function TaskList({ opportunityId, tasks, assignableProfiles }: Props) {
                           <td className="px-2 py-2 text-[11px] text-mut whitespace-nowrap">
                             —
                           </td>
+                          {!readOnly && (
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <Link
+                                  href={hrefFor({ tarefa: child.id })}
+                                  title="Editar subtarefa"
+                                  className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
+                                >
+                                  ✏️
+                                </Link>
+                                <DeleteTaskButton
+                                  taskId={child.id}
+                                  opportunityId={opportunityId}
+                                  label={childTid}
+                                  taskTitle={child.title}
+                                  childCount={0}
+                                />
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
