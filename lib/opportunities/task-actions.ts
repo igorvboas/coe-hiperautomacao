@@ -16,7 +16,8 @@
 //      mensagem pt-BR em vez do 42501 cru do Postgres.
 //   4. `blocked_reason` é SEMPRE escrito explicitamente (Pitfall 4) — valor
 //      validado quando `status === 'bloqueio'`, `null` em qualquer outro
-//      status. `normalizeTaskStatusUpdate` (abaixo) é a fonte ÚNICA dessa
+//      status. `normalizeTaskStatusUpdate` (em `task-status.ts` — módulo puro,
+//      pois este arquivo é `'use server'` e só pode exportar async) é a fonte ÚNICA dessa
 //      regra — `createTask`, `updateTask` e `updateTaskStatus` consomem a
 //      mesma função em vez de reimplementar a lógica de limpeza cada uma à
 //      sua maneira (16-05).
@@ -35,6 +36,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { taskInputSchema } from './task-schema';
 import { requireEditorRole } from '@/lib/security/role';
+import { normalizeTaskStatusUpdate } from './task-status';
 import type { TaskStatus } from './types';
 
 export type TaskActionResult =
@@ -44,40 +46,6 @@ export type TaskActionResult =
 export type MutationResult =
   | { ok: true }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
-
-// =============================================================================
-// normalizeTaskStatusUpdate — fonte ÚNICA da regra de limpeza do motivo de
-// bloqueio (D-03, Pitfall 4). Pura, sem I/O: recebe o status alvo e o motivo
-// (possivelmente ausente/em branco) e devolve o par normalizado a gravar, ou
-// a recusa quando o motivo é obrigatório e está faltando.
-//
-// - status === 'bloqueio' e motivo preenchido (não só espaços) → devolve o
-//   motivo TRIMADO.
-// - status === 'bloqueio' e motivo ausente/só espaços → recusa (ok: false)
-//   ANTES de qualquer mutação chegar ao banco.
-// - qualquer outro status → motivo SEMPRE nulo no payload, mesmo que um
-//   texto tenha sido passado (a coluna nunca é omitida do objeto de update).
-// =============================================================================
-export function normalizeTaskStatusUpdate(
-  status: TaskStatus,
-  blockedReason: string | null | undefined
-):
-  | { ok: true; status: TaskStatus; blocked_reason: string | null }
-  | { ok: false; error: string } {
-  if (status !== 'bloqueio') {
-    return { ok: true, status, blocked_reason: null };
-  }
-
-  const trimmed = (blockedReason ?? '').trim();
-  if (!trimmed) {
-    return {
-      ok: false,
-      error: 'Motivo do bloqueio obrigatório quando o status é Bloqueio.',
-    };
-  }
-
-  return { ok: true, status, blocked_reason: trimmed };
-}
 
 // =============================================================================
 // createTask — insere nova tarefa (raiz ou subtarefa) após validação Zod

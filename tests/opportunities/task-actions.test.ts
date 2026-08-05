@@ -8,7 +8,7 @@
 // extraída de um módulo de actions, testada sem mocks de Supabase).
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { normalizeTaskStatusUpdate } from '@/lib/opportunities/task-actions';
+import { normalizeTaskStatusUpdate } from '@/lib/opportunities/task-status';
 
 describe('normalizeTaskStatusUpdate — regra de limpeza do motivo de bloqueio (D-03/Pitfall 4)', () => {
   it('bloqueio com motivo preenchido: payload carrega esse motivo', () => {
