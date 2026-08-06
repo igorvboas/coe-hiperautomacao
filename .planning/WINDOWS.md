@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 7
+open_count: 9
 waived_count: 0
 fixed_count: 0
-total_count: 7
-last_updated: 2026-08-06T18:54:13.525Z
+total_count: 9
+last_updated: 2026-08-06T21:03:11.095Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,8 @@ last_updated: 2026-08-06T18:54:13.525Z
 | 5 | 16 | unrun-verify | tests/security/opportunity-tasks-viewer-write.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.558Z |  |
 | 6 | 17 | lint-warning | tests/opportunities/report-strategic.test.ts | 107 | npm run typecheck falha (TS2322 null vs number\|undefined) — pre-existente ao Plan 17-01, fora de escopo (introduzido em aaf8e5a) | open |  | 2026-08-06T18:26:26.914Z |  |
 | 7 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Suite skipada localmente (sem .env.test) — os 5 specs decisivos (inclusive o negativo ACCESS-04) ficam em describe.skipIf ate .env.test ser populado; RED esperado com banco real ate a 0040 ser aplicada (Plan 17-03) | open |  | 2026-08-06T18:54:13.525Z |  |
+| 8 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Migration 0040 ja aplicada e os 4 smoke tests do trigger + o negativo decisivo (1 de 43) rodaram via SQL manual na Task 3, mas a suite Vitest continua em describe.skipIf: .env.test ausente. Achado desta sessao: o seed de teste usa fixtures (tenant 11111111.../profile aaaaaaaa...) que ja existem no PROPRIO projeto Supabase de producao — apontar .env.test para ele seria perigoso (a suite cria/apaga tenants e profiles). A pendencia provavelmente exige um projeto Supabase separado de teste, nao so popular o arquivo. | open |  | 2026-08-06T21:03:11.047Z |  |
+| 9 | 17 | unrun-verify | .planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-03-PLAN.md |  | Task 4 <human-check> (fecho visual do tracer: login como psw_staff em /opportunities mostrando as 2 oportunidades atribuidas de tenants distintos e ocultando a nao atribuida) nao foi executado nesta sessao — sem acesso a browser interativo. A prova comportamental equivalente foi feita via SQL (smoke 7: 1 de 43), mas o fecho visual explicito da UI segue pendente de confirmacao humana. | open |  | 2026-08-06T21:03:11.095Z |  |
 
 ````json
 [
@@ -107,6 +109,30 @@ last_updated: 2026-08-06T18:54:13.525Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-06T18:54:13.525Z",
+    "resolved_at": null
+  },
+  {
+    "id": 8,
+    "kind": "unrun-verify",
+    "phase": "17",
+    "file": "tests/security/psw-staff-isolation.test.ts",
+    "line": null,
+    "description": "Migration 0040 ja aplicada e os 4 smoke tests do trigger + o negativo decisivo (1 de 43) rodaram via SQL manual na Task 3, mas a suite Vitest continua em describe.skipIf: .env.test ausente. Achado desta sessao: o seed de teste usa fixtures (tenant 11111111.../profile aaaaaaaa...) que ja existem no PROPRIO projeto Supabase de producao — apontar .env.test para ele seria perigoso (a suite cria/apaga tenants e profiles). A pendencia provavelmente exige um projeto Supabase separado de teste, nao so popular o arquivo.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-06T21:03:11.047Z",
+    "resolved_at": null
+  },
+  {
+    "id": 9,
+    "kind": "unrun-verify",
+    "phase": "17",
+    "file": ".planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-03-PLAN.md",
+    "line": null,
+    "description": "Task 4 <human-check> (fecho visual do tracer: login como psw_staff em /opportunities mostrando as 2 oportunidades atribuidas de tenants distintos e ocultando a nao atribuida) nao foi executado nesta sessao — sem acesso a browser interativo. A prova comportamental equivalente foi feita via SQL (smoke 7: 1 de 43), mas o fecho visual explicito da UI segue pendente de confirmacao humana.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-06T21:03:11.095Z",
     "resolved_at": null
   }
 ]
