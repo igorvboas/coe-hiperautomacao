@@ -95,6 +95,7 @@ Adicionado em 2026-08-06 a pedido do PO. Problema estrutural: hoje uma pessoa da
 - [ ] **ACCESS-08**: A listagem de oportunidades do `psw_staff` é **unificada cross-tenant**, com coluna de empresa e filtro por empresa; para os demais papéis a listagem não muda
 - [ ] **ACCESS-09**: Apenas o `platform_admin` cadastra/convida uma pessoa como `psw_staff` e a atribui a oportunidades de qualquer empresa; `tenant_admin` de cliente não vê nem atribui gente da PSW
 - [ ] **ACCESS-10**: `psw_staff` e `platform_admin` são papéis distintos — o `platform_admin` continua com visão total (0021), o `psw_staff` só com o que lhe foi atribuído
+- [ ] **ACCESS-11**: Um `psw_staff` atribuído a uma oportunidade pode ser **responsável de tarefa** dentro dela — o trigger de coerência de tenant de `opportunity_tasks` aceita esse caso e o select de responsável o lista
 
 ## Future Requirements (deferred)
 
@@ -171,5 +172,6 @@ Adicionado em 2026-08-06 a pedido do PO. Problema estrutural: hoje uma pessoa da
 | ACCESS-08 | 17 |
 | ACCESS-09 | 17 |
 | ACCESS-10 | 17 |
+| ACCESS-11 | 17 |
 
-**Cobertura:** 35/35 REQ-IDs do v0.2 mapeados, cada um a exatamente uma fase. (MODEL-10 é uma restrição de compatibilidade satisfeita pelo schema da Phase 9 e verificada na Phase 10 — sem duplicação de entrega.) **v0.5:** 11/11 REQ-IDs `TASK-*` mapeados à Phase 16; 10/10 REQ-IDs `ACCESS-*` mapeados à Phase 17.
+**Cobertura:** 35/35 REQ-IDs do v0.2 mapeados, cada um a exatamente uma fase. (MODEL-10 é uma restrição de compatibilidade satisfeita pelo schema da Phase 9 e verificada na Phase 10 — sem duplicação de entrega.) **v0.5:** 11/11 REQ-IDs `TASK-*` mapeados à Phase 16; 11/11 REQ-IDs `ACCESS-*` mapeados à Phase 17.

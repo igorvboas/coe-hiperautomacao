@@ -337,7 +337,7 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 >
 > **Contexto:** entre o fim do v0.2 e esta milestone houve trabalho v0.3/v0.4 entregue fora do roadmap (super-admin de plataforma, e-mails transacionais, blend de score 50/30/20 na migration `0027`, backlog no fluxo de priorização). A Phase 16 parte do estado real do `main`, não do estado registrado no fim do v0.2.
 >
-> **Granularidade:** standard. **Cobertura:** 11/11 REQ-IDs `TASK-*` (Phase 16) + 10/10 REQ-IDs `ACCESS-*` (Phase 17) mapeados.
+> **Granularidade:** standard. **Cobertura:** 11/11 REQ-IDs `TASK-*` (Phase 16) + 11/11 REQ-IDs `ACCESS-*` (Phase 17) mapeados.
 
 ## Phases
 
@@ -401,13 +401,14 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 
 **Goal**: Uma pessoa da PSW (dev, tech lead, PM) é cadastrada **uma única vez**, no tenant da PSW, e é atribuída a oportunidades de qualquer empresa cliente; ao logar, ela enxerga **somente** as oportunidades às quais foi atribuída — de tenants diferentes ao mesmo tempo — numa lista unificada com coluna e filtro de empresa, sem que isso afete o isolamento dos usuários dos clientes.
 **Depends on**: Phase 9 (schema/RLS base), Phase 16 (`opportunity_tasks` — mais uma tabela filha que precisa herdar a visibilidade por atribuição)
-**Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, ACCESS-10
+**Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, ACCESS-10, ACCESS-11
 **Success Criteria** (what must be TRUE):
 
   1. Existe o papel `psw_staff` no enum `tenant_role`, adicionado numa migration isolada (o Postgres não permite usar um valor de enum recém-criado na mesma transação — mesmo procedimento da `0020`), e um profile com `tenant_id` = tenant da PSW + `role = 'psw_staff'` pode logar sem erro.
   2. `opportunity_assignees` aceita vincular um profile `psw_staff` a uma oportunidade de **qualquer** tenant, com `opportunity_assignees.tenant_id` sempre igual ao `tenant_id` **da oportunidade**; e continua **rejeitando** no banco qualquer outro vínculo cruzado (profile do tenant A em oportunidade do tenant B quando o profile não é `psw_staff`).
   3. Um `psw_staff` logado enxerga exatamente as oportunidades em que tem linha em `opportunity_assignees` — nem uma a mais. Um teste cruzado prova que ele **não** vê outras oportunidades do mesmo tenant onde ele já tem alguma atribuição.
-  4. A visibilidade se propaga para todas as tabelas filhas da oportunidade — `opportunity_phases`, `opportunity_risks`, `opportunity_tasks`, `opportunity_notes`, `opportunity_documents`, `opportunity_history`, `opportunity_assignees` — de modo que abrir uma oportunidade atribuída mostra as abas populadas, e nenhuma linha filha de oportunidade **não** atribuída aparece.
+  4. A visibilidade se propaga para todas as tabelas filhas da oportunidade — `opportunity_phases`, `opportunity_risks`, `opportunity_tasks`, `opportunity_notes`, `opportunity_documents`, `opportunity_history`, `opportunity_assignees` e, condicionalmente, `audit_log` (D-15) — além do bucket `opportunity-documents` no Storage, de modo que abrir uma oportunidade atribuída mostra as abas populadas e o download do anexo funciona; nenhuma linha filha de oportunidade **não** atribuída aparece.
+ 11. Um `psw_staff` atribuído a uma oportunidade pode ser **responsável de uma tarefa** dela: o trigger de coerência de tenant de `opportunity_tasks` (0037) aceita esse `assignee_id`, o select de responsável o lista, e continua rejeitando profile de outro tenant que não seja `psw_staff`.
   5. Um `psw_staff` escreve nas oportunidades atribuídas com os mesmos poderes de um `member` (tarefas, notas, documentos, riscos, status/campos da oportunidade) e recebe erro do banco ao tentar escrever em oportunidade não atribuída — a garantia é de RLS, não só de UI.
   6. Nada muda para quem é do cliente: `profiles.tenant_id` continua único e NOT NULL, `current_tenant_id()` continua sendo a fronteira dos papéis `member`/`viewer`/`tenant_admin`, e os testes de isolamento cross-tenant existentes continuam passando sem alteração.
   7. A listagem de oportunidades de um `psw_staff` é **unificada**: traz demandas de tenants diferentes na mesma tabela, com coluna de empresa visível e filtro por empresa; para os demais papéis a listagem permanece idêntica à de hoje (sem coluna de empresa).
@@ -423,6 +424,8 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 4. **Escrita** — `psw_staff` escreve nas oportunidades atribuídas exatamente como um `member` escreve nas do próprio tenant. Não é acesso somente-leitura.
 5. **Quem atribui** — apenas `platform_admin` vincula gente da PSW a oportunidades. `tenant_admin` de cliente não escolhe pessoas da PSW.
 6. **`psw_staff` ≠ `platform_admin`** — o `platform_admin` continua vendo tudo (0021); o `psw_staff` vê **apenas** o que lhe foi atribuído. São papéis distintos, não níveis do mesmo papel.
+7. **`psw_staff` pode ser responsável de tarefa** (decidido após a pesquisa) — o trigger de coerência de `opportunity_tasks` (0037) passa a aceitar um `assignee_id` `psw_staff`, e o select de responsável da tarefa o lista quando ele está atribuído àquela oportunidade.
+8. **`audit_log` entra na RLS aditiva** (decidido após a pesquisa) — a policy é escrita de forma **condicional/idempotente** (só aplica se a tabela existir), porque a `0038_audit_log.sql` ainda não está commitada. A fase não edita a `0038` nem `lib/audit/`.
 
 ## Restrições aplicadas à Phase 17 (de PROJECT.md / CLAUDE.md)
 
@@ -439,4 +442,4 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 6. **Sem painel admin novo**: a fase não cria rotas super-admin além do que já existe em `app/(app)/admin/` e `app/(app)/team/`.
 
 ---
-*Seção v0.5 criada em 2026-08-04. 2 fases (16, 17). 11/11 REQ-IDs `TASK-*` → Phase 16; 10/10 REQ-IDs `ACCESS-*` → Phase 17. Phase 17 adicionada em 2026-08-06.*
+*Seção v0.5 criada em 2026-08-04. 2 fases (16, 17). 11/11 REQ-IDs `TASK-*` → Phase 16; 11/11 REQ-IDs `ACCESS-*` → Phase 17. Phase 17 adicionada em 2026-08-06.*

@@ -113,6 +113,37 @@ de empresa.
   do enum, ele passa nesse teste automaticamente — o que está **correto** por
   D-04, mas precisa ser afirmado em teste, não assumido.
 
+### Resolvidas com o PO após a pesquisa (2026-08-06)
+
+- **D-14 (`psw_staff` pode ser responsável de tarefa):** SIM. O trigger
+  `check_task_tenant_coherence()` (0037) — que hoje exige que o `assignee_id` de
+  uma tarefa seja de um profile do mesmo tenant da oportunidade — passa a aceitar
+  também um profile `psw_staff`. O select de responsável da tarefa, para uma
+  oportunidade que tem staff PSW atribuído, lista esses PSW além das pessoas do
+  tenant. Sem isso o dev da PSW enxerga e edita as tarefas mas não pode ser o
+  responsável por elas, o que contraria o motivo da fase existir.
+- **D-15 (`audit_log` entra na RLS aditiva):** SIM. A `0038_audit_log.sql` está
+  no working tree ainda sem commit e é ela que passa a alimentar a aba
+  "Histórico". A Phase 17 escreve a policy aditiva de `audit_log` também, de
+  forma **idempotente e condicional** (aplica somente se a tabela existir — `if
+  exists (select 1 from information_schema.tables …)` ou equivalente), para não
+  quebrar caso a `0038` ainda não tenha sido aplicada. A fase **não** edita a
+  `0038` nem o código de `lib/audit/`.
+- **D-16 (call sites de escrita — descoberto na pesquisa):** os
+  `.eq('tenant_id', profile.tenant_id)` das server actions de escrita
+  (`lib/opportunities/actions.ts:570`, `risk-actions.ts:156,195`,
+  `task-actions.ts:186,229,280`, `document-actions.ts:203,210`,
+  `note-actions.ts:95`) usam o tenant **do profile**. Para um `psw_staff` esse é
+  o tenant da PSW, nunca o da oportunidade — o efeito é uma falha **silenciosa**
+  (0 linhas afetadas, sem erro). Trocar por um escopo resolvido no servidor
+  (D-11) é obrigatório, e cada um desses call sites precisa de cobertura.
+- **D-17 (`invited_emails` — descoberto na pesquisa):** a tabela tem CHECK
+  restrito a `('member','tenant_admin','viewer')` e a policy de INSERT do
+  `tenant_admin` só barra `role <> 'platform_admin'`. Para D-05 valer, o CHECK
+  precisa admitir `psw_staff` **e** a policy do `tenant_admin` precisa barrá-lo
+  explicitamente — senão ou o convite do `platform_admin` falha, ou o
+  `tenant_admin` de cliente consegue convidar staff PSW.
+
 ### Claude's Discretion
 
 - **Forma do helper SQL de acesso.** Um `has_opportunity_access(uuid)` ou um
