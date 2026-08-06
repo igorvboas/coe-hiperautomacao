@@ -664,9 +664,16 @@ escopo do PRODUTO (não uma claim técnica) — ver Open Questions.
 antes de virar decisão travada; as duas questões abertas abaixo são de escopo
 de produto, não de veracidade técnica.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> **Ambas resolvidas pelo PO em 2026-08-06, depois desta pesquisa.** As decisões
+> estão travadas no `17-CONTEXT.md` (D-14 e D-15) e implementadas no Plan 17-04.
+> Esta seção fica como registro do raciocínio; não é mais uma pendência.
 
 1. **`psw_staff` pode ser `assignee_id` de uma TAREFA (não só da oportunidade)?**
+   — **RESOLVED: SIM (D-14).** O trigger `check_task_tenant_coherence()` (0037) é
+   reescrito para aceitar um responsável `psw_staff` que esteja atribuído àquela
+   oportunidade. Virou o REQ-ID `ACCESS-11`.
    - O que sabemos: D-04 diz que `psw_staff` escreve tarefas "como um member".
      O trigger `check_task_tenant_coherence()` (0037) hoje rejeita um
      `assignee_id` de tenant diferente do da oportunidade — o que bloquearia
@@ -685,6 +692,12 @@ de produto, não de veracidade técnica.
 
 2. **A aba "Histórico" do `psw_staff` mostra menos que a de um `member` do
    próprio tenant — isso é aceitável para o MVP desta fase?**
+   — **RESOLVED: não fica assim (D-15).** O PO optou por incluir `audit_log` na
+   RLS aditiva, de forma condicional/idempotente (a `0038` ainda não está
+   commitada). O Plan 17-04 vai além do previsto aqui: a função
+   `opportunity_audit_trail(uuid)` da `0038` tem um gate de tenant dentro do
+   corpo `SECURITY DEFINER`, então policy sozinha não resolveria — a `0042`
+   substitui a função condicionalmente.
    - O que sabemos: `audit_log` (0038, fora de escopo) hoje só concede SELECT
      a `tenant_admin`/`platform_admin` — nem `member` comum vê auditoria
      recente. `opportunity_history` (congelada) é só o legado pré-0038.

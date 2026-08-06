@@ -2,22 +2,66 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
-current_phase: 16
-current_phase_name: tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt
-status: executing
-stopped_at: Completed 16-06-PLAN.md
-last_updated: "2026-08-05T14:37:18.709Z"
-last_activity: 2026-08-05
-last_activity_desc: Phase 16 execution started
+current_phase: 17
+current_phase_name: acesso-multi-tenant-do-staff-psw-por-atribui-o
+status: planned
+stopped_at: Phase 17 planejada (8 plans, verificacao passou com 2 warnings resolvidos)
+last_updated: "2026-08-06T00:00:00.000Z"
+last_activity: 2026-08-06
+last_activity_desc: Phase 17 planejada
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 0
-  total_plans: 7
+  total_plans: 15
   completed_plans: 6
   percent: 0
 ---
 
 # Project State
+
+## Milestone v0.5 — Phase 17 (planejada em 2026-08-06)
+
+**Goal:** uma pessoa da PSW é cadastrada **uma única vez**, no tenant da PSW, e é atribuída a
+oportunidades de qualquer empresa; ao logar ela enxerga **somente** as oportunidades atribuídas —
+de tenants diferentes ao mesmo tempo — numa lista unificada com coluna e filtro de empresa, sem
+mexer no isolamento de quem é do cliente.
+
+**Problema que originou a fase (PO, 2026-08-06):** hoje a pessoa da PSW é cadastrada dentro do
+tenant do cliente e vê tudo dele; e cadastrá-la num segundo cliente falha, porque o e-mail já
+existe em `auth.users`.
+
+**Decisões travadas com o PO (não reabrir):** granularidade = a oportunidade (reusa
+`opportunity_assignees`, sem entidade `projects`); só a PSW é multi-tenant (usuário de cliente
+segue com 1 tenant); navegação = lista unificada cross-tenant, não seletor de contexto; escrita
+como `member` nas oportunidades atribuídas; só `platform_admin` atribui e convida staff PSW;
+`psw_staff` ≠ `platform_admin`. Pós-pesquisa: `psw_staff` **pode** ser responsável de tarefa
+(D-14 → ACCESS-11) e `audit_log` entra na RLS aditiva de forma condicional (D-15).
+
+**Achados da pesquisa/planejamento que ampliaram o escopo:** os ~9 `.eq('tenant_id',
+profile.tenant_id)` das escritas bloqueariam o staff PSW **em silêncio** (0 linhas, sem erro);
+`invited_emails` tem CHECK que não admite o papel novo e policy que não o barra para
+`tenant_admin`; `tenants` e `profiles` também precisam de SELECT aditivo (senão a coluna de
+empresa e o nome do responsável ficam vazios); e a função `opportunity_audit_trail()` da `0038`
+tem gate de tenant dentro do corpo `SECURITY DEFINER` — policy sozinha não resolveria.
+
+**Waves:** 1 → `17-01` (migration `0039`, enum isolado + tipos + gate de apply);
+2 → `17-02` (Wave 0 de testes: tenant/perfil PSW, `asPswStaff()`, spec decisivo);
+3 → `17-03` (**TRACER** — `0040`: helper + trigger reescrito + SELECT aditivo);
+4 → `17-04` (`0041`/`0042`: filhas + `profiles` + Storage + trigger de tarefa + convites + audit);
+5 → `17-05` (specs de propagação/escrita) ‖ `17-06` (escopo server-side + 9 call sites);
+6 → `17-07` (lista unificada: coluna e filtro "Empresa"); 7 → `17-08` (responsável de tarefa,
+convite de staff PSW, gate visual).
+
+**Gates humanos:** 4 (apply da `0039` sozinha → apply da `0040` → apply da `0041`+`0042` →
+verificação visual A–G) + 3 `checkpoint:decision` antes de cada porta one-way.
+
+**Pendência de ambiente que trava a prova real:** `.env.test` apontando para um Supabase Cloud de
+teste segue pendente desde a Phase 7.5. Sem ele os specs decisivos entram em `describe.skipIf` e
+passam sem verificar nada — o `checkpoint:decision` do `17-01` força essa escolha antes do
+primeiro apply.
+
+**Herdado da Phase 16:** `16-07` (Gantt) foi executado no código (commits `c698b7b`..`fa06606`) mas
+ainda **não tem SUMMARY nem verificação** — a Phase 16 não está selada.
 
 ## Milestone v0.5 — Phase 16 (planejada em 2026-08-04)
 
