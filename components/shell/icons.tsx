@@ -42,6 +42,15 @@ export const Icon = {
       <path d="M3 7l9 6 9-6" />
     </svg>
   ),
+  // Rastreabilidade (/logs) — relógio com seta de retorno, a convenção de
+  // "histórico de alterações".
+  Audit: ({ className }: P) => (
+    <svg {...base(className)}>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 8v4l3 2" />
+    </svg>
+  ),
   Chevron: ({ className }: P) => (
     <svg {...base(className)}>
       <path d="M6 9l6 6 6-6" />

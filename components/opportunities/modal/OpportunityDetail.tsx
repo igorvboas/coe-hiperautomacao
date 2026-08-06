@@ -8,8 +8,10 @@ import type {
   OpportunityRisk,
   OpportunityDocument,
   OpportunityNote,
-  OpportunityHistoryEntry,
 } from '@/lib/opportunities/types';
+// A aba Histórico passou a ler a timeline unificada (audit_log 0038 + as linhas
+// legadas de opportunity_history), não mais só `opportunity_history`.
+import type { TimelineEntry } from '@/lib/audit/timeline';
 import { updateOpportunity } from '@/lib/opportunities/actions';
 import type { OpportunityInput } from '@/lib/opportunities/schema';
 import {
@@ -92,7 +94,7 @@ type Props = {
   risks: OpportunityRisk[];
   documents: OpportunityDocument[];
   notes: OpportunityNote[];
-  history: OpportunityHistoryEntry[];
+  history: TimelineEntry[];
   /** RBAC (v0.3) — viewer não edita nada; abas de mutação viram somente leitura. */
   readOnly?: boolean;
 };
@@ -268,7 +270,7 @@ function renderTab(args: {
   risks: OpportunityRisk[];
   documents: OpportunityDocument[];
   notes: OpportunityNote[];
-  history: OpportunityHistoryEntry[];
+  history: TimelineEntry[];
   editMode: boolean;
   form: WizardFormData;
   patch: (p: Partial<WizardFormData>) => void;

@@ -56,6 +56,14 @@ const ADMIN_NAV: NavItem[] = [
     icon: Icon.Invites,
     isActive: (p) => p.startsWith('/admin/invites'),
   },
+  // Mesma rota do tenant_admin — o que muda é o alcance, resolvido pela RLS:
+  // aqui o super-admin vê todas as empresas e ganha o seletor de empresa.
+  {
+    label: 'Rastreabilidade',
+    href: '/logs',
+    icon: Icon.Audit,
+    isActive: (p) => p.startsWith('/logs'),
+  },
   // A tela é a mesma do tenant_admin e age sobre o tenant do PRÓPRIO usuário —
   // o super-admin não pinta a empresa alheia daqui.
   {
@@ -74,6 +82,12 @@ const TENANT_ADMIN_NAV: NavItem[] = [
     href: '/team',
     icon: Icon.Invites,
     isActive: (p) => p.startsWith('/team'),
+  },
+  {
+    label: 'Rastreabilidade',
+    href: '/logs',
+    icon: Icon.Audit,
+    isActive: (p) => p.startsWith('/logs'),
   },
   {
     label: 'Configurações',

@@ -16,7 +16,6 @@ import {
 } from '@/lib/public-form/log';
 import { enrichOpportunity } from '@/lib/ai/enrichment';
 import { requireEditorRole } from '@/lib/security/role';
-import { diffOpportunity, type OpportunityDiffSnapshot } from './history';
 
 export type UpdateStatusResult = { ok: true } | { ok: false; error: string };
 
@@ -515,21 +514,12 @@ export async function updateOpportunity(
     .single();
   if (!profile) return { ok: false, error: 'Profile não encontrado.' };
 
-  // "Antes" pra auditoria (opportunity_history) — busca só o necessário pro
-  // diff, não a whitelist inteira. Falha aqui não bloqueia o update (o diff
-  // é observabilidade, não uma regra de negócio) — só pula o log.
-  const { data: before } = await supabase
-    .from('opportunities_with_score')
-    .select(
-      'solicitante, email, area, subarea, processo, frequencia, volume_medio, ' +
-        'tempo_execucao, num_pessoas, ferramenta, responsavel, criticidade, ' +
-        'azure_boards_codigo, linguagem, execucao, usuarios_servico, ' +
-        'execucoes_mes, data_conclusao, beneficio_qualitativo, fte_horas, ' +
-        'criterios, beneficios, escopo_automacao, beneficios_esperados, status'
-    )
-    .eq('id', id)
-    .maybeSingle<OpportunityDiffSnapshot>();
-
+  // A auditoria deixou de ser responsabilidade desta action: a trigger
+  // `audit_trigger()` (migration 0038) grava o de→para campo a campo direto no
+  // banco, para TODA mutação — inclusive as que não passam por aqui. O buscar-
+  // o-"antes" + diffOpportunity que existia neste ponto foi removido: era um
+  // round-trip a mais para produzir um resumo pior (texto concatenado) e que
+  // silenciosamente não cobria create, delete, nem as tabelas filhas.
   const { error } = await supabase
     .from('opportunities')
     .update({
@@ -581,27 +571,6 @@ export async function updateOpportunity(
 
   if (error) {
     return { ok: false, error: `Erro ao atualizar: ${error.message}` };
-  }
-
-  // Auditoria (opportunity_history, 0018) — best-effort: se o "antes" não veio
-  // (RLS/erro pontual) ou não houve mudança relevante, não grava linha. Nunca
-  // bloqueia a resposta de sucesso do update por causa do log.
-  if (before) {
-    const resumo = diffOpportunity(before, data);
-    if (resumo) {
-      const { error: histError } = await supabase.from('opportunity_history').insert({
-        opportunity_id: id,
-        tenant_id: profile.tenant_id,
-        resumo,
-        changed_by: user.id,
-      });
-      if (histError) {
-        console.error(
-          '[actions/updateOpportunity] falha ao gravar histórico:',
-          histError.message
-        );
-      }
-    }
   }
 
   revalidatePath('/opportunities');

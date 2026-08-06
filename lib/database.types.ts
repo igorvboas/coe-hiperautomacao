@@ -82,6 +82,10 @@ export type PhaseKey =
 // aditiva (0021). Nunca concedido via convite self-service (0022, só SQL).
 export type TenantRole = 'member' | 'tenant_admin' | 'viewer' | 'platform_admin';
 
+// audit_log (0038) — o que aconteceu com a linha. Espelha o enum `audit_action`
+// e, por construção da trigger, TG_OP em minúsculas.
+export type AuditAction = 'insert' | 'update' | 'delete';
+
 // v0.4 (0031) — CARGO é rótulo organizacional, NÃO permissão. A RLS só olha
 // `role`. Fonte da lista: lib/security/cargo.ts (espelha o CHECK da 0031).
 export type Cargo =
@@ -775,6 +779,46 @@ export type Database = {
           }
         ];
       };
+
+      // 0038 — rastreabilidade universal. Escrita EXCLUSIVAMENTE pela trigger
+      // `audit_trigger()` (SECURITY DEFINER); `authenticated` só tem grant de
+      // select. Não existe Insert/Update válido a partir da app — os tipos
+      // abaixo são `never` para que qualquer `.insert()`/`.update()` nesta
+      // tabela quebre em tempo de compilação, e não em runtime com 42501.
+      audit_log: {
+        Row: {
+          id: number;
+          tenant_id: string | null;
+          table_name: string;
+          record_id: string | null;
+          action: AuditAction;
+          actor_id: string | null;
+          actor_email: string | null;
+          actor_role: string | null;
+          /** `{ campo: { de, para } }` — presente só quando action='update'. */
+          changes: Record<string, { de: Json; para: Json }> | null;
+          old_data: Json | null;
+          new_data: Json | null;
+          contexto: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'audit_log_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'audit_log_actor_id_fkey';
+            columns: ['actor_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
 
     Views: {
@@ -852,6 +896,24 @@ export type Database = {
         };
         Returns: string;
       };
+      // 0038 — trilha de auditoria de UMA oportunidade (ela + filhos), com
+      // gate de tenant explícito dentro da função. É por aqui que a aba
+      // "Histórico" lê, já que o select direto em `audit_log` é admin-only.
+      opportunity_audit_trail: {
+        Args: { p_opportunity_id: string };
+        Returns: {
+          id: number;
+          table_name: string;
+          record_id: string | null;
+          action: AuditAction;
+          actor_email: string | null;
+          changes: Record<string, { de: Json; para: Json }> | null;
+          old_data: Json | null;
+          new_data: Json | null;
+          contexto: string | null;
+          created_at: string;
+        }[];
+      };
     };
 
     Enums: {
@@ -875,6 +937,7 @@ export type Database = {
       tenant_role: TenantRole;
       criticidade_level: CriticidadeLevel;
       document_kind: DocumentKind;
+      audit_action: AuditAction;
     };
 
     CompositeTypes: Record<string, never>;

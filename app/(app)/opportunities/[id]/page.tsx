@@ -6,9 +6,11 @@ import {
   fetchRisksForOpportunity,
   fetchDocumentsForOpportunity,
   fetchNotesForOpportunity,
-  fetchHistoryForOpportunity,
   fetchTasksForOpportunity,
 } from '@/lib/opportunities/queries';
+// Histórico: timeline unificada (audit_log 0038 + linhas legadas de
+// opportunity_history), não mais só a tabela antiga.
+import { fetchOpportunityTimeline } from '@/lib/audit/timeline';
 import {
   isReadOnlyViewer,
   getCurrentProfile,
@@ -41,7 +43,7 @@ export default async function OpportunityDetailPage({
       fetchRisksForOpportunity(id),
       fetchDocumentsForOpportunity(id),
       fetchNotesForOpportunity(id),
-      fetchHistoryForOpportunity(id),
+      fetchOpportunityTimeline(id),
       isReadOnlyViewer(),
       fetchAssigneesForOpportunity(id),
       getCurrentProfile(),

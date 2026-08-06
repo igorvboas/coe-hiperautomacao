@@ -1,23 +1,26 @@
-import type { OpportunityHistoryEntry } from '@/lib/opportunities/types';
+import type { TimelineEntry } from '@/lib/audit/timeline';
+import { ACTION_LABEL, formatDateTime, tableLabel } from '@/lib/audit/labels';
+import { ChangesList } from '@/components/audit/ChangesList';
 
 type Props = {
-  history: OpportunityHistoryEntry[];
+  history: TimelineEntry[];
 };
 
-function fmtDataHora(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })}`;
-}
+const ACTION_STYLE: Record<string, string> = {
+  insert: 'bg-acc/10 text-acc',
+  update: 'bg-pri/10 text-pri',
+  delete: 'bg-red/10 text-red',
+  legado: 'bg-mut/10 text-mut',
+};
 
 /**
- * Aba "Histórico" (v0.3) — auditoria 100% automática e somente leitura. Cada
- * linha é gravada por `updateOpportunity` (lib/opportunities/actions.ts,
- * `diffOpportunity`) — não existe ação de usuário que crie/edite/apague
- * registros aqui (opportunity_history não tem policy de update/delete, 0018).
+ * Aba "Histórico" — auditoria 100% automática e somente leitura.
+ *
+ * A partir da migration 0038 as linhas vêm da trigger de banco (`audit_log`),
+ * o que ampliou a cobertura: além do update da oportunidade, aparecem aqui as
+ * criações/edições/exclusões de tarefas, riscos, anotações, documentos e
+ * responsáveis dela. Não existe ação de usuário que crie/edite/apague estes
+ * registros — `audit_log` não tem grant de escrita para a aplicação.
  */
 export function HistoricoTab({ history }: Props) {
   return (
@@ -33,19 +36,55 @@ export function HistoricoTab({ history }: Props) {
           <thead>
             <tr className="text-left text-[10px] font-bold uppercase tracking-wider text-mut border-b border-bdr">
               <th className="pb-2 pr-2 whitespace-nowrap">Data/Hora</th>
+              <th className="pb-2 pr-2">Usuário</th>
+              <th className="pb-2 pr-2">Ação</th>
               <th className="pb-2">Alteração</th>
             </tr>
           </thead>
           <tbody>
             {history.map((h) => (
-              <tr key={h.id} className="border-b border-bdr last:border-b-0 align-top">
+              <tr key={h.key} className="border-b border-bdr last:border-b-0 align-top">
                 <td className="py-2 pr-2 text-[11px] text-mut whitespace-nowrap">
-                  {fmtDataHora(h.created_at)}
+                  {formatDateTime(h.created_at)}
+                </td>
+                <td className="py-2 pr-2 text-[11px] text-mut">{h.actor ?? '—'}</td>
+                <td className="py-2 pr-2 whitespace-nowrap">
+                  <span
+                    className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      ACTION_STYLE[h.action] ?? ACTION_STYLE.legado
+                    }`}
+                  >
+                    {h.action === 'legado' ? 'Alterou' : ACTION_LABEL[h.action]}
+                  </span>
+                  {/* Só rotula a origem quando NÃO é a própria oportunidade —
+                      dizer "Oportunidade" em toda linha da aba dela é ruído. */}
+                  {h.table && h.table !== 'opportunities' && (
+                    <div className="text-[10px] text-mut mt-0.5">
+                      {tableLabel(h.table)}
+                    </div>
+                  )}
                 </td>
                 <td className="py-2">
-                  <div>{h.resumo}</div>
-                  {h.comentario && (
-                    <div className="text-[11px] text-mut mt-0.5">{h.comentario}</div>
+                  {h.alvo && h.table !== 'opportunities' && (
+                    <div className="text-[11px] font-semibold text-txt mb-0.5">
+                      {h.alvo}
+                    </div>
+                  )}
+                  {h.action === 'update' ? (
+                    <ChangesList changes={h.changes} limit={8} />
+                  ) : h.resumo ? (
+                    /* Linha legada de opportunity_history (0018): o de→para já
+                       veio concatenado em texto, não há como destrinchar. */
+                    <div>{h.resumo}</div>
+                  ) : (
+                    <span className="text-[11px] text-mut italic">
+                      {h.action === 'insert'
+                        ? 'Registro criado.'
+                        : 'Registro excluído.'}
+                    </span>
+                  )}
+                  {h.contexto && (
+                    <div className="text-[11px] text-mut mt-0.5">{h.contexto}</div>
                   )}
                 </td>
               </tr>
