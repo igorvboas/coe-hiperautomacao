@@ -402,6 +402,20 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 **Goal**: Uma pessoa da PSW (dev, tech lead, PM) é cadastrada **uma única vez**, no tenant da PSW, e é atribuída a oportunidades de qualquer empresa cliente; ao logar, ela enxerga **somente** as oportunidades às quais foi atribuída — de tenants diferentes ao mesmo tempo — numa lista unificada com coluna e filtro de empresa, sem que isso afete o isolamento dos usuários dos clientes.
 **Depends on**: Phase 9 (schema/RLS base), Phase 16 (`opportunity_tasks` — mais uma tabela filha que precisa herdar a visibilidade por atribuição)
 **Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, ACCESS-10, ACCESS-11
+
+**Plans:** 8 plans em 7 waves (serialização imposta pelos 3 gates humanos de apply manual — write-only mode — e pelo isolamento obrigatório do valor de enum). Paralelismo só na wave 5.
+
+Plans:
+
+- [ ] 17-01-PLAN.md — Wave 1: migration `0039` (enum isolado) + tipos hand-maintained + `isPswStaff()` + **gate humano de apply** [ACCESS-01, ACCESS-02]
+- [ ] 17-02-PLAN.md — Wave 2: Wave 0 de validação — tenant/perfil PSW de teste, `asPswStaff()` e a spec decisiva [ACCESS-01, ACCESS-02, ACCESS-07]
+- [ ] 17-03-PLAN.md — Wave 3: **TRACER** — migration `0040` (helper `current_assigned_opportunity_ids()` + `check_assignee_tenant()` reescrito + SELECT aditivo em `opportunities`/`tenants`) + **gate humano** + fatia ponta-a-ponta verde [ACCESS-03, ACCESS-04, ACCESS-10]
+- [ ] 17-04-PLAN.md — Wave 4: migrations `0041`/`0042` — 7 tabelas filhas + `profiles` + Storage + `check_task_tenant_coherence()` + `invited_emails` + `audit_log` condicional + **gate humano** [ACCESS-05, ACCESS-06, ACCESS-09, ACCESS-11]
+- [ ] 17-05-PLAN.md — Wave 5: specs de propagação, escrita escopada (com releitura por service-role), triggers, `viewer` e convites [ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-09, ACCESS-11]
+- [ ] 17-06-PLAN.md — Wave 5: `resolveWriteTenantId()` + os 9 call sites de escrita + `assignee-actions.ts` cross-tenant [ACCESS-06, ACCESS-09]
+- [ ] 17-07-PLAN.md — Wave 6: listagem unificada — coluna e filtro "Empresa" condicionados ao papel [ACCESS-08, ACCESS-10]
+- [ ] 17-08-PLAN.md — Wave 7: responsável de tarefa com staff PSW, convite pelo `/admin/invites` e **verificação visual de fechamento** [ACCESS-09, ACCESS-11]
+
 **Success Criteria** (what must be TRUE):
 
   1. Existe o papel `psw_staff` no enum `tenant_role`, adicionado numa migration isolada (o Postgres não permite usar um valor de enum recém-criado na mesma transação — mesmo procedimento da `0020`), e um profile com `tenant_id` = tenant da PSW + `role = 'psw_staff'` pode logar sem erro.
