@@ -147,3 +147,7 @@ None - nenhuma configuração de serviço externo requerida por este plano (o ap
 ---
 *Phase: 17-acesso-multi-tenant-do-staff-psw-por-atribui-o*
 *Completed: 2026-08-06*
+
+## Self-Check: PASSED
+
+Todos os arquivos declarados (`0039_psw_staff_role.sql`, `17-01-MIGRATION-HANDOFF.md`, `17-01-SUMMARY.md`, `deferred-items.md`, `lib/database.types.ts`, `lib/security/role.ts`, `components/shell/Sidebar.tsx`, `app/(app)/team/page.tsx`) existem no disco. Todos os commits declarados (`7be4102`, `ba7a8d7`, `75a085b`, `2353c8b`) existem em `git log --oneline --all`.
