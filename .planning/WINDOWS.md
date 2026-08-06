@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 6
+open_count: 7
 waived_count: 0
 fixed_count: 0
-total_count: 6
-last_updated: 2026-08-06T18:26:26.914Z
+total_count: 7
+last_updated: 2026-08-06T18:54:13.525Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-08-06T18:26:26.914Z
 | 4 | 16 | unrun-verify | tests/security/opportunity-tasks-isolation.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.510Z |  |
 | 5 | 16 | unrun-verify | tests/security/opportunity-tasks-viewer-write.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.558Z |  |
 | 6 | 17 | lint-warning | tests/opportunities/report-strategic.test.ts | 107 | npm run typecheck falha (TS2322 null vs number\|undefined) — pre-existente ao Plan 17-01, fora de escopo (introduzido em aaf8e5a) | open |  | 2026-08-06T18:26:26.914Z |  |
+| 7 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Suite skipada localmente (sem .env.test) — os 5 specs decisivos (inclusive o negativo ACCESS-04) ficam em describe.skipIf ate .env.test ser populado; RED esperado com banco real ate a 0040 ser aplicada (Plan 17-03) | open |  | 2026-08-06T18:54:13.525Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-08-06T18:26:26.914Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-06T18:26:26.914Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "unrun-verify",
+    "phase": "17",
+    "file": "tests/security/psw-staff-isolation.test.ts",
+    "line": null,
+    "description": "Suite skipada localmente (sem .env.test) — os 5 specs decisivos (inclusive o negativo ACCESS-04) ficam em describe.skipIf ate .env.test ser populado; RED esperado com banco real ate a 0040 ser aplicada (Plan 17-03)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-06T18:54:13.525Z",
     "resolved_at": null
   }
 ]
