@@ -4,16 +4,16 @@ milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
 current_phase: 17
 current_phase_name: acesso-multi-tenant-do-staff-psw-por-atribui-o
-status: planned
-stopped_at: Phase 17 planejada (8 plans, verificacao passou com 2 warnings resolvidos)
-last_updated: "2026-08-06T00:00:00.000Z"
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-08-06T18:43:52.791Z"
 last_activity: 2026-08-06
-last_activity_desc: Phase 17 planejada
+last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 15
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -98,14 +98,14 @@ alterar datas, notificar o responsável por e-mail, comentários/anexos/log de h
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 16 — tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt
+**Current focus:** Phase 17 — acesso-multi-tenant-do-staff-psw-por-atribui-o
 
 ## Current Position
 
-Phase: 16 (tarefas-e-subtarefas-por-oportunidade-lista-kanban-gantt) — EXECUTING
-Plan: 7 of 7
+Phase: 17 (acesso-multi-tenant-do-staff-psw-por-atribui-o) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-08-05 — Phase 16 execution started
+Last activity: 2026-08-06 — Phase 17 execution started
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -113,7 +113,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [█████████░] 86%
+Progress: [█████░░░░░] 47%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -169,6 +169,7 @@ Progress: [█████████░] 86%
 | Phase 16 P04 | ~25min | 2 tasks | 4 files |
 | Phase 16 P05 | ~20min | 3 tasks | 10 files |
 | Phase 16 P06 | ~30min | 3 tasks | 8 files |
+| Phase 17 P01 | 21min | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - [Phase ?]: TaskFormDialog.close()/TaskList row-action hrefs reconstroem a query via URLSearchParams removendo só tarefa/parent — preservam view (16-06) e qualquer parâmetro futuro automaticamente
 - [Phase ?]: decideBlockReason(reason: string | null) unifica cancelamento (null) e motivo-vazio no mesmo noop, permitindo testar cada caminho separadamente sem duplicar a regra de rejeição do motivo do bloqueio (16-06)
 - [Phase ?]: TaskKanbanColumn.tsx/TaskKanbanCard.tsx foram escritos no disco durante a Task 1 do plano 16-06 (para TaskKanbanBoard.tsx typecheckar) mas só entraram no commit da Task 2 — cada commit permanece exatamente com os arquivos que o plano atribui a cada task
+- [Phase ?]: 17-01: checkpoint:decision resolvido pelo PO com aplicar-agora — 0039 aplicada em producao sem .env.test; prova real de RLS adiada para 0040+ (17-02/17-03/17-05)
+- [Phase ?]: 17-01: lib/security/cargo.ts (AccessRole) permanece intocado — psw_staff fica fora da allowlist de convite do tenant_admin por construcao (D-05)
 
 ### Pending Todos
 
@@ -228,10 +231,11 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - **Risco**: vazamento entre tenants caso alguma query backend esqueça `tenant_id`. Mitigação: RLS obrigatório + testes de integração simulando dois tenants
 - **Risco**: divergência entre o mockup e o sistema final cria retrabalho. Mitigação: na Fase 4, replicar a estrutura visual fielmente antes de evoluir
 - **Risco**: dependência de Supabase como SPOF — aceitar por enquanto, plano B é migrar para Postgres gerenciado próprio só se cliente exigir
+- 17-01: .env.test continua ausente (so .env.test.example) — specs de RLS decisivos dos planos 17-02/17-03/17-05 rodarao em describe.skipIf ate isso ser resolvido (pendencia desde Phase 7.5)
 
 ## Session Continuity
 
-Last session: 2026-08-05T14:37:18.702Z
+Last session: 2026-08-06T18:43:52.783Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -314,5 +318,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: Completed 16-06-PLAN.md
+Stopped at: Completed 17-01-PLAN.md
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.

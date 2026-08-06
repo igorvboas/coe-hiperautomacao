@@ -85,8 +85,8 @@ Milestone **v0.5 — Execução: Tarefas e Subtarefas por Oportunidade**. Adicio
 
 Adicionado em 2026-08-06 a pedido do PO. Problema estrutural: hoje uma pessoa da PSW precisa ser cadastrada **dentro** do tenant do cliente (e aí vê tudo daquele cliente), e cadastrá-la num segundo tenant falha porque o e-mail já existe em `auth.users`. Decisões travadas: ver Phase 17 no ROADMAP.
 
-- [ ] **ACCESS-01**: Existe o papel `psw_staff` no enum `tenant_role` — pessoa lotada no tenant da PSW cujo acesso **não** é o tenant inteiro, e sim o conjunto de oportunidades atribuídas a ela
-- [ ] **ACCESS-02**: Uma pessoa da PSW é cadastrada **uma única vez** (um `auth.users`, um `profiles`) e atende N empresas — cadastrar a mesma pessoa duas vezes deixa de ser necessário
+- [x] **ACCESS-01**: Existe o papel `psw_staff` no enum `tenant_role` — pessoa lotada no tenant da PSW cujo acesso **não** é o tenant inteiro, e sim o conjunto de oportunidades atribuídas a ela
+- [x] **ACCESS-02**: Uma pessoa da PSW é cadastrada **uma única vez** (um `auth.users`, um `profiles`) e atende N empresas — cadastrar a mesma pessoa duas vezes deixa de ser necessário
 - [ ] **ACCESS-03**: Um `psw_staff` é atribuído a oportunidades de tenants diferentes ao mesmo tempo; `opportunity_assignees` aceita esse vínculo cross-tenant **apenas** para `psw_staff` e continua rejeitando os demais no banco
 - [ ] **ACCESS-04**: Ao logar, o `psw_staff` enxerga **somente** as oportunidades atribuídas a ele — nem as demais oportunidades do mesmo tenant, nem as de tenants onde não tem atribuição
 - [ ] **ACCESS-05**: A visibilidade por atribuição se propaga para todas as tabelas filhas da oportunidade (fases, riscos, tarefas, notas, documentos, histórico, atribuições), de modo que a oportunidade atribuída abre completa
