@@ -337,11 +337,12 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 >
 > **Contexto:** entre o fim do v0.2 e esta milestone houve trabalho v0.3/v0.4 entregue fora do roadmap (super-admin de plataforma, e-mails transacionais, blend de score 50/30/20 na migration `0027`, backlog no fluxo de priorização). A Phase 16 parte do estado real do `main`, não do estado registrado no fim do v0.2.
 >
-> **Granularidade:** standard. **Cobertura:** 11/11 REQ-IDs `TASK-*` mapeados.
+> **Granularidade:** standard. **Cobertura:** 11/11 REQ-IDs `TASK-*` (Phase 16) + 10/10 REQ-IDs `ACCESS-*` (Phase 17) mapeados.
 
 ## Phases
 
 - [ ] **Phase 16: Tarefas e Subtarefas por Oportunidade (Lista / Kanban / Gantt)** — Cada oportunidade ganha um plano de atividades em 2 níveis (tarefa → subtarefa), com responsável do próprio tenant, visível em Lista, Kanban e Gantt.
+- [ ] **Phase 17: Acesso Multi-Tenant do Staff PSW por Atribuição** — Uma pessoa da PSW é cadastrada uma única vez no tenant da PSW e passa a enxergar apenas as oportunidades às quais foi atribuída, em qualquer tenant, numa lista unificada com filtro por empresa.
 
 ## Phase Details
 
@@ -396,5 +397,46 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 7. **`lib/database.types.ts` é hand-maintained** (type-gen bloqueado) — a fase precisa incluir a task de atualizá-lo à mão.
 8. **Responsável é `profiles`, não `users`**: a tabela de pessoas do tenant no schema vivo é `profiles` (`opportunity_assignees.profile_id → profiles(id)`, 0032). O `assignee_id` de tarefa referencia `profiles(id)`.
 
+### Phase 17: Acesso Multi-Tenant do Staff PSW por Atribuição
+
+**Goal**: Uma pessoa da PSW (dev, tech lead, PM) é cadastrada **uma única vez**, no tenant da PSW, e é atribuída a oportunidades de qualquer empresa cliente; ao logar, ela enxerga **somente** as oportunidades às quais foi atribuída — de tenants diferentes ao mesmo tempo — numa lista unificada com coluna e filtro de empresa, sem que isso afete o isolamento dos usuários dos clientes.
+**Depends on**: Phase 9 (schema/RLS base), Phase 16 (`opportunity_tasks` — mais uma tabela filha que precisa herdar a visibilidade por atribuição)
+**Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, ACCESS-10
+**Success Criteria** (what must be TRUE):
+
+  1. Existe o papel `psw_staff` no enum `tenant_role`, adicionado numa migration isolada (o Postgres não permite usar um valor de enum recém-criado na mesma transação — mesmo procedimento da `0020`), e um profile com `tenant_id` = tenant da PSW + `role = 'psw_staff'` pode logar sem erro.
+  2. `opportunity_assignees` aceita vincular um profile `psw_staff` a uma oportunidade de **qualquer** tenant, com `opportunity_assignees.tenant_id` sempre igual ao `tenant_id` **da oportunidade**; e continua **rejeitando** no banco qualquer outro vínculo cruzado (profile do tenant A em oportunidade do tenant B quando o profile não é `psw_staff`).
+  3. Um `psw_staff` logado enxerga exatamente as oportunidades em que tem linha em `opportunity_assignees` — nem uma a mais. Um teste cruzado prova que ele **não** vê outras oportunidades do mesmo tenant onde ele já tem alguma atribuição.
+  4. A visibilidade se propaga para todas as tabelas filhas da oportunidade — `opportunity_phases`, `opportunity_risks`, `opportunity_tasks`, `opportunity_notes`, `opportunity_documents`, `opportunity_history`, `opportunity_assignees` — de modo que abrir uma oportunidade atribuída mostra as abas populadas, e nenhuma linha filha de oportunidade **não** atribuída aparece.
+  5. Um `psw_staff` escreve nas oportunidades atribuídas com os mesmos poderes de um `member` (tarefas, notas, documentos, riscos, status/campos da oportunidade) e recebe erro do banco ao tentar escrever em oportunidade não atribuída — a garantia é de RLS, não só de UI.
+  6. Nada muda para quem é do cliente: `profiles.tenant_id` continua único e NOT NULL, `current_tenant_id()` continua sendo a fronteira dos papéis `member`/`viewer`/`tenant_admin`, e os testes de isolamento cross-tenant existentes continuam passando sem alteração.
+  7. A listagem de oportunidades de um `psw_staff` é **unificada**: traz demandas de tenants diferentes na mesma tabela, com coluna de empresa visível e filtro por empresa; para os demais papéis a listagem permanece idêntica à de hoje (sem coluna de empresa).
+  8. Os call sites que hoje aplicam `.eq('tenant_id', profile.tenant_id)` como defesa em profundidade passam a usar um escopo de acesso resolvido no servidor, que continua sendo `tenant_id = <tenant>` para papéis de tenant e vira "só as oportunidades atribuídas" para `psw_staff` — nenhuma query volta linhas fora do escopo do usuário.
+  9. Um `platform_admin` (e apenas ele) cadastra/convida uma pessoa como `psw_staff` no tenant da PSW e a atribui a oportunidades de qualquer empresa pela UI; um `tenant_admin` de cliente **não** consegue atribuir alguém da PSW nem enxergar pessoas de fora do próprio tenant.
+ 10. `lib/database.types.ts` (hand-maintained — type-gen bloqueado) reflete o novo papel e quaisquer colunas/objetos novos, e `tsc --noEmit` passa limpo.
+
+### Decisões travadas com o PO (2026-08-06) — não reabrir no planejamento
+
+1. **Granularidade do acesso** — o vínculo é com a **oportunidade** (a "demanda"), reusando `opportunity_assignees` (0032). Não se cria entidade `projects`, nem se dá acesso ao tenant inteiro.
+2. **Só a PSW é multi-tenant** — usuário de cliente continua travado em um único tenant. Não existe multi-tenancy para `member`/`viewer`/`tenant_admin`; `profiles.tenant_id` **não** vira N:N.
+3. **Navegação** — lista **unificada cross-tenant** com coluna de empresa e filtro por empresa (não é seletor de contexto que troca o tenant ativo).
+4. **Escrita** — `psw_staff` escreve nas oportunidades atribuídas exatamente como um `member` escreve nas do próprio tenant. Não é acesso somente-leitura.
+5. **Quem atribui** — apenas `platform_admin` vincula gente da PSW a oportunidades. `tenant_admin` de cliente não escolhe pessoas da PSW.
+6. **`psw_staff` ≠ `platform_admin`** — o `platform_admin` continua vendo tudo (0021); o `psw_staff` vê **apenas** o que lhe foi atribuído. São papéis distintos, não níveis do mesmo papel.
+
+## Restrições aplicadas à Phase 17 (de PROJECT.md / CLAUDE.md)
+
+1. **Isolamento multi-tenant é existencial**: a fase **afrouxa** uma fronteira, então cada policy nova é **aditiva** (policies PERMISSIVE combinam com OR, padrão já usado na `0021`) — nenhuma policy existente por tenant pode ser removida ou relaxada. Testes obrigatórios: "tenant A não vê dados de tenant B" (existentes, devem continuar verdes) **+** "psw_staff não vê oportunidade não atribuída do mesmo tenant".
+2. **Migrations em write-only mode**: arquivo + handoff de apply manual no SQL Editor do Supabase Cloud. **Próximo número livre: `0039`** — a `0038_audit_log.sql` já existe no working tree (ainda não commitada) e não deve ser tocada por esta fase.
+3. **Enum em migration isolada**: o valor `psw_staff` do enum `tenant_role` entra sozinho numa migration, e as policies que o referenciam vêm na migration seguinte (mesma razão e mesmo formato de `0020` → `0021`).
+4. **`lib/database.types.ts` é hand-maintained** (type-gen bloqueado — MCP aponta para o projeto errado): a fase inclui a task de atualizá-lo à mão.
+5. **Reuso obrigatório** (verificado no `main` em 2026-08-06):
+   - `opportunity_assignees` + `check_assignee_tenant()` (`supabase/migrations/0032_opportunity_assignees.sql`) é a tabela de vínculo e o trigger que precisa ser reescrito — não criar tabela nova de atribuição.
+   - `is_platform_admin()` (0021) e `current_user_role()` (0015) são o padrão de helper `SECURITY DEFINER` a espelhar no helper novo de acesso por atribuição.
+   - `lib/opportunities/assignees.ts` já lista os profiles atribuíveis do tenant; a UI de atribuição do `platform_admin` estende essa camada em vez de criar outra.
+   - `lib/opportunities/queries.ts` já tem o filtro `filters.tenant` (`.eq('tenant_id', …)`) usado pelo `platform_admin` — o filtro "empresa" da lista unificada reusa esse caminho.
+   - `lib/security/role.ts` + `lib/supabase/session.ts` são o ponto único onde papel e tenant do usuário são resolvidos no servidor; o escopo de acesso novo mora ali, não espalhado por call site.
+6. **Sem painel admin novo**: a fase não cria rotas super-admin além do que já existe em `app/(app)/admin/` e `app/(app)/team/`.
+
 ---
-*Seção v0.5 criada em 2026-08-04. 1 fase (16), 11/11 REQ-IDs `TASK-*` mapeados. Próximo: `/gsd-plan-phase 16`.*
+*Seção v0.5 criada em 2026-08-04. 2 fases (16, 17). 11/11 REQ-IDs `TASK-*` → Phase 16; 10/10 REQ-IDs `ACCESS-*` → Phase 17. Phase 17 adicionada em 2026-08-06.*
