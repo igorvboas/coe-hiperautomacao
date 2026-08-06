@@ -26,6 +26,7 @@ const ROLE_LABEL: Record<TenantRole, string> = {
   tenant_admin: 'Admin da empresa',
   member: 'Membro',
   viewer: 'Leitor (somente leitura)',
+  psw_staff: 'Staff PSW (externo)',
 };
 
 type InviteRow = {

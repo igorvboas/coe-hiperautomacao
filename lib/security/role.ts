@@ -122,6 +122,19 @@ export function isPlatformAdmin(profile: Pick<CurrentProfile, 'role'> | null): b
 }
 
 /**
+ * Staff PSW multi-tenant por atribuição (Phase 17): espelha o predicado SQL
+ * `current_user_role() = 'psw_staff'` usado nas policies aditivas das
+ * migrations 0040+ — mantenha os dois em sincronia. **Não** é `platform_admin`
+ * (D-06): são papéis distintos, um não é nível do outro. `platform_admin` vê
+ * TODOS os tenants; `psw_staff` só enxerga as oportunidades que lhe foram
+ * atribuídas via `opportunity_assignees` (0032), mesmo que sejam de tenants
+ * diferentes ao mesmo tempo.
+ */
+export function isPswStaff(profile: Pick<CurrentProfile, 'role'> | null): boolean {
+  return profile?.role === 'psw_staff';
+}
+
+/**
  * Admin da própria empresa (v0.4): gerencia a allowlist de convites do SEU
  * tenant — e só dele. Espelha o predicado das policies de 0029
  * (`current_user_role() = 'tenant_admin'` + escopo de tenant). NÃO é

@@ -80,7 +80,16 @@ export type PhaseKey =
 
 // v0.3-admin (0020) — super-admin de plataforma, cross-tenant, gated via RLS
 // aditiva (0021). Nunca concedido via convite self-service (0022, só SQL).
-export type TenantRole = 'member' | 'tenant_admin' | 'viewer' | 'platform_admin';
+// psw_staff (0039) — pessoa da PSW multi-tenant POR ATRIBUIÇÃO: `tenant_id`
+// do profile é sempre o da PSW (nunca o do cliente); o acesso cross-tenant
+// vem de `opportunity_assignees` (0032), não de `profiles`. Não confundir com
+// `platform_admin` (vê tudo) — o `psw_staff` só vê o que lhe foi atribuído.
+export type TenantRole =
+  | 'member'
+  | 'tenant_admin'
+  | 'viewer'
+  | 'platform_admin'
+  | 'psw_staff';
 
 // audit_log (0038) — o que aconteceu com a linha. Espelha o enum `audit_action`
 // e, por construção da trigger, TG_OP em minúsculas.

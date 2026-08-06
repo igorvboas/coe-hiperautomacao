@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 0
 fixed_count: 0
-total_count: 5
-last_updated: 2026-08-05T13:54:59.558Z
+total_count: 6
+last_updated: 2026-08-06T18:26:26.914Z
 ---
 
 # Broken Windows Ledger
@@ -20,6 +20,7 @@ last_updated: 2026-08-05T13:54:59.558Z
 | 3 | 16 | unrun-verify | tests/schema/task-tenant-coherence.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.460Z |  |
 | 4 | 16 | unrun-verify | tests/security/opportunity-tasks-isolation.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.510Z |  |
 | 5 | 16 | unrun-verify | tests/security/opportunity-tasks-viewer-write.test.ts |  | Suíte skipada localmente (sem .env.test) — precisa rodar contra Supabase Cloud de teste para veredito verde real | open |  | 2026-08-05T13:54:59.558Z |  |
+| 6 | 17 | lint-warning | tests/opportunities/report-strategic.test.ts | 107 | npm run typecheck falha (TS2322 null vs number\|undefined) — pre-existente ao Plan 17-01, fora de escopo (introduzido em aaf8e5a) | open |  | 2026-08-06T18:26:26.914Z |  |
 
 ````json
 [
@@ -81,6 +82,18 @@ last_updated: 2026-08-05T13:54:59.558Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-05T13:54:59.558Z",
+    "resolved_at": null
+  },
+  {
+    "id": 6,
+    "kind": "lint-warning",
+    "phase": "17",
+    "file": "tests/opportunities/report-strategic.test.ts",
+    "line": 107,
+    "description": "npm run typecheck falha (TS2322 null vs number|undefined) — pre-existente ao Plan 17-01, fora de escopo (introduzido em aaf8e5a)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-06T18:26:26.914Z",
     "resolved_at": null
   }
 ]

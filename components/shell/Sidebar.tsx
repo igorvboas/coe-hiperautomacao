@@ -109,6 +109,7 @@ const roleLabel: Record<TenantRole, string> = {
   tenant_admin: 'Admin da empresa',
   member: 'Membro',
   viewer: 'Somente leitura',
+  psw_staff: 'Staff PSW',
 };
 
 export function Sidebar({
