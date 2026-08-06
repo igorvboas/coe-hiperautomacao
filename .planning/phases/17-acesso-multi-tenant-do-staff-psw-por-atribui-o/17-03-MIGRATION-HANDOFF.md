@@ -272,3 +272,29 @@ Re-rodar a migration `0040` inteira depois do rollback recria helper/índice/pol
 **Resume-signal:** digite "aplicada" (colando o resultado das 7 verificações) ou descreva a divergência encontrada.
 
 *Handoff gerado em 2026-08-06 (Phase 17 / Plan 17-03, TRACER).*
+
+---
+
+## Resultado do apply (2026-08-06)
+
+**Status: APLICADA — checkpoint fechado.** O PO rodou o arquivo no SQL Editor do Supabase Cloud (incluindo a segunda execução de idempotência) e colou o resultado consolidado das 7 verificações. Todas passaram:
+
+1. **Helper** — `current_assigned_opportunity_ids`: `provolatile='s'` (stable), `prosecdef=true` (security definer), `proconfig=["search_path=public"]`. Assinatura correta. ✓
+2. **Policies novas** — exatamente 2 com sufixo `_psw_staff`: `opportunities_select_psw_staff` e `tenants_select_psw_staff`, ambas `SELECT`. ✓
+3. **Aditividade (D-09), confirmada empiricamente** — `opportunities` passou a ter **9** policies: as **8 pré-existentes** (`opportunities_select`, `opportunities_insert`, `opportunities_update`, `opportunities_delete` + as 4 `_platform_admin`) **mais** `opportunities_select_psw_staff`. Nenhuma pré-existente foi removida. ✓
+4. **Índice** — `opportunity_assignees_profile_only_idx` criado como `btree (profile_id)`, ao lado do composto antigo `(tenant_id, profile_id)`. ✓
+5. **Trigger** — `opportunity_assignees_tenant_guard` → `check_assignee_tenant`. (A query também listou `audit_opportunity_assignees` → `audit_trigger`, objeto da `0038`, não relacionado a esta migration — presença esperada, não é regressão.) ✓
+6. **Os 4 smoke tests do trigger**, todos conforme o esperado:
+   - (a) profile do mesmo tenant → **ACEITOU** (`Success. No rows returned`).
+   - (b) profile de outro tenant, papel comum → **REJEITOU** com `ERROR 23514: Atribuição cruzada entre empresas não é permitida.` (contexto: `check_assignee_tenant()` linha 25).
+   - (c) profile `psw_staff` (promovido dentro da transação), oportunidade de outro tenant → **ACEITOU**.
+   - (d) `tenant_id` da linha divergente do da oportunidade, mesmo sendo `psw_staff` → **REJEITOU** com `ERROR 23514: tenant_id do vínculo não confere com o da oportunidade.` (contexto: `check_assignee_tenant()` linha 18, D-10). ✓
+7. **Smoke do negativo decisivo (ACCESS-04) — PASSOU, com medição quantitativa.** Impersonando um `psw_staff` real (`current_user=authenticated`, `auth.uid()` correto, `current_user_role()='psw_staff'` — os três controles confirmados), com exatamente UMA atribuição no tenant A:
+   - tenant A (`5f4d4463-…`): **1 oportunidade visível, de 43 existentes no tenant.**
+   - tenant do próprio profile (`11111111-…`): 33 visíveis, pela policy por tenant pré-existente (comportamento antigo intacto, sem regressão).
+
+   O número que importa é **1 de 43**. Se a policy tivesse sido escrita como "tenant onde há alguma atribuição" em vez de "esta oportunidade atribuída", teriam aparecido as 43. Este é hoje o único veredito comportamental real do ACCESS-04 nesta fase — `tests/security/psw-staff-isolation.test.ts` continua em `describe.skipIf` (`.env.test` ausente) e não executou.
+
+**Observação registrada para a fase (não é ação deste plano):** o seed de teste do Vitest usa o mesmo projeto Supabase da produção — o tenant `11111111-1111-1111-1111-111111111111` e o profile `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` (fixtures de `tests/setup/seed-test-tenants.ts`) já existem no banco de produção. Apontar `.env.test` para este mesmo projeto seria perigoso, pois a suíte de segurança cria e apaga tenants/profiles nele. A pendência de `.env.test` (Phase 7.5, carryover) provavelmente exige um projeto Supabase **separado** de teste, não apenas popular o arquivo — relevante para o Plan 17-05 e para o fechamento da fase.
+
+**Os planos 17-04 em diante estão destravados.**
