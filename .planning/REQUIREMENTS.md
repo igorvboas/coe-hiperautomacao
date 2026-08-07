@@ -89,13 +89,13 @@ Adicionado em 2026-08-06 a pedido do PO. Problema estrutural: hoje uma pessoa da
 - [x] **ACCESS-02**: Uma pessoa da PSW é cadastrada **uma única vez** (um `auth.users`, um `profiles`) e atende N empresas — cadastrar a mesma pessoa duas vezes deixa de ser necessário
 - [x] **ACCESS-03**: Um `psw_staff` é atribuído a oportunidades de tenants diferentes ao mesmo tempo; `opportunity_assignees` aceita esse vínculo cross-tenant **apenas** para `psw_staff` e continua rejeitando os demais no banco
 - [x] **ACCESS-04**: Ao logar, o `psw_staff` enxerga **somente** as oportunidades atribuídas a ele — nem as demais oportunidades do mesmo tenant, nem as de tenants onde não tem atribuição
-- [ ] **ACCESS-05**: A visibilidade por atribuição se propaga para todas as tabelas filhas da oportunidade (fases, riscos, tarefas, notas, documentos, histórico, atribuições), de modo que a oportunidade atribuída abre completa
-- [ ] **ACCESS-06**: O `psw_staff` **escreve** nas oportunidades atribuídas com os poderes de um `member` (tarefas, notas, documentos, riscos, campos/status da oportunidade); escrita fora do escopo é barrada pelo banco
+- [x] **ACCESS-05**: A visibilidade por atribuição se propaga para todas as tabelas filhas da oportunidade (fases, riscos, tarefas, notas, documentos, histórico, atribuições), de modo que a oportunidade atribuída abre completa
+- [x] **ACCESS-06**: O `psw_staff` **escreve** nas oportunidades atribuídas com os poderes de um `member` (tarefas, notas, documentos, riscos, campos/status da oportunidade); escrita fora do escopo é barrada pelo banco
 - [x] **ACCESS-07**: O usuário do cliente segue com acesso a **um único** tenant e com o isolamento inalterado — a mudança não abre nenhuma porta cross-tenant para papéis de cliente
 - [ ] **ACCESS-08**: A listagem de oportunidades do `psw_staff` é **unificada cross-tenant**, com coluna de empresa e filtro por empresa; para os demais papéis a listagem não muda
-- [ ] **ACCESS-09**: Apenas o `platform_admin` cadastra/convida uma pessoa como `psw_staff` e a atribui a oportunidades de qualquer empresa; `tenant_admin` de cliente não vê nem atribui gente da PSW
+- [x] **ACCESS-09**: Apenas o `platform_admin` cadastra/convida uma pessoa como `psw_staff` e a atribui a oportunidades de qualquer empresa; `tenant_admin` de cliente não vê nem atribui gente da PSW
 - [x] **ACCESS-10**: `psw_staff` e `platform_admin` são papéis distintos — o `platform_admin` continua com visão total (0021), o `psw_staff` só com o que lhe foi atribuído
-- [ ] **ACCESS-11**: Um `psw_staff` atribuído a uma oportunidade pode ser **responsável de tarefa** dentro dela — o trigger de coerência de tenant de `opportunity_tasks` aceita esse caso e o select de responsável o lista
+- [x] **ACCESS-11**: Um `psw_staff` atribuído a uma oportunidade pode ser **responsável de tarefa** dentro dela — o trigger de coerência de tenant de `opportunity_tasks` aceita esse caso e o select de responsável o lista
 
 ## Future Requirements (deferred)
 

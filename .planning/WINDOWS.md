@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 9
+open_count: 12
 waived_count: 0
 fixed_count: 0
-total_count: 9
-last_updated: 2026-08-06T21:03:11.095Z
+total_count: 12
+last_updated: 2026-08-07T01:04:46.894Z
 ---
 
 # Broken Windows Ledger
@@ -24,6 +24,9 @@ last_updated: 2026-08-06T21:03:11.095Z
 | 7 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Suite skipada localmente (sem .env.test) — os 5 specs decisivos (inclusive o negativo ACCESS-04) ficam em describe.skipIf ate .env.test ser populado; RED esperado com banco real ate a 0040 ser aplicada (Plan 17-03) | open |  | 2026-08-06T18:54:13.525Z |  |
 | 8 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Migration 0040 ja aplicada e os 4 smoke tests do trigger + o negativo decisivo (1 de 43) rodaram via SQL manual na Task 3, mas a suite Vitest continua em describe.skipIf: .env.test ausente. CORRIGIDO pelo orquestrador: as fixtures COLIDEM com UUIDs de producao — FGCOOP_TEST_ID e 11111111-... , o mesmo id do tenant FGCoop real da migration 0002, e aaaaaaaa-... e o admin.fgcoop@pswdigital.com.br. Com upsert onConflict:'id', apontar .env.test para producao RENOMEIA o FGCoop real e cleanupTestTenants() APAGA as oportunidades reais dele. Nao e 'perigoso', e destrutivo na primeira execucao. Exige projeto Supabase separado E, antes disso, trocar os UUIDs das fixtures por faixa que nao colida. Ver .planning/todos/pending/fixtures-colidem-com-producao.md | open |  | 2026-08-06T21:03:11.047Z |  |
 | 9 | 17 | unrun-verify | .planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-03-PLAN.md |  | Task 4 <human-check> (fecho visual do tracer: login como psw_staff em /opportunities mostrando as 2 oportunidades atribuidas de tenants distintos e ocultando a nao atribuida) nao foi executado nesta sessao — sem acesso a browser interativo. A prova comportamental equivalente foi feita via SQL (smoke 7: 1 de 43), mas o fecho visual explicito da UI segue pendente de confirmacao humana. | open |  | 2026-08-06T21:03:11.095Z |  |
+| 10 | 17 | unrun-verify | .planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-04-MIGRATION-HANDOFF.md |  | As 9 verificacoes pos-apply do handoff (contagem exata de policies _psw_staff com lista nominal, presenca de todas as policies pre-existentes por tabela D-09, storage.objects, CHECK e policy de invited_emails, os 2 triggers de opportunity_tasks, smoke de responsavel de tarefa ACCESS-11 com 3 casos, smoke de Storage D-12 com 403, verificacao condicional da 0042/audit_log) NAO foram executadas. O apply foi confirmado por uma verificacao de vazamento diferente, escrita pelo orquestrador (contagem de linhas visiveis/vazadas por tabela filha), mais 3 diagnosticos sem RLS apos a anomalia. ACCESS-11, ACCESS-09, Storage (D-12) e a 0042 permanecem sem prova empirica em producao. | open |  | 2026-08-07T01:04:46.792Z |  |
+| 11 | 17 | todo | supabase/migrations/0041_psw_staff_child_access.sql |  | profiles_select_psw_staff (0041, Bloco 3) expoe TODAS as pessoas dos tenants onde o psw_staff tem oportunidade atribuida, nao so as pessoas de fato ligadas as oportunidades atribuidas (assignee/created_by). Funcional e justificado no arquivo (sem ela o select de responsavel de tarefa ACCESS-11 fica vazio), mas e uma exposicao mais larga que o resto da fase. Considerar estreitamento futuro. | open |  | 2026-08-07T01:04:46.843Z |  |
+| 12 | 17 | todo | supabase/migrations/0043_tenant_coherence_notes_risks_documents.sql |  | Defeito PRE-EXISTENTE (0011/0018, nao introduzido pela Phase 17) descoberto na verificacao pos-apply da 0041: opportunity_notes, opportunity_risks e opportunity_documents nao tem guarda de coerencia de tenant (equivalente a check_assignee_tenant/check_task_tenant_coherence) — qualquer usuario nao-viewer pode pendurar nota/risco/documento em oportunidade de OUTRO tenant, carimbando o proprio tenant_id. 7 linhas de producao afetadas (5 notas + 2 riscos, tenant_id=PSW penduradas em oportunidades da Unidasul) — integridade/poluicao de dados, nao vazamento de confidencialidade. PO decidiu: migration 0043 (fora do escopo do Plan 17-04) vai adicionar a guarda e corrigir as 7 linhas. | open |  | 2026-08-07T01:04:46.894Z |  |
 
 ````json
 [
@@ -133,6 +136,42 @@ last_updated: 2026-08-06T21:03:11.095Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-06T21:03:11.095Z",
+    "resolved_at": null
+  },
+  {
+    "id": 10,
+    "kind": "unrun-verify",
+    "phase": "17",
+    "file": ".planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-04-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "As 9 verificacoes pos-apply do handoff (contagem exata de policies _psw_staff com lista nominal, presenca de todas as policies pre-existentes por tabela D-09, storage.objects, CHECK e policy de invited_emails, os 2 triggers de opportunity_tasks, smoke de responsavel de tarefa ACCESS-11 com 3 casos, smoke de Storage D-12 com 403, verificacao condicional da 0042/audit_log) NAO foram executadas. O apply foi confirmado por uma verificacao de vazamento diferente, escrita pelo orquestrador (contagem de linhas visiveis/vazadas por tabela filha), mais 3 diagnosticos sem RLS apos a anomalia. ACCESS-11, ACCESS-09, Storage (D-12) e a 0042 permanecem sem prova empirica em producao.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T01:04:46.792Z",
+    "resolved_at": null
+  },
+  {
+    "id": 11,
+    "kind": "todo",
+    "phase": "17",
+    "file": "supabase/migrations/0041_psw_staff_child_access.sql",
+    "line": null,
+    "description": "profiles_select_psw_staff (0041, Bloco 3) expoe TODAS as pessoas dos tenants onde o psw_staff tem oportunidade atribuida, nao so as pessoas de fato ligadas as oportunidades atribuidas (assignee/created_by). Funcional e justificado no arquivo (sem ela o select de responsavel de tarefa ACCESS-11 fica vazio), mas e uma exposicao mais larga que o resto da fase. Considerar estreitamento futuro.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T01:04:46.843Z",
+    "resolved_at": null
+  },
+  {
+    "id": 12,
+    "kind": "todo",
+    "phase": "17",
+    "file": "supabase/migrations/0043_tenant_coherence_notes_risks_documents.sql",
+    "line": null,
+    "description": "Defeito PRE-EXISTENTE (0011/0018, nao introduzido pela Phase 17) descoberto na verificacao pos-apply da 0041: opportunity_notes, opportunity_risks e opportunity_documents nao tem guarda de coerencia de tenant (equivalente a check_assignee_tenant/check_task_tenant_coherence) — qualquer usuario nao-viewer pode pendurar nota/risco/documento em oportunidade de OUTRO tenant, carimbando o proprio tenant_id. 7 linhas de producao afetadas (5 notas + 2 riscos, tenant_id=PSW penduradas em oportunidades da Unidasul) — integridade/poluicao de dados, nao vazamento de confidencialidade. PO decidiu: migration 0043 (fora do escopo do Plan 17-04) vai adicionar a guarda e corrigir as 7 linhas.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T01:04:46.894Z",
     "resolved_at": null
   }
 ]
