@@ -30,11 +30,11 @@ type Props = {
   /** Assignees por opportunity_id (0032) — buscados em uma query só na page. */
   assigneesByOpportunity: Record<string, Assignee[]>;
   /** Mapa tenant_id → nome (Phase 17, Plan 17-07) — alimenta a coluna
-   *  "Empresa". Vazio por padrão: nenhuma mudança de comportamento pros
-   *  papéis que não são `psw_staff`. */
+   *  "Empresa". Vazio por padrão: nenhuma mudança de comportamento para os
+   *  demais papéis. */
   companyById?: Record<string, string>;
-  /** Exibe a coluna "Empresa" — calculada no servidor a partir do papel
-   *  (`isPswStaff`). Este componente NÃO decide por papel; só lê a flag. */
+  /** Exibe a coluna "Empresa" — flag calculada no servidor a partir do papel
+   *  do usuário. Este componente NÃO decide por papel; só lê a flag. */
   showCompany?: boolean;
 };
 
@@ -59,12 +59,6 @@ export function OpportunityTable({
   companyById = {},
   showCompany = false,
 }: Props) {
-  // Renderização da coluna "Empresa" (Plan 17-07, Task 2) usa `companyById`
-  // e `showCompany` — mantidos aqui como no-op até a Task 2 acrescentar o
-  // `<thead>`/`<tbody>` correspondente, para o build permanecer verde entre
-  // os dois commits desta plan (deviation Rule 3).
-  void companyById;
-  void showCompany;
   const router = useRouter();
   const params = useSearchParams();
   const filters = parseFilters(params);
@@ -117,6 +111,14 @@ export function OpportunityTable({
               >
                 ID{arrowFor('id')}
               </ThSort>
+              {/* Coluna "Empresa" (Phase 17, Plan 17-07) — flag calculada no
+                  servidor a partir do papel do usuário. Logo após o ID:
+                  "de quem é esta demanda" é a primeira pergunta de uma
+                  listagem unificada cross-tenant. NÃO entra em
+                  SORTABLE_COLS — ordenar por empresa exigiria ordenação no
+                  servidor por uma coluna que a query não traz, e nenhum
+                  critério da fase pede isso. */}
+              {showCompany && <Th>Empresa</Th>}
               <ThSort
                 active={isActive('nome')}
                 onClick={() => toggleSort('nome')}
@@ -170,6 +172,13 @@ export function OpportunityTable({
                 <Td>
                   <SeqIdDisplay seqId={o.seq_id} />
                 </Td>
+                {showCompany && (
+                  <Td>
+                    <span className="text-[12px] font-medium">
+                      {companyById[o.tenant_id] ?? '—'}
+                    </span>
+                  </Td>
+                )}
                 <Td>
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-pri text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">

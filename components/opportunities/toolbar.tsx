@@ -22,7 +22,7 @@ type Props = {
   counts: { visible: number; total: number };
   areas: string[];
   /** Pessoas do tenant, para o filtro "Membro" (0032). Vazio = filtro escondido
-   *  (ex: platform_admin sem empresa selecionada). */
+   *  (ex: seletor de empresa sem nenhuma selecionada). */
   members: AssignableProfile[];
   tenantSlug: string | null;
   /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
@@ -30,10 +30,10 @@ type Props = {
   readOnly?: boolean;
   /** Empresas em que o usuário tem oportunidade atribuída (Phase 17, Plan
    *  17-07) — alimenta o filtro "Empresa". Vazio por padrão: nenhuma mudança
-   *  de comportamento pros papéis que não são `psw_staff`. */
+   *  de comportamento para os demais papéis. */
   companies?: TenantSummary[];
-  /** Exibe o filtro "Empresa" — calculada no servidor a partir do papel
-   *  (`isPswStaff`). Este componente NÃO decide por papel; só lê a flag. */
+  /** Exibe o filtro "Empresa" — flag calculada no servidor a partir do papel
+   *  do usuário. Este componente NÃO decide por papel; só lê a flag. */
   showCompanyFilter?: boolean;
 };
 
@@ -61,12 +61,6 @@ export function Toolbar({
   companies = [],
   showCompanyFilter = false,
 }: Props) {
-  // Filtro "Empresa" (Plan 17-07, Task 2) usa `companies`/`showCompanyFilter`
-  // — mantidos aqui como no-op até a Task 2 acrescentar o `<select>`
-  // correspondente, para o build permanecer verde entre os dois commits
-  // desta plan (deviation Rule 3).
-  void companies;
-  void showCompanyFilter;
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {
@@ -140,6 +134,24 @@ export function Toolbar({
     router.replace(qs ? `/opportunities?${qs}` : '/opportunities');
   }
 
+  // Filtro "Empresa" (Phase 17, Plan 17-07) — flag `showCompanyFilter`
+  // calculada no servidor a partir do papel do usuário. A URL carrega o
+  // SLUG legível, nunca o id interno do tenant: o mesmo mecanismo `?empresa=`
+  // já usado pelo seletor de empresa existente. Não passa por
+  // `applyChange`/`buildQuery` porque `empresa` não é um `OpportunityFilters`
+  // lido de `parseFilters` (populado pela page depois de resolver o slug no
+  // servidor) — é só um parâmetro de URL que este componente propaga.
+  // Esconder o filtro é cosmético: quem impede acesso a outra empresa é a
+  // RLS, não esta renderização.
+  const companySlug = params.get('empresa') ?? '';
+  function changeCompany(slug: string) {
+    const sp = new URLSearchParams(params.toString());
+    if (slug) sp.set('empresa', slug);
+    else sp.delete('empresa');
+    const qs = sp.toString();
+    router.replace(qs ? `/opportunities?${qs}` : '/opportunities');
+  }
+
   function clearAll() {
     const view = params.get('view');
     setSearchText('');
@@ -157,6 +169,7 @@ export function Toolbar({
     !!filters.assignee ||
     !!filters.cargo ||
     !!filters.requestType ||
+    !!companySlug ||
     (filters.sort && filters.sort !== 'score_desc');
 
   const selectClass =
@@ -245,6 +258,24 @@ export function Toolbar({
 
       {/* Linha 2: filtros + ordenação + limpar + counts */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Filtro "Empresa" (Phase 17, Plan 17-07): escondido sem a flag ou
+            com uma única empresa (mesmo precedente do filtro "Membro" acima
+            — filtro que não filtra nada só ocupa espaço). */}
+        {showCompanyFilter && companies.length > 1 && (
+          <select
+            value={companySlug}
+            onChange={(e) => changeCompany(e.target.value)}
+            className={selectClass}
+            aria-label="Filtrar por empresa"
+          >
+            <option value="">Todas as empresas</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={filters.requestType ?? ''}
           onChange={(e) =>
