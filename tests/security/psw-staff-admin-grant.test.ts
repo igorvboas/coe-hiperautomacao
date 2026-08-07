@@ -7,14 +7,18 @@
 // enquanto não tiver concessão em nenhum tenant, o comportamento dele
 // permanece byte-idêntico ao da `0044` (só o atribuído, nada a mais).
 //
-// ESTADO NESTA WAVE: RED — a tabela `psw_tenant_admins` AINDA NÃO EXISTE (a
-// migration `0045` só é escrita e aplicada no Plan 18-02). O `beforeAll` do
-// describe "com concessão no tenant A" abaixo FALHA de propósito (insert numa
-// tabela que não existe), e isso derruba todo teste declarado dentro daquele
-// describe (b2, o describe aninhado de tenant_admin, e c1..c7). Isto é o
-// esperado, não bug de fixture. O Plan 18-02 (TRACER) aplica a `0045` e a
-// primeira metade da RLS de `opportunities`, tornando verdes os grupos `a` e
-// `c`; o Plan 18-03 propaga às 7 tabelas filhas e torna `c4` verde.
+// ESTADO NESTA WAVE (Plan 18-03): as migrations `0045` (Plan 18-02, TRACER) e
+// `0046` (este plano — propagação às 7 tabelas filhas + `profiles`) estão
+// AMBAS aplicadas e verificadas estruturalmente em produção (ver
+// `18-02-MIGRATION-HANDOFF.md` e `18-03-MIGRATION-HANDOFF.md`). O modo de
+// prova da fase é `prova-por-sql-no-handoff` (revertido no Plan 18-02):
+// `.env.test` NÃO existe e NÃO deve ser criado enquanto a colisão de UUID
+// entre fixtures de teste e o tenant real FGCoop não for resolvida — logo
+// `describe.skipIf(!HAS_DB)` PULA esta suíte inteira neste ambiente, e ela
+// sai `0` sem executar nenhuma asserção. Isso NÃO é lido como "verde": os
+// specs abaixo (incluindo `c4`, escrito neste plano) ficam registrados em
+// SKIP até um ambiente de teste dedicado existir — a rede de regressão fica
+// pronta, a prova de runtime desta wave é a verificação numerada do handoff.
 //
 // REGRA INEGOCIÁVEL (herdada de `psw-staff-isolation.test.ts:26-29`): nenhum
 // spec pode concluir sucesso de uma escrita apenas por `error === null` — é
@@ -65,11 +69,42 @@ const CONTROL_TENANT_ID = 'cccc0000-0000-0000-0000-000000000001';
 // necessário só para preencher `granted_by`.
 const PLATFORM_ADMIN_TEST_EMAIL = 'platform-admin@test.local';
 
+// Perfil dentro do tenant de CONTROLE (não confundir com o `platform_admin`
+// de teste acima) — necessário só para popular `opportunity_assignees` de C
+// sem violar `check_assignee_tenant()` (0040): o vínculo exige um profile do
+// MESMO tenant da oportunidade, ou `psw_staff` — e o staff de teste não pode
+// ficar atribuído a C sob risco de contaminar `c3`/`c4-negativo` (ambos
+// exigem que ele não tenha NENHUM vínculo, nem concessão, com o tenant de
+// controle).
+const CONTROL_PROFILE_TEST_EMAIL = 'controle-grant-child-test@test.local';
+
+// As 7 tabelas filhas cobertas pela propagação desta migration (0046) — usado
+// tanto pela fixture quanto pelos specs `c4-*`, para não deixar o nome de
+// nenhuma tabela hardcoded em dois lugares divergentes.
+const CHILD_TABLES = [
+  'opportunity_phases',
+  'opportunity_risks',
+  'opportunity_notes',
+  'opportunity_documents',
+  'opportunity_history',
+  'opportunity_tasks',
+  'opportunity_assignees',
+] as const;
+
 describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant (0045+)', () => {
   let sb: ReturnType<typeof serviceRoleClient>;
   let pswStaffUserId: string;
   let fgcoopUserId: string;
   let adminUserId: string;
+  let controlProfileId: string;
+  let notesRowIdA: string;
+  let historyRowIdA: string;
+  // Baseline SEM concessão das 7 filhas de A — medido em `a1b`, reconferido
+  // em `c4-baseline` após a revogação (mesma disciplina de `baselineIds`).
+  let childBaselineCounts: Record<(typeof CHILD_TABLES)[number], number> = {} as Record<
+    (typeof CHILD_TABLES)[number],
+    number
+  >;
 
   beforeAll(async () => {
     sb = serviceRoleClient();
@@ -165,6 +200,122 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
       .update({ role: 'platform_admin' })
       .eq('id', adminUserId);
     if (promoteAdminErr) throw new Error(`promote platform_admin falhou: ${promoteAdminErr.message}`);
+
+    // Perfil dentro do tenant de controle (idempotente) — ver o comentário
+    // acima de CONTROL_PROFILE_TEST_EMAIL.
+    const { data: controlProfileList } = await sb.auth.admin.listUsers();
+    const existingControlProfile = controlProfileList?.users.find((u) => u.email === CONTROL_PROFILE_TEST_EMAIL);
+    if (existingControlProfile) {
+      controlProfileId = existingControlProfile.id;
+    } else {
+      const { data, error } = await sb.auth.admin.createUser({
+        email: CONTROL_PROFILE_TEST_EMAIL,
+        password: TEST_PASSWORD,
+        email_confirm: true,
+        app_metadata: { tenant_id: CONTROL_TENANT_ID },
+        user_metadata: { full_name: 'Controle Grant Child Test', tenant_id: CONTROL_TENANT_ID },
+      });
+      if (error || !data.user) throw new Error(`createUser falhou (perfil de controle): ${error?.message}`);
+      controlProfileId = data.user.id;
+    }
+
+    // ---------------------------------------------------------------------
+    // Fixture das 7 tabelas filhas (Plan 18-03, spec c4) — uma linha sob A
+    // (FGCoop, NÃO atribuída ao staff — o positivo decisivo de c4-positivo) e
+    // uma sob C (tenant de controle, sem concessão nem atribuição — o
+    // negativo decisivo de c4-negativo). Nenhuma linha filha é criada sob B
+    // (Acme): a propagação por ATRIBUIÇÃO já é coberta desde a Phase 17
+    // (psw-staff-isolation.test.ts) e não é o que este plano prova. Todo
+    // insert respeita CLAUDE.md §3 e o guard de coerência da 0043/0040
+    // (tenant_id da linha = tenant_id da oportunidade, sempre).
+    // ---------------------------------------------------------------------
+    const { error: phasesErr } = await sb.from('opportunity_phases').insert([
+      { opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, phase_key: 'planejamento' },
+      { opportunity_id: OPP_C_CONTROLE, tenant_id: CONTROL_TENANT_ID, phase_key: 'planejamento' },
+    ]);
+    if (phasesErr) throw new Error(`setup falhou (opportunity_phases da fixture c4): ${phasesErr.message}`);
+
+    const { error: risksErr } = await sb.from('opportunity_risks').insert([
+      {
+        opportunity_id: OPP_A_NAO_ATRIBUIDA,
+        tenant_id: FGCOOP_TEST_ID,
+        descricao: 'risco fixture c4 — A',
+        tipo: 'risco',
+        impacto: 'moderado',
+        probabilidade: 'possivel',
+      },
+      {
+        opportunity_id: OPP_C_CONTROLE,
+        tenant_id: CONTROL_TENANT_ID,
+        descricao: 'risco fixture c4 — C',
+        tipo: 'risco',
+        impacto: 'moderado',
+        probabilidade: 'possivel',
+      },
+    ]);
+    if (risksErr) throw new Error(`setup falhou (opportunity_risks da fixture c4): ${risksErr.message}`);
+
+    const { error: tasksErr } = await sb.from('opportunity_tasks').insert([
+      { opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, title: 'tarefa fixture c4 — A', status: 'backlog' },
+      { opportunity_id: OPP_C_CONTROLE, tenant_id: CONTROL_TENANT_ID, title: 'tarefa fixture c4 — C', status: 'backlog' },
+    ]);
+    if (tasksErr) throw new Error(`setup falhou (opportunity_tasks da fixture c4): ${tasksErr.message}`);
+
+    // Notas — captura o id da linha de A (usado por c9, negação de UPDATE).
+    const { data: notesData, error: notesErr } = await sb
+      .from('opportunity_notes')
+      .insert([
+        { opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, texto: 'nota fixture c4 — A' },
+        { opportunity_id: OPP_C_CONTROLE, tenant_id: CONTROL_TENANT_ID, texto: 'nota fixture c4 — C' },
+      ])
+      .select('id, opportunity_id');
+    if (notesErr) throw new Error(`setup falhou (opportunity_notes da fixture c4): ${notesErr.message}`);
+    notesRowIdA = (notesData ?? []).find((r) => r.opportunity_id === OPP_A_NAO_ATRIBUIDA)?.id ?? '';
+    if (!notesRowIdA) throw new Error('setup falhou: nao encontrou o id da nota fixture de A');
+
+    const { error: documentsErr } = await sb.from('opportunity_documents').insert([
+      {
+        opportunity_id: OPP_A_NAO_ATRIBUIDA,
+        tenant_id: FGCOOP_TEST_ID,
+        kind: 'link',
+        nome: 'documento fixture c4 — A',
+        url: 'https://example.test/c4-a',
+      },
+      {
+        opportunity_id: OPP_C_CONTROLE,
+        tenant_id: CONTROL_TENANT_ID,
+        kind: 'link',
+        nome: 'documento fixture c4 — C',
+        url: 'https://example.test/c4-c',
+      },
+    ]);
+    if (documentsErr) throw new Error(`setup falhou (opportunity_documents da fixture c4): ${documentsErr.message}`);
+
+    // Histórico — captura o id da linha de A (usado por c9, negação de
+    // UPDATE e de DELETE).
+    const { data: historyData, error: historyErr } = await sb
+      .from('opportunity_history')
+      .insert([
+        { opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, resumo: 'historico fixture c4 — A' },
+        { opportunity_id: OPP_C_CONTROLE, tenant_id: CONTROL_TENANT_ID, resumo: 'historico fixture c4 — C' },
+      ])
+      .select('id, opportunity_id');
+    if (historyErr) throw new Error(`setup falhou (opportunity_history da fixture c4): ${historyErr.message}`);
+    historyRowIdA = (historyData ?? []).find((r) => r.opportunity_id === OPP_A_NAO_ATRIBUIDA)?.id ?? '';
+    if (!historyRowIdA) throw new Error('setup falhou: nao encontrou o id do historico fixture de A');
+
+    // Atribuições — A recebe o profile do FGCoop (mesmo tenant da
+    // oportunidade — vínculo legítimo, não exercita nenhum caso especial de
+    // check_assignee_tenant); C recebe o profile de controle criado acima
+    // (mesmo tenant de C, pelo mesmo motivo). NENHUM dos dois é o staff — a
+    // atribuição dele continua restrita a B (OPP_B_ATRIBUIDA).
+    const { error: assigneesFixtureErr } = await sb.from('opportunity_assignees').insert([
+      { opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, profile_id: fgcoopUserId },
+      { opportunity_id: OPP_C_CONTROLE, tenant_id: CONTROL_TENANT_ID, profile_id: controlProfileId },
+    ]);
+    if (assigneesFixtureErr) {
+      throw new Error(`setup falhou (opportunity_assignees da fixture c4): ${assigneesFixtureErr.message}`);
+    }
   });
 
   // LINHA MAIS IMPORTANTE DO ARQUIVO — incondicional, sem `if` sobre estado
@@ -202,6 +353,21 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
     expect(baselineIds).not.toContain(OPP_A_NAO_ATRIBUIDA);
     // A atribuída em B continua lá (Phase 17, intocada por esta fase).
     expect(baselineIds).toContain(OPP_B_ATRIBUIDA);
+  });
+
+  it('a1b) sem concessão, as 7 tabelas filhas de A também são invisíveis (baseline dos filhos, GRANT-02)', async () => {
+    const { client } = await asPswStaff();
+    for (const table of CHILD_TABLES) {
+      const { data, error } = await client.from(table).select('id').eq('opportunity_id', OPP_A_NAO_ATRIBUIDA);
+      expect(error).toBeNull();
+      childBaselineCounts[table] = (data ?? []).length;
+    }
+    // Negativo decisivo: a fixture criada no beforeAll existe de verdade no
+    // banco (dado real, não hipotético) sob cada uma das 7 tabelas — mas sem
+    // concessão nem atribuição, a RLS a esconde inteiramente do staff.
+    for (const table of CHILD_TABLES) {
+      expect(childBaselineCounts[table]).toBe(0);
+    }
   });
 
   // ---------------------------------------------------------------------
@@ -310,13 +476,28 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
       expect(data).toEqual([]); // o "tenant A não vê tenant B" do CLAUDE.md
     });
 
-    // Propagação da concessão às 7 tabelas filhas — a migration que reemite
-    // as policies das filhas com o 3º disjunto de admin (0046) só existe no
-    // Plan 18-03. Declarado aqui, e não omitido, para que o gate do plano
-    // seguinte seja "tirar este it.todo do papel", não "lembrar de escrever
-    // o teste".
-    it.todo(
-      'c4) as 7 tabelas filhas (opportunity_phases/risks/notes/documents/history/tasks/assignees) propagam a concessão — acrescentado no Plan 18-03 junto da migration 0046',
+    // Propagação da concessão às 7 tabelas filhas (Plan 18-03 / migration
+    // 0046) — parametrizado sobre a lista LITERAL das 7 tabelas para que
+    // nenhuma dependa de amostragem e a falha aponte a tabela exata (mesmo
+    // padrão de `psw-staff-isolation.test.ts` → `it.each(CHILD_TABLES)`).
+    it.each(CHILD_TABLES)(
+      'c4-positivo) %s propaga a concessão — staff-admin vê a linha de A (oportunidade NÃO atribuída)',
+      async (table) => {
+        const { client } = await asPswStaff();
+        const { data, error } = await client.from(table).select('id').eq('opportunity_id', OPP_A_NAO_ATRIBUIDA);
+        expect(error).toBeNull();
+        expect((data ?? []).length).toBeGreaterThan(0); // era 0 em a1b — a diferença É a propagação
+      },
+    );
+
+    it.each(CHILD_TABLES)(
+      'c4-negativo) %s — nada do tenant de controle, onde não há concessão nem atribuição',
+      async (table) => {
+        const { client } = await asPswStaff();
+        const { data, error } = await client.from(table).select('id').eq('opportunity_id', OPP_C_CONTROLE);
+        expect(error).toBeNull();
+        expect(data).toEqual([]); // a fixture de C existe de verdade no banco — a RLS a esconde
+      },
     );
 
     it('c5) escreve em A com releitura por service-role — não é sucesso silencioso', async () => {
@@ -353,6 +534,72 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
         .eq('profile_id', pswStaffUserId);
       expect(count).toBe(1); // a linha continua lá — o delete não afetou nada
     });
+
+    it('c8) escreve (INSERT) numa filha de A com releitura por service-role — não é sucesso silencioso', async () => {
+      const { client } = await asPswStaff();
+      const texto = `nota staff-admin c8 ${Date.now()}`;
+      const { data: inserted, error } = await client
+        .from('opportunity_notes')
+        .insert({ opportunity_id: OPP_A_NAO_ATRIBUIDA, tenant_id: FGCOOP_TEST_ID, texto })
+        .select('id')
+        .single();
+      expect(error).toBeNull();
+      expect(inserted?.id).toBeTruthy();
+
+      const { data: reread, error: readErr } = await sb
+        .from('opportunity_notes')
+        .select('texto')
+        .eq('id', inserted?.id ?? '')
+        .single();
+      expect(readErr).toBeNull();
+      expect(reread?.texto).toBe(texto); // ← a releitura obrigatória, nunca `error === null` sozinho
+    });
+
+    it('c9) opportunity_history não ganha UPDATE nem DELETE; opportunity_notes não ganha UPDATE — paridade de verbos é asserção, não confiança na migration', async () => {
+      const { client } = await asPswStaff();
+
+      // As três tentativas abaixo negam por FALTA DE GRANT de tabela (0018:
+      // opportunity_history só tem `grant select, insert`; opportunity_notes
+      // só tem `grant select, insert, delete` — nenhuma das duas tem update,
+      // e história não tem delete). Isso é um erro de PRIVILÉGIO — anterior
+      // à própria RLS —, diferente do "using" retornando zero linhas em
+      // silêncio (esse padrão, já exercitado em c7, se aplica quando a
+      // tabela TEM o grant do verbo mas a RLS filtra a linha). As três,
+      // portanto, são explicit-error — afirmado abaixo, não presumido.
+      const { error: updateHistoryErr } = await client
+        .from('opportunity_history')
+        .update({ resumo: 'tentativa update c9' })
+        .eq('id', historyRowIdA);
+      expect(updateHistoryErr).not.toBeNull();
+
+      const { error: deleteHistoryErr } = await client.from('opportunity_history').delete().eq('id', historyRowIdA);
+      expect(deleteHistoryErr).not.toBeNull();
+
+      const { error: updateNotesErr } = await client
+        .from('opportunity_notes')
+        .update({ texto: 'tentativa update c9' })
+        .eq('id', notesRowIdA);
+      expect(updateNotesErr).not.toBeNull();
+
+      // Releitura por service-role: nenhuma das duas linhas foi alterada nem
+      // apagada — confirma que os três erros acima não são falso-negativo de
+      // rede, e sim a negação de verbo de fato acontecendo.
+      const { data: historyStill, error: historyReadErr } = await sb
+        .from('opportunity_history')
+        .select('resumo')
+        .eq('id', historyRowIdA)
+        .single();
+      expect(historyReadErr).toBeNull();
+      expect(historyStill?.resumo).toBe('historico fixture c4 — A');
+
+      const { data: notesStill, error: notesReadErr } = await sb
+        .from('opportunity_notes')
+        .select('texto')
+        .eq('id', notesRowIdA)
+        .single();
+      expect(notesReadErr).toBeNull();
+      expect(notesStill?.texto).toBe('nota fixture c4 — A');
+    });
   });
 
   it('a2) após revogar (afterAll do describe de concessão), o conjunto visível volta EXATAMENTE ao baseline', async () => {
@@ -361,11 +608,23 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
     expect(error).toBeNull();
     expect((data ?? []).map((r) => r.id).sort()).toEqual(baselineIds);
   });
+
+  it('c4-baseline) após revogar, as 7 tabelas filhas de A voltam EXATAMENTE ao baseline medido em a1b', async () => {
+    const { client } = await asPswStaff();
+    for (const table of CHILD_TABLES) {
+      const { data, error } = await client.from(table).select('id').eq('opportunity_id', OPP_A_NAO_ATRIBUIDA);
+      expect(error).toBeNull();
+      expect((data ?? []).length).toBe(childBaselineCounts[table]);
+    }
+  });
 });
 
 // =============================================================================
-// Nomes de grupo RESERVADOS para os planos seguintes — não inventar nome
-// divergente; estender este arquivo com o item abaixo, no exato texto:
-//   - c4 (Plan 18-03): trocar o `it.todo` por specs reais, um por tabela
-//     filha, no mesmo padrão de `psw-staff-isolation.test.ts` → `it.each`.
+// c4 (Plan 18-03, migration 0046): especificado — `c4-positivo`/`c4-negativo`
+// (parametrizados sobre CHILD_TABLES), `c4-baseline`, `c8` (escrita com
+// releitura) e `c9` (paridade de verbos em history/notes) substituíram o spec
+// pendente original. Toda a suíte permanece em SKIP neste ambiente
+// (`.env.test` não existe — ver o cabeçalho do arquivo); a prova de runtime
+// desta wave é a verificação numerada de `18-03-MIGRATION-HANDOFF.md`, não
+// esta suíte.
 // =============================================================================
