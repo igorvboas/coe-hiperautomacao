@@ -1047,10 +1047,6 @@ describe.skipIf(!HAS_DB)('psw_staff — RLS multi-tenant por atribuição (0040+
       const { error } = await client.from('invited_emails').insert({
         email: 'tentativa-psw-staff@test.local',
         tenant_id: FGCOOP_TEST_ID,
-        // @ts-expect-error — o CHECK do banco já aceita 'psw_staff' desde a
-        // 0041, mas `lib/database.types.ts` (hand-maintained, ver header do
-        // arquivo) ainda não foi atualizado para refletir isso — fora do
-        // escopo deste plano (files_modified só lista este arquivo de teste).
         role: 'psw_staff',
       });
       expect(error).not.toBeNull();
@@ -1063,7 +1059,6 @@ describe.skipIf(!HAS_DB)('psw_staff — RLS multi-tenant por atribuição (0040+
         .insert({
           email: 'novo-psw-staff@test.local',
           tenant_id: FGCOOP_TEST_ID,
-          // @ts-expect-error — mesmo motivo do teste anterior.
           role: 'psw_staff',
           invited_by: adminUserId,
         })

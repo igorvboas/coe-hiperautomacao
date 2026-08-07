@@ -8,7 +8,7 @@ import { revokeInvite } from './actions';
 type InviteRow = {
   id: string;
   email: string;
-  role: 'member' | 'tenant_admin' | 'viewer';
+  role: 'member' | 'tenant_admin' | 'viewer' | 'psw_staff';
   cargo: string | null;
   used_at: string | null;
   created_at: string;
@@ -19,6 +19,7 @@ const ROLE_LABEL: Record<InviteRow['role'], string> = {
   member: 'Membro',
   tenant_admin: 'Admin da empresa',
   viewer: 'Leitor (somente leitura)',
+  psw_staff: 'Staff PSW',
 };
 
 function tenantName(t: InviteRow['tenants']): string {

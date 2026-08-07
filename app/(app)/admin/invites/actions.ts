@@ -77,10 +77,17 @@ export async function createInvite(formData: FormData): Promise<InviteResult> {
     .trim()
     .toLowerCase();
   // Allowlist explícita — nunca confiar no <select> do client. 'platform_admin'
-  // é intencionalmente inconvidável (CHECK no DB reforça; ver 0028).
+  // é intencionalmente inconvidável (CHECK no DB reforça; ver 0028). 'psw_staff'
+  // (Phase 17, D-17) só existe NESTA allowlist — esta é a tela do
+  // `platform_admin`; a allowlist de convite do `tenant_admin`
+  // (`app/(app)/team/actions.ts` / `lib/security/cargo.ts`) NÃO recebe este
+  // valor (D-05). A policy do banco (`invited_emails_insert_tenant_admin`,
+  // 0041) é a barreira final caso esta UI algum dia falhe.
   const roleRaw = String(formData.get('role') ?? 'member');
-  const role: 'member' | 'tenant_admin' | 'viewer' =
-    roleRaw === 'tenant_admin' || roleRaw === 'viewer' ? roleRaw : 'member';
+  const role: 'member' | 'tenant_admin' | 'viewer' | 'psw_staff' =
+    roleRaw === 'tenant_admin' || roleRaw === 'viewer' || roleRaw === 'psw_staff'
+      ? roleRaw
+      : 'member';
   // `cargo` é rótulo organizacional — não influencia permissão nenhuma.
   const cargo = parseCargo(formData.get('cargo'));
   const tenantMode = String(formData.get('tenant_mode') ?? 'existing');
@@ -94,8 +101,17 @@ export async function createInvite(formData: FormData): Promise<InviteResult> {
   const supabase = await createClient();
   let tenantId = existingTenantId;
 
-  // Criar nova empresa, se for o caso ---------------------------------------
-  if (tenantMode === 'new') {
+  if (role === 'psw_staff') {
+    // D-02/D-08: staff PSW é sempre lotado no tenant da PSW, nunca no tenant
+    // do cliente escolhido no formulário — a empresa do formulário (e o
+    // caminho de "criar empresa nova" logo abaixo) são ignorados neste papel.
+    // PREMISSA (mesma de `fetchAssignableProfilesForPlatformAdmin`, em
+    // `lib/opportunities/assignees.ts`): o tenant da PSW é o tenant do
+    // `platform_admin` logado, por construção — deixaria de valer se existisse
+    // um `platform_admin` lotado num tenant de cliente, caso em que o caminho
+    // correto é uma marcação explícita do tenant da PSW, não um palpite.
+    tenantId = profile!.tenantId;
+  } else if (tenantMode === 'new') {
     if (!newCompanyName) return { error: 'Informe o nome da empresa.' };
     const base = slugify(newCompanyName) || 'empresa';
 
