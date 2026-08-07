@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 22
+open_count: 30
 waived_count: 0
 fixed_count: 1
-total_count: 23
-last_updated: 2026-08-07T17:56:41.220Z
+total_count: 31
+last_updated: 2026-08-07T18:27:44.087Z
 ---
 
 # Broken Windows Ledger
@@ -38,6 +38,14 @@ last_updated: 2026-08-07T17:56:41.220Z
 | 21 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V7 nao executada pelo PO: nao-regressao de member/tenant_admin do FGCoop nas 7 filhas (antes/depois do apply) sem prova em runtime | open |  | 2026-08-07T17:56:41.124Z |  |
 | 22 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | Prova de idempotencia (rodar 0046 duas vezes) nao confirmada explicitamente pelo PO no handoff | open |  | 2026-08-07T17:56:41.172Z |  |
 | 23 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | Suite inteira (31 specs, incl. c4/c8/c9 escritos neste plano) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff | open |  | 2026-08-07T17:56:41.220Z |  |
+| 24 | 18 | deviation | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | Baseline pre-apply das 11 policies (query A1) foi rodada pelo PO DEPOIS do apply da 0047, nao antes — o texto vivo antigo das 11 policies nao foi capturado como snapshot. Sem impacto no rollback (reaplica arquivos versionados 0029/0033/0038/bloco-0041, nao depende do snapshot); impacto real e que a Decisiva #1 (byte-equivalencia por amostragem) nao pode ser julgada por comparacao empirica — foi substituida por prova por construcao (leitura das definicoes de effective_admin_tenant_ids/is_tenant_admin_of/current_admin_tenant_ids via pg_get_functiondef), mais forte porque vale para todo tenant_admin, nao so o amostrado. | open |  | 2026-08-07T18:27:43.737Z |  |
+| 25 | 18 | deviation | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | DIVIDA DE METODO: impersonacao de sessao via set local role authenticated + set_config('request.jwt.claims', ..., true) NAO funciona no SQL Editor do Supabase Cloud — cada statement roda em transacao propria, descartando o set local. Diagnostico: select auth.uid(), current_user_role(), current_tenant_id() apos o set_config retornou null/null/null. Consequencia: toda verificacao estilo D5/D6/D7 baseada em set_config nos handoffs 18-02, 18-03 e 18-05 e artefato, nao medicao — nao prova nem desprova nada (ex.: a query A2 do 18-05 que devolveu 0,0,0,0). Handoffs futuros desta fase NAO devem usar impersonacao por set_config no SQL Editor; alternativas que funcionam: (a) inspecao estatica da definicao de funcoes/policies via pg_get_functiondef/pg_policies, (b) observacao pelo app com login real. | open |  | 2026-08-07T18:27:43.788Z |  |
+| 26 | 18 | unrun-verify | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | DECISIVA #3 (poderes do staff-admin em A: inserir convite legitimo aceito, inserir psw_staff rejeitado, atualizar branding aceito, ler log de A) nao executada pelo PO apos o apply da 0047. | open |  | 2026-08-07T18:27:43.837Z |  |
+| 27 | 18 | unrun-verify | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | Negativo em B (as mesmas tentativas de leitura/escrita do staff-admin num tenant sem concessao) nao executado pelo PO apos o apply da 0047. | open |  | 2026-08-07T18:27:43.887Z |  |
+| 28 | 18 | unrun-verify | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | C3 (3 policies novas do bucket privado opportunity-documents presentes em producao, sem verbo de update) nao confirmada via pg_policies apos o apply — verificada apenas no texto da migration antes do apply. | open |  | 2026-08-07T18:27:43.935Z |  |
+| 29 | 18 | unrun-verify | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | C5 (CHECK invited_emails_role_check inalterado apos o apply) nao confirmada via pg_constraint pelo PO. | open |  | 2026-08-07T18:27:43.986Z |  |
+| 30 | 18 | unrun-verify | supabase/migrations/0047_tenant_admin_predicate_swap.sql |  | Prova de idempotencia (rodar o arquivo 0047 uma segunda vez no SQL Editor) nao confirmada explicitamente pelo PO. | open |  | 2026-08-07T18:27:44.038Z |  |
+| 31 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | Grupo d (16 specs novos: d1-d6, d7a-f, d8a-d) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff; suite inteira 47/47 em skip (68 passed \| 151 skipped (219) na suite tests/security completa). | open |  | 2026-08-07T18:27:44.087Z |  |
 
 ````json
 [
@@ -315,6 +323,102 @@ last_updated: 2026-08-07T17:56:41.220Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-07T17:56:41.220Z",
+    "resolved_at": null
+  },
+  {
+    "id": 24,
+    "kind": "deviation",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "Baseline pre-apply das 11 policies (query A1) foi rodada pelo PO DEPOIS do apply da 0047, nao antes — o texto vivo antigo das 11 policies nao foi capturado como snapshot. Sem impacto no rollback (reaplica arquivos versionados 0029/0033/0038/bloco-0041, nao depende do snapshot); impacto real e que a Decisiva #1 (byte-equivalencia por amostragem) nao pode ser julgada por comparacao empirica — foi substituida por prova por construcao (leitura das definicoes de effective_admin_tenant_ids/is_tenant_admin_of/current_admin_tenant_ids via pg_get_functiondef), mais forte porque vale para todo tenant_admin, nao so o amostrado.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.737Z",
+    "resolved_at": null
+  },
+  {
+    "id": 25,
+    "kind": "deviation",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "DIVIDA DE METODO: impersonacao de sessao via set local role authenticated + set_config('request.jwt.claims', ..., true) NAO funciona no SQL Editor do Supabase Cloud — cada statement roda em transacao propria, descartando o set local. Diagnostico: select auth.uid(), current_user_role(), current_tenant_id() apos o set_config retornou null/null/null. Consequencia: toda verificacao estilo D5/D6/D7 baseada em set_config nos handoffs 18-02, 18-03 e 18-05 e artefato, nao medicao — nao prova nem desprova nada (ex.: a query A2 do 18-05 que devolveu 0,0,0,0). Handoffs futuros desta fase NAO devem usar impersonacao por set_config no SQL Editor; alternativas que funcionam: (a) inspecao estatica da definicao de funcoes/policies via pg_get_functiondef/pg_policies, (b) observacao pelo app com login real.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.788Z",
+    "resolved_at": null
+  },
+  {
+    "id": 26,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "DECISIVA #3 (poderes do staff-admin em A: inserir convite legitimo aceito, inserir psw_staff rejeitado, atualizar branding aceito, ler log de A) nao executada pelo PO apos o apply da 0047.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.837Z",
+    "resolved_at": null
+  },
+  {
+    "id": 27,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "Negativo em B (as mesmas tentativas de leitura/escrita do staff-admin num tenant sem concessao) nao executado pelo PO apos o apply da 0047.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.887Z",
+    "resolved_at": null
+  },
+  {
+    "id": 28,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "C3 (3 policies novas do bucket privado opportunity-documents presentes em producao, sem verbo de update) nao confirmada via pg_policies apos o apply — verificada apenas no texto da migration antes do apply.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.935Z",
+    "resolved_at": null
+  },
+  {
+    "id": 29,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md",
+    "line": null,
+    "description": "C5 (CHECK invited_emails_role_check inalterado apos o apply) nao confirmada via pg_constraint pelo PO.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:43.986Z",
+    "resolved_at": null
+  },
+  {
+    "id": 30,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0047_tenant_admin_predicate_swap.sql",
+    "line": null,
+    "description": "Prova de idempotencia (rodar o arquivo 0047 uma segunda vez no SQL Editor) nao confirmada explicitamente pelo PO.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:44.038Z",
+    "resolved_at": null
+  },
+  {
+    "id": 31,
+    "kind": "skipped-test",
+    "phase": "18",
+    "file": "tests/security/psw-staff-admin-grant.test.ts",
+    "line": null,
+    "description": "Grupo d (16 specs novos: d1-d6, d7a-f, d8a-d) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff; suite inteira 47/47 em skip (68 passed | 151 skipped (219) na suite tests/security completa).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:27:44.087Z",
     "resolved_at": null
   }
 ]
