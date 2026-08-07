@@ -403,7 +403,7 @@ Schema-first, como no v0.1. A ordem é por dependência prática:
 **Depends on**: Phase 9 (schema/RLS base), Phase 16 (`opportunity_tasks` — mais uma tabela filha que precisa herdar a visibilidade por atribuição)
 **Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, ACCESS-10, ACCESS-11
 
-**Plans:** 5/8 plans executed
+**Plans:** 6/8 plans executed
 
 Plans:
 
@@ -411,7 +411,7 @@ Plans:
 - [x] 17-02-PLAN.md — Wave 2: Wave 0 de validação — tenant/perfil PSW de teste, `asPswStaff()` e a spec decisiva [ACCESS-01, ACCESS-02, ACCESS-07]
 - [x] 17-03-PLAN.md — Wave 3: **TRACER** — migration `0040` (helper `current_assigned_opportunity_ids()` + `check_assignee_tenant()` reescrito + SELECT aditivo em `opportunities`/`tenants`) + **gate humano** + fatia ponta-a-ponta verde [ACCESS-03, ACCESS-04, ACCESS-10]
 - [x] 17-04-PLAN.md — Wave 4: migrations `0041`/`0042` — 7 tabelas filhas + `profiles` + Storage + `check_task_tenant_coherence()` + `invited_emails` + `audit_log` condicional + **gate humano** [ACCESS-05, ACCESS-06, ACCESS-09, ACCESS-11]
-- [ ] 17-05-PLAN.md — Wave 5: specs de propagação, escrita escopada (com releitura por service-role), triggers, `viewer` e convites [ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-09, ACCESS-11]
+- [x] 17-05-PLAN.md — Wave 5: specs de propagação, escrita escopada (com releitura por service-role), triggers, `viewer` e convites [ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-09, ACCESS-11]
 - [x] 17-06-PLAN.md — Wave 5: `resolveWriteTenantId()` + os 9 call sites de escrita + `assignee-actions.ts` cross-tenant [ACCESS-06, ACCESS-09]
 - [ ] 17-07-PLAN.md — Wave 6: listagem unificada — coluna e filtro "Empresa" condicionados ao papel [ACCESS-08, ACCESS-10]
 - [ ] 17-08-PLAN.md — Wave 7: responsável de tarefa com staff PSW, convite pelo `/admin/invites` e **verificação visual de fechamento** [ACCESS-09, ACCESS-11]
