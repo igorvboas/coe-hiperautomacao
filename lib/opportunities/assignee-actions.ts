@@ -2,15 +2,21 @@
 
 // =============================================================================
 // assignee-actions.ts — atribuir/desatribuir pessoas (0032; cross-tenant D-05
-// na Phase 17)
+// na Phase 17; gate alinhado com a RLS na Phase 18, Plan 08, GRANT-04/GRANT-09)
 // -----------------------------------------------------------------------------
 // Camadas de defesa (mesmo padrão do resto do projeto):
-//   1. Guard de role aqui — só tenant_admin ou platform_admin escrevem.
+//   1. Guard aqui — `platform_admin` OU o par pessoa × empresa
+//      (`isTenantAdminOf`) contra o tenant da OPORTUNIDADE-ALVO. As policies
+//      de atribuição (0047) já chamam `is_tenant_admin_of()` como fonte
+//      única — o banco JÁ permite que um staff-admin de A atribua dentro de
+//      A; manter esta ação mais restrita seria dívida silenciosa (a próxima
+//      pessoa que comparar os dois vai supor que o erro está no banco, não
+//      aqui).
 //   2. `tenant_id` derivado da OPORTUNIDADE no servidor, nunca do formulário.
 //   3. Candidatos validados: do MESMO tenant da oportunidade sempre; OU
 //      `psw_staff` de QUALQUER tenant quando quem atribui é `platform_admin`
 //      (D-05) — o único vínculo cruzado legítimo desta fase.
-//   4. RLS (0032) é o bloqueio real. A trigger `check_assignee_tenant()`
+//   4. RLS (0032/0047) é o bloqueio real. A trigger `check_assignee_tenant()`
 //      (reescrita na 0040) repete esta mesma regra no banco: aceita vínculo
 //      cruzado SOMENTE quando o profile atribuído é `psw_staff`, e continua
 //      rejeitando qualquer outro profile de tenant diferente — inclusive
@@ -22,8 +28,9 @@ import { createClient } from '@/lib/supabase/server';
 import {
   getCurrentProfile,
   isPlatformAdmin,
-  isTenantAdmin,
+  isTenantAdminOf,
   isPswStaff,
+  WRITE_SCOPE_DENIED_MESSAGE,
 } from '@/lib/security/role';
 
 export type AssignResult = { ok: true } | { ok: false; error: string };
@@ -40,25 +47,30 @@ export async function setOpportunityAssignees(
   const profile = await getCurrentProfile();
   if (!profile) return { ok: false, error: 'Sessão expirada. Entre novamente.' };
 
-  const canAssign = isTenantAdmin(profile) || isPlatformAdmin(profile);
-  if (!canAssign) {
-    return { ok: false, error: 'Só o admin da empresa pode atribuir pessoas.' };
-  }
-
   const supabase = await createClient();
 
-  // tenant_id vem da oportunidade (server-derived). Para o tenant_admin, a RLS
-  // já teria escondido oportunidade de outro tenant — o select falha e paramos
-  // aqui com uma mensagem clara em vez de um 42501 cru.
+  // tenant_id vem da oportunidade (server-derived) ANTES do gate — o critério
+  // de quem pode atribuir agora depende do tenant-ALVO (par pessoa × empresa),
+  // não só do papel isolado. A RLS de `opportunities` já limita esta leitura a
+  // quem tem algum acesso (tenant_admin do próprio tenant, platform_admin, ou
+  // staff-admin/atribuído); "não encontrada" e "fora do escopo" colapsam de
+  // propósito na mesma mensagem — nunca revelar qual dos dois casos ocorreu.
   const { data: opp } = await supabase
     .from('opportunities')
     .select('id, tenant_id')
     .eq('id', opportunityId)
-    .single();
+    .maybeSingle();
 
-  if (!opp) return { ok: false, error: 'Oportunidade não encontrada.' };
-  if (!isPlatformAdmin(profile) && opp.tenant_id !== profile.tenantId) {
-    return { ok: false, error: 'Oportunidade de outra empresa.' };
+  if (!opp) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
+
+  // Gate de escrita: super-admin em qualquer empresa, OU o par pessoa ×
+  // empresa contra o tenant da oportunidade-alvo (mesmo critério do gate
+  // visual em opportunities/[id]/page.tsx — interface e servidor concordam,
+  // o servidor continua sendo o bloqueio real).
+  const canAssign =
+    isPlatformAdmin(profile) || (await isTenantAdminOf(profile, opp.tenant_id));
+  if (!canAssign) {
+    return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
   }
 
   // Aceita profiles do MESMO tenant da oportunidade — a regra de sempre — OU,

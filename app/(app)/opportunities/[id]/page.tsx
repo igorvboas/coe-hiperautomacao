@@ -15,7 +15,7 @@ import {
   isReadOnlyViewer,
   getCurrentProfile,
   isPlatformAdmin,
-  isTenantAdmin,
+  isTenantAdminOf,
   isPswStaff,
 } from '@/lib/security/role';
 import {
@@ -59,7 +59,14 @@ export default async function OpportunityDetailPage({
   // de cliente continua vendo só as pessoas da própria empresa, exatamente
   // como hoje. Quem de fato autoriza o vínculo cross-tenant continua sendo a
   // trigger/policy de `opportunity_assignees` — esta lista só monta candidatos.
-  const canAssign = isTenantAdmin(profile) || isPlatformAdmin(profile);
+  //
+  // Gate alinhado com a RLS (Phase 18, Plan 08, GRANT-04/GRANT-09): o par
+  // pessoa × empresa contra o tenant DESTA oportunidade, mesmo critério do
+  // gate de escrita em `assignee-actions.ts` — as policies de atribuição
+  // (0047) já permitem que um staff-admin de A atribua dentro de A; manter o
+  // gate visual mais restrito que o banco seria dívida silenciosa.
+  const canAssign =
+    isPlatformAdmin(profile) || (await isTenantAdminOf(profile, opportunity.tenant_id));
   const assignableProfiles = !canAssign
     ? []
     : isPlatformAdmin(profile)
