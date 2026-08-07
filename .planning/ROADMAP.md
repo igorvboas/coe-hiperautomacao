@@ -460,6 +460,17 @@ Plans:
 **Goal**: Um `psw_staff` passa a poder ser **admin de N empresas** ao mesmo tempo: sem concessão ele continua vendo somente as oportunidades atribuídas a ele (comportamento da `0044`, intocado); com concessão no tenant A ele vê tudo de A e exerce ali os mesmos poderes de um `tenant_admin` — convites, equipe, configurações/branding e logs — sem deixar de ver, na mesma listagem, as oportunidades que lhe foram atribuídas em outras empresas. A concessão é dada e retirada apenas pelo `platform_admin`, numa tela `/admin/staff` que também mostra, por pessoa, as duas origens de acesso separadas.
 **Depends on**: Phase 17 (papel `psw_staff`, `opportunity_assignees` cross-tenant, `current_assigned_opportunity_ids()`, `resolveWriteTenantId()` e as restritivas da `0044` — esta fase estende exatamente esse mecanismo um nível acima)
 **Requirements**: GRANT-01, GRANT-02, GRANT-03, GRANT-04, GRANT-05, GRANT-06, GRANT-07, GRANT-08, GRANT-09, GRANT-10
+**Plans**: 8 plans (7 waves · 3 migrations write-only · 5 gates humanos)
+
+Plans:
+- [ ] 18-01-PLAN.md — Wave 0: decisão de como a fase prova a RLS, specs decisivos (baseline → concede → revoga → baseline) e tipos de `psw_tenant_admins` à mão
+- [ ] 18-02-PLAN.md — **TRACER**: migration `0045` (tabela da concessão + 3 helpers + trigger + as DUAS metades da RLS em `opportunities`) e prova ponta-a-ponta
+- [ ] 18-03-PLAN.md — Expansão RLS: migration `0046` (7 tabelas filhas por laço com paridade de verbos + `profiles`) e prova de propagação
+- [ ] 18-04-PLAN.md — Tela `/admin/staff`: duas origens separadas, revogação quantificada, concessão órfã sinalizada
+- [ ] 18-05-PLAN.md — Poderes de `tenant_admin`: migration `0047` (as 11 policies vivas pela fonte única + Storage), com a barreira de escalada de convite preservada
+- [ ] 18-06-PLAN.md — Camada de servidor: `isTenantAdminOf` / `resolveAdminTenantId` e as escritas de Equipe e Configurações sobre tenant-alvo
+- [ ] 18-07-PLAN.md — Leitura escopada e gate visual nas 4 telas de admin (marcador de escopo + aviso de escrita desabilitada)
+- [ ] 18-08-PLAN.md — Shell (seletor e menus para o staff-admin), gate de atribuição alinhado à RLS, e verificação visual A–H com auditoria de não-regressão
 
 **Success Criteria** (what must be TRUE):
 
