@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 33
+open_count: 35
 waived_count: 0
 fixed_count: 1
-total_count: 34
-last_updated: 2026-08-07T18:55:05.982Z
+total_count: 36
+last_updated: 2026-08-07T19:26:20.698Z
 ---
 
 # Broken Windows Ledger
@@ -49,6 +49,8 @@ last_updated: 2026-08-07T18:55:05.982Z
 | 32 | 18 | unrun-verify | app/(app)/configuracoes/actions.ts |  | Human-check da Task 3 (18-06) nao executado: staff-admin salvando cor/logo/remocao em A pela UI real, e escopo negado com 'todas as empresas' selecionado — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T18:55:05.885Z |  |
 | 33 | 18 | unrun-verify | tests/security/admin-actions-tenant-scope.test.ts |  | 17 specs novos (team/actions.ts + configuracoes/actions.ts, Plan 18-06) em describe.skipIf(!HAS_DB) — .env.test nao existe (prova-por-sql-no-handoff); nunca executados contra DB real nesta sessao, incluindo o proprio import dinamico de app/(app)/team\|configuracoes/actions.ts sob os mocks de next/headers. | open |  | 2026-08-07T18:55:05.934Z |  |
 | 34 | 18 | deviation | app/(app)/team/actions.ts |  | npm run test:security bloqueado pelo classificador de auto-mode do harness (consistente com o binding_proof_mode do plano, que proibe rodar essa suite/integracao contra producao); verificacao substituida por execucao direta dos arquivos de teste afetados via npx vitest run <arquivo>. | open |  | 2026-08-07T18:55:05.982Z |  |
+| 35 | 18 | unrun-verify | app/(app)/team/page.tsx |  | Human-check da Task 2 (18-07) nao executado: staff-admin com concessao em A abrindo /team e /configuracoes com A selecionada (dados de A, chip visivel, formulario ativo) e com 'todas as empresas' selecionada (controles desabilitados, aviso pt-BR); e confirmacao de que tenant_admin de cliente ve as duas telas identicas a antes — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T19:26:20.649Z |  |
+| 36 | 18 | unrun-verify | app/(app)/logs/page.tsx |  | Human-check da Task 3 (18-07) nao executado: staff-admin com concessao em DUAS empresas abrindo /logs (recorte limitado as duas, filtragem por uma delas), staff-admin com UMA concessao (sem recorte, chip com o nome dela), tenant_admin de cliente inalterado, e /admin/invites como super-admin com o chip no cabecalho — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T19:26:20.698Z |  |
 
 ````json
 [
@@ -458,6 +460,30 @@ last_updated: 2026-08-07T18:55:05.982Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-07T18:55:05.982Z",
+    "resolved_at": null
+  },
+  {
+    "id": 35,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "app/(app)/team/page.tsx",
+    "line": null,
+    "description": "Human-check da Task 2 (18-07) nao executado: staff-admin com concessao em A abrindo /team e /configuracoes com A selecionada (dados de A, chip visivel, formulario ativo) e com 'todas as empresas' selecionada (controles desabilitados, aviso pt-BR); e confirmacao de que tenant_admin de cliente ve as duas telas identicas a antes — sem acesso a browser/servidor autenticado nesta sessao.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T19:26:20.649Z",
+    "resolved_at": null
+  },
+  {
+    "id": 36,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "app/(app)/logs/page.tsx",
+    "line": null,
+    "description": "Human-check da Task 3 (18-07) nao executado: staff-admin com concessao em DUAS empresas abrindo /logs (recorte limitado as duas, filtragem por uma delas), staff-admin com UMA concessao (sem recorte, chip com o nome dela), tenant_admin de cliente inalterado, e /admin/invites como super-admin com o chip no cabecalho — sem acesso a browser/servidor autenticado nesta sessao.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T19:26:20.698Z",
     "resolved_at": null
   }
 ]
