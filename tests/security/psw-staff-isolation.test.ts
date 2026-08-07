@@ -595,18 +595,510 @@ describe.skipIf(!HAS_DB)('psw_staff — RLS multi-tenant por atribuição (0040+
       expect(error?.message).toContain('Responsável de outra empresa');
     });
   });
+
+  // ===========================================================================
+  // Plan 17-05, Task 2 — escrita escopada (positivo/negativo com releitura
+  // obrigatória por service-role), gate de `viewer` (D-13) e barreira de
+  // `invited_emails` (ACCESS-09).
+  // ===========================================================================
+
+  describe('escrita escopada', () => {
+    // REGRA INEGOCIÁVEL (Pitfall 1 do RESEARCH, o bug mais crítico da fase):
+    // `error === null` sozinho NUNCA prova que uma escrita persistiu — um
+    // `WHERE` (via RLS `USING`) que casa zero linhas devolve exatamente
+    // `error: null, data: []`. TODA afirmação de sucesso abaixo relê a linha
+    // por `serviceRoleClient()` e compara o valor observado; TODA afirmação
+    // de recusa relê e confirma que o valor ORIGINAL permanece.
+
+    it('UPDATE de opportunities.observacao — X (atribuída) persiste', async () => {
+      const { client } = await asPswStaff();
+      const novoValor = `observacao psw_staff ${Date.now()}`;
+      const { error } = await client.from('opportunities').update({ observacao: novoValor }).eq('id', PSW_OPP_X_ID);
+      expect(error).toBeNull();
+
+      const { data, error: readErr } = await sb
+        .from('opportunities')
+        .select('observacao')
+        .eq('id', PSW_OPP_X_ID)
+        .single();
+      expect(readErr).toBeNull();
+      expect(data?.observacao).toBe(novoValor);
+    });
+
+    it('UPDATE de opportunities.observacao — Y (mesmo tenant, sem atribuição) NÃO persiste', async () => {
+      const { data: before } = await sb.from('opportunities').select('observacao').eq('id', PSW_OPP_Y_ID).single();
+
+      const { client } = await asPswStaff();
+      const { data: result, error } = await client
+        .from('opportunities')
+        .update({ observacao: 'tentativa fora do escopo' })
+        .eq('id', PSW_OPP_Y_ID)
+        .select('id');
+      expect(error).toBeNull();
+      expect(result).toEqual([]);
+
+      const { data: after, error: readErr } = await sb
+        .from('opportunities')
+        .select('observacao')
+        .eq('id', PSW_OPP_Y_ID)
+        .single();
+      expect(readErr).toBeNull();
+      expect(after?.observacao).toBe(before?.observacao);
+    });
+
+    it('INSERT/UPDATE/DELETE de tarefa sob X (atribuída) persistem', async () => {
+      const { client } = await asPswStaff();
+      const { data: created, error: insErr } = await client
+        .from('opportunity_tasks')
+        .insert({
+          opportunity_id: PSW_OPP_X_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          title: 'tarefa escrita escopada X',
+          status: 'backlog',
+        })
+        .select('id')
+        .single();
+      expect(insErr).toBeNull();
+      expect(created?.id).toBeTruthy();
+
+      const { data: afterInsert } = await sb.from('opportunity_tasks').select('title').eq('id', created!.id).single();
+      expect(afterInsert?.title).toBe('tarefa escrita escopada X');
+
+      const { error: updErr } = await client
+        .from('opportunity_tasks')
+        .update({ title: 'tarefa escrita escopada X — editada' })
+        .eq('id', created!.id);
+      expect(updErr).toBeNull();
+      const { data: afterUpdate } = await sb.from('opportunity_tasks').select('title').eq('id', created!.id).single();
+      expect(afterUpdate?.title).toBe('tarefa escrita escopada X — editada');
+
+      const { error: delErr } = await client.from('opportunity_tasks').delete().eq('id', created!.id);
+      expect(delErr).toBeNull();
+      const { data: afterDelete } = await sb.from('opportunity_tasks').select('id').eq('id', created!.id);
+      expect(afterDelete).toEqual([]);
+    });
+
+    it('INSERT/UPDATE/DELETE de tarefa sob Y (mesmo tenant, sem atribuição) NÃO persistem', async () => {
+      const { client } = await asPswStaff();
+
+      // INSERT — RLS WITH CHECK rejeita com erro explícito (42501).
+      const { error: insErr } = await client
+        .from('opportunity_tasks')
+        .insert({
+          opportunity_id: PSW_OPP_Y_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          title: 'tarefa attacker Y',
+          status: 'backlog',
+        })
+        .select('id');
+      expect(insErr).not.toBeNull();
+      const { count } = await sb
+        .from('opportunity_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('title', 'tarefa attacker Y');
+      expect(count).toBe(0);
+
+      // UPDATE/DELETE contra a tarefa-fixture de Y — 0 linhas afetadas
+      // (RLS `USING`), nunca erro explícito.
+      const { data: fixtureTask } = await sb
+        .from('opportunity_tasks')
+        .select('id, title')
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('title', 'tarefa fixture Y')
+        .single();
+
+      const { data: updResult, error: updErr } = await client
+        .from('opportunity_tasks')
+        .update({ title: 'HIJACKED' })
+        .eq('id', fixtureTask!.id)
+        .select('id');
+      expect(updErr).toBeNull();
+      expect(updResult).toEqual([]);
+      const { data: afterUpdate } = await sb
+        .from('opportunity_tasks')
+        .select('title')
+        .eq('id', fixtureTask!.id)
+        .single();
+      expect(afterUpdate?.title).toBe(fixtureTask?.title);
+
+      const { data: delResult, error: delErr } = await client
+        .from('opportunity_tasks')
+        .delete()
+        .eq('id', fixtureTask!.id)
+        .select('id');
+      expect(delErr).toBeNull();
+      expect(delResult).toEqual([]);
+      const { data: stillThere } = await sb.from('opportunity_tasks').select('id').eq('id', fixtureTask!.id);
+      expect(stillThere).toHaveLength(1);
+    });
+
+    it('INSERT/UPDATE/DELETE de risco sob X (atribuída) persistem', async () => {
+      const { client } = await asPswStaff();
+      const { data: created, error: insErr } = await client
+        .from('opportunity_risks')
+        .insert({
+          opportunity_id: PSW_OPP_X_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          descricao: 'risco escrita escopada X',
+          tipo: 'risco',
+          impacto: 'moderado',
+          probabilidade: 'possivel',
+        })
+        .select('id')
+        .single();
+      expect(insErr).toBeNull();
+      expect(created?.id).toBeTruthy();
+
+      const { data: afterInsert } = await sb
+        .from('opportunity_risks')
+        .select('descricao')
+        .eq('id', created!.id)
+        .single();
+      expect(afterInsert?.descricao).toBe('risco escrita escopada X');
+
+      const { error: updErr } = await client
+        .from('opportunity_risks')
+        .update({ descricao: 'risco escrita escopada X — editado' })
+        .eq('id', created!.id);
+      expect(updErr).toBeNull();
+      const { data: afterUpdate } = await sb
+        .from('opportunity_risks')
+        .select('descricao')
+        .eq('id', created!.id)
+        .single();
+      expect(afterUpdate?.descricao).toBe('risco escrita escopada X — editado');
+
+      const { error: delErr } = await client.from('opportunity_risks').delete().eq('id', created!.id);
+      expect(delErr).toBeNull();
+      const { data: afterDelete } = await sb.from('opportunity_risks').select('id').eq('id', created!.id);
+      expect(afterDelete).toEqual([]);
+    });
+
+    it('INSERT/UPDATE/DELETE de risco sob Y (mesmo tenant, sem atribuição) NÃO persistem', async () => {
+      const { client } = await asPswStaff();
+
+      const { error: insErr } = await client
+        .from('opportunity_risks')
+        .insert({
+          opportunity_id: PSW_OPP_Y_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          descricao: 'risco attacker Y',
+          tipo: 'risco',
+          impacto: 'moderado',
+          probabilidade: 'possivel',
+        })
+        .select('id');
+      expect(insErr).not.toBeNull();
+      const { count } = await sb
+        .from('opportunity_risks')
+        .select('id', { count: 'exact', head: true })
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('descricao', 'risco attacker Y');
+      expect(count).toBe(0);
+
+      const { data: fixtureRisk } = await sb
+        .from('opportunity_risks')
+        .select('id, descricao')
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('descricao', 'risco fixture Y')
+        .single();
+
+      const { data: updResult, error: updErr } = await client
+        .from('opportunity_risks')
+        .update({ descricao: 'HIJACKED' })
+        .eq('id', fixtureRisk!.id)
+        .select('id');
+      expect(updErr).toBeNull();
+      expect(updResult).toEqual([]);
+      const { data: afterUpdate } = await sb
+        .from('opportunity_risks')
+        .select('descricao')
+        .eq('id', fixtureRisk!.id)
+        .single();
+      expect(afterUpdate?.descricao).toBe(fixtureRisk?.descricao);
+
+      const { data: delResult, error: delErr } = await client
+        .from('opportunity_risks')
+        .delete()
+        .eq('id', fixtureRisk!.id)
+        .select('id');
+      expect(delErr).toBeNull();
+      expect(delResult).toEqual([]);
+      const { data: stillThere } = await sb.from('opportunity_risks').select('id').eq('id', fixtureRisk!.id);
+      expect(stillThere).toHaveLength(1);
+    });
+
+    it('INSERT/DELETE de nota sob X (atribuída) persistem', async () => {
+      const { client } = await asPswStaff();
+      const { data: created, error: insErr } = await client
+        .from('opportunity_notes')
+        .insert({ opportunity_id: PSW_OPP_X_ID, tenant_id: FGCOOP_TEST_ID, texto: 'nota escrita escopada X' })
+        .select('id')
+        .single();
+      expect(insErr).toBeNull();
+      expect(created?.id).toBeTruthy();
+
+      const { data: afterInsert } = await sb.from('opportunity_notes').select('texto').eq('id', created!.id).single();
+      expect(afterInsert?.texto).toBe('nota escrita escopada X');
+
+      const { error: delErr } = await client.from('opportunity_notes').delete().eq('id', created!.id);
+      expect(delErr).toBeNull();
+      const { data: afterDelete } = await sb.from('opportunity_notes').select('id').eq('id', created!.id);
+      expect(afterDelete).toEqual([]);
+    });
+
+    it('INSERT/DELETE de nota sob Y (mesmo tenant, sem atribuição) NÃO persistem', async () => {
+      const { client } = await asPswStaff();
+
+      const { error: insErr } = await client
+        .from('opportunity_notes')
+        .insert({ opportunity_id: PSW_OPP_Y_ID, tenant_id: FGCOOP_TEST_ID, texto: 'nota attacker Y' })
+        .select('id');
+      expect(insErr).not.toBeNull();
+      const { count } = await sb
+        .from('opportunity_notes')
+        .select('id', { count: 'exact', head: true })
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('texto', 'nota attacker Y');
+      expect(count).toBe(0);
+
+      const { data: fixtureNote } = await sb
+        .from('opportunity_notes')
+        .select('id')
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('texto', 'nota fixture Y')
+        .single();
+
+      const { data: delResult, error: delErr } = await client
+        .from('opportunity_notes')
+        .delete()
+        .eq('id', fixtureNote!.id)
+        .select('id');
+      expect(delErr).toBeNull();
+      expect(delResult).toEqual([]);
+      const { data: stillThere } = await sb.from('opportunity_notes').select('id').eq('id', fixtureNote!.id);
+      expect(stillThere).toHaveLength(1);
+    });
+
+    it('INSERT/DELETE de documento sob X (atribuída) persistem', async () => {
+      const { client } = await asPswStaff();
+      const { data: created, error: insErr } = await client
+        .from('opportunity_documents')
+        .insert({
+          opportunity_id: PSW_OPP_X_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          kind: 'link',
+          nome: 'documento escrita escopada X',
+          url: 'https://example.test/escrita-x',
+        })
+        .select('id')
+        .single();
+      expect(insErr).toBeNull();
+      expect(created?.id).toBeTruthy();
+
+      const { data: afterInsert } = await sb
+        .from('opportunity_documents')
+        .select('nome')
+        .eq('id', created!.id)
+        .single();
+      expect(afterInsert?.nome).toBe('documento escrita escopada X');
+
+      const { error: delErr } = await client.from('opportunity_documents').delete().eq('id', created!.id);
+      expect(delErr).toBeNull();
+      const { data: afterDelete } = await sb.from('opportunity_documents').select('id').eq('id', created!.id);
+      expect(afterDelete).toEqual([]);
+    });
+
+    it('INSERT/DELETE de documento sob Y (mesmo tenant, sem atribuição) NÃO persistem', async () => {
+      const { client } = await asPswStaff();
+
+      const { error: insErr } = await client
+        .from('opportunity_documents')
+        .insert({
+          opportunity_id: PSW_OPP_Y_ID,
+          tenant_id: FGCOOP_TEST_ID,
+          kind: 'link',
+          nome: 'documento attacker Y',
+          url: 'https://example.test/attacker-y',
+        })
+        .select('id');
+      expect(insErr).not.toBeNull();
+      const { count } = await sb
+        .from('opportunity_documents')
+        .select('id', { count: 'exact', head: true })
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('nome', 'documento attacker Y');
+      expect(count).toBe(0);
+
+      const { data: fixtureDoc } = await sb
+        .from('opportunity_documents')
+        .select('id')
+        .eq('opportunity_id', PSW_OPP_Y_ID)
+        .eq('nome', 'documento fixture Y')
+        .single();
+
+      const { data: delResult, error: delErr } = await client
+        .from('opportunity_documents')
+        .delete()
+        .eq('id', fixtureDoc!.id)
+        .select('id');
+      expect(delErr).toBeNull();
+      expect(delResult).toEqual([]);
+      const { data: stillThere } = await sb.from('opportunity_documents').select('id').eq('id', fixtureDoc!.id);
+      expect(stillThere).toHaveLength(1);
+    });
+
+    it('mudanca de status propaga para opportunity_phases', async () => {
+      // A `0041` deliberadamente NÃO cria policy de escrita para
+      // `opportunity_phases` — quem escreve é o trigger `sync_opportunity_phase()`
+      // (SECURITY DEFINER, ignora RLS). Este spec transforma essa premissa em
+      // fato verificado: se falhar, a conclusão é que a exceção documentada
+      // está errada e a `0041` precisa da policy — não que o teste deva ser
+      // afrouxado.
+      const { client } = await asPswStaff();
+      const { error } = await client.from('opportunities').update({ status: 'homologacao' }).eq('id', PSW_OPP_X_ID);
+      expect(error).toBeNull();
+
+      const { data, error: readErr } = await sb
+        .from('opportunity_phases')
+        .select('id, phase_key, finished_at')
+        .eq('opportunity_id', PSW_OPP_X_ID)
+        .eq('phase_key', 'homologacao')
+        .maybeSingle();
+      expect(readErr).toBeNull();
+      expect(data?.phase_key).toBe('homologacao');
+    });
+  });
+
+  describe('gate de viewer (D-13)', () => {
+    // A afirmação POSITIVA (psw_staff PASSA no gate `current_user_role() <>
+    // 'viewer'`) já ficou provada pelos casos de sucesso do describe
+    // `escrita escopada` acima — o UPDATE de X só persistiu porque, entre
+    // outras coisas, `psw_staff` não é `'viewer'`. Este `it` nomeia essa
+    // conclusão explicitamente, para que D-13 seja AFIRMADO, não presumido.
+    it('psw_staff passa no gate `current_user_role() <> \'viewer\'` das policies por tenant (D-13, afirmado)', async () => {
+      const { client, userId } = await asPswStaff();
+      const { data, error } = await client.from('profiles').select('role').eq('id', userId).single();
+      expect(error).toBeNull();
+      expect(data?.role).toBe('psw_staff');
+      expect(data?.role).not.toBe('viewer');
+    });
+
+    describe('viewer do tenant FGCoop continua barrado', () => {
+      // Promove o usuário FGCoop de teste (compartilhado pela suíte) a
+      // `viewer` só durante este describe — mesmo padrão de
+      // `viewer-role-write-block.test.ts`. Reverte a `member` no `afterAll`
+      // aninhado, antes de qualquer describe seguinte rodar.
+      beforeAll(async () => {
+        const { error } = await sb.from('profiles').update({ role: 'viewer' }).eq('id', fgcoopUserId);
+        if (error) throw new Error(`não foi possível promover FGCoop a viewer: ${error.message}`);
+      });
+
+      afterAll(async () => {
+        if (sb && fgcoopUserId) {
+          await sb.from('profiles').update({ role: 'member' }).eq('id', fgcoopUserId);
+        }
+      });
+
+      it('viewer do FGCoop NÃO consegue UPDATE em opportunity do próprio tenant (0 linhas, original intacto)', async () => {
+        // Usa a MESMA oportunidade X — X é do tenant FGCoop, então aqui é a
+        // policy POR TENANT (`opportunities_update`, 0015) que se aplica ao
+        // FGCoop, não a `opportunities_update_psw_staff`.
+        const { data: before } = await sb.from('opportunities').select('observacao').eq('id', PSW_OPP_X_ID).single();
+
+        const { client } = await asFgcoop();
+        const { data: result, error } = await client
+          .from('opportunities')
+          .update({ observacao: 'tentativa de viewer' })
+          .eq('id', PSW_OPP_X_ID)
+          .select('id');
+        expect(error).toBeNull();
+        expect(result).toEqual([]);
+
+        const { data: after } = await sb.from('opportunities').select('observacao').eq('id', PSW_OPP_X_ID).single();
+        expect(after?.observacao).toBe(before?.observacao);
+      });
+    });
+  });
+
+  describe('invited_emails', () => {
+    // Promove o FGCoop de teste a `tenant_admin` só durante este describe —
+    // roda DEPOIS do describe `gate de viewer` (que já reverteu a `member`
+    // no seu próprio `afterAll`), então não há sobreposição de papel.
+    const createdInviteIds: string[] = [];
+
+    beforeAll(async () => {
+      const { error } = await sb.from('profiles').update({ role: 'tenant_admin' }).eq('id', fgcoopUserId);
+      if (error) throw new Error(`não foi possível promover FGCoop a tenant_admin: ${error.message}`);
+    });
+
+    afterAll(async () => {
+      if (sb && fgcoopUserId) {
+        await sb.from('profiles').update({ role: 'member' }).eq('id', fgcoopUserId);
+      }
+      if (sb && createdInviteIds.length > 0) {
+        await sb.from('invited_emails').delete().in('id', createdInviteIds);
+      }
+    });
+
+    it('tenant_admin NÃO consegue inserir invited_emails com o papel novo (psw_staff) — ACCESS-09', async () => {
+      const { client } = await asFgcoop();
+      const { error } = await client.from('invited_emails').insert({
+        email: 'tentativa-psw-staff@test.local',
+        tenant_id: FGCOOP_TEST_ID,
+        // @ts-expect-error — o CHECK do banco já aceita 'psw_staff' desde a
+        // 0041, mas `lib/database.types.ts` (hand-maintained, ver header do
+        // arquivo) ainda não foi atualizado para refletir isso — fora do
+        // escopo deste plano (files_modified só lista este arquivo de teste).
+        role: 'psw_staff',
+      });
+      expect(error).not.toBeNull();
+    });
+
+    it('platform_admin consegue inserir invited_emails com o papel novo (psw_staff)', async () => {
+      const { client } = await authedClient(PLATFORM_ADMIN_TEST_EMAIL, TEST_PASSWORD);
+      const { data, error } = await client
+        .from('invited_emails')
+        .insert({
+          email: 'novo-psw-staff@test.local',
+          tenant_id: FGCOOP_TEST_ID,
+          // @ts-expect-error — mesmo motivo do teste anterior.
+          role: 'psw_staff',
+          invited_by: adminUserId,
+        })
+        .select('id')
+        .single();
+      expect(error).toBeNull();
+      expect(data?.id).toBeTruthy();
+      if (data?.id) createdInviteIds.push(data.id);
+
+      const { data: reread, error: readErr } = await sb
+        .from('invited_emails')
+        .select('role')
+        .eq('id', data!.id)
+        .single();
+      expect(readErr).toBeNull();
+      expect(reread?.role).toBe('psw_staff');
+    });
+
+    it('tenant_admin CONTINUA conseguindo convidar papéis legítimos do próprio tenant (regressão)', async () => {
+      const { client } = await asFgcoop();
+      const { data, error } = await client
+        .from('invited_emails')
+        .insert({ email: 'convite-legitimo@test.local', tenant_id: FGCOOP_TEST_ID, role: 'member' })
+        .select('id')
+        .single();
+      expect(error).toBeNull();
+      expect(data?.id).toBeTruthy();
+      if (data?.id) createdInviteIds.push(data.id);
+    });
+  });
 });
 
 // =============================================================================
-// Nomes de grupo RESERVADOS para os planos seguintes (17-03 a 17-07) — não
-// inventar nome divergente; estender este arquivo com um novo `describe` por
-// item, no exato texto abaixo:
-//   - `check_assignee_tenant` (Plan 17-03 — os 4 casos do trigger reescrito)
-//   - `tabelas filhas`        (Plan 17-04 — SELECT aditivo por tabela filha)
-//   - `escrita escopada`      (Plan 17-05 — escrita permitida/rejeitada,
-//                              sempre relendo a linha via service-role)
-//   - `invited_emails`        (Plan 17-04/17-08 — convite do staff PSW)
-//   - `assignee de tarefa`    (Plan 17-08 — psw_staff como responsável de
-//                              tarefa, ACCESS-11)
-//   - `lista unificada`       (Plan 17-07 — coluna/filtro de empresa)
+// Nomes de grupo RESERVADOS para os planos seguintes — não inventar nome
+// divergente; estender este arquivo com um novo `describe` por item, no
+// exato texto abaixo:
+//   - `lista unificada` (Plan 17-07 — coluna/filtro de empresa)
 // =============================================================================
