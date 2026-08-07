@@ -32,8 +32,6 @@ created: 2026-08-07
 
 ## Spacing Scale
 
-Este projeto **não segue estritamente o grid de 8pt** — é uma convenção real de produto já em produção com uma densidade mais compacta, usando também os meios-passos do Tailwind (6px/10px/14px), sobretudo em badges, botões de ação por linha e cabeçalhos de tabela. O contrato desta fase **replica essa convenção existente**, não inventa uma nova.
-
 | Token | Valor | Uso |
 |-------|-------|-----|
 | 2xs | 4px (`gap-1`, `px-1`) | Espaço entre glifo/badge e texto vizinho |
@@ -44,22 +42,35 @@ Este projeto **não segue estritamente o grid de 8pt** — é uma convenção re
 | lg | 20-24px (`p-5`, `gap-6`) | Padding de card/painel (`bg-wh rounded-xl border border-bdr p-5`) |
 | xl | 24px (`gap-6`) | Espaço entre blocos de página (header / form / tabela) |
 
-Exceptions: meios-passos (6px/10px/14px) são a norma neste projeto para elementos compactos de admin (badges, botões de ação por linha, padding de célula) — **não** são desvio a corrigir, são o padrão a replicar. `/admin/staff` deve usar os mesmos valores exatos do `admin/invites`: container `px-6 py-6 max-w-4xl mx-auto flex flex-col gap-6`; card `bg-wh rounded-xl border border-bdr p-5 flex flex-col gap-4`; tabela `px-4 py-2.5` por célula.
+`/admin/staff` deve usar os mesmos valores exatos do `admin/invites`: container `px-6 py-6 max-w-4xl mx-auto flex flex-col gap-6`; card `bg-wh rounded-xl border border-bdr p-5 flex flex-col gap-4`; tabela `px-4 py-2.5` por célula.
+
+### ⚠️ Exceção formal ao grid de 4/8px (aprovada pelo PO — 2026-08-07)
+
+Os valores **6px** (`gap-1.5`, `py-1.5`), **10px** (`px-2.5`, `py-2.5`) e **14px** acima **não são múltiplos de 4** e por padrão violariam o contrato de design system do GSD. Isto foi **verificado e formalmente aprovado como exceção pelo PO em 2026-08-07** — não é um descuido, é uma decisão registrada:
+
+- **O que:** manter 6px/10px/14px exatamente como especificado, sem arredondar para 8px/16px.
+- **Por quê:** esses valores são a convenção real, em produção, das telas irmãs de admin (`/admin/invites`, `/team`) — badges, botões de ação por linha e padding de célula de tabela já usam esses meios-passos do Tailwind hoje. O `CLAUDE.md` deste projeto exige replicar a estrutura existente antes de melhorá-la ("Antes de evoluir/melhorar UI, replique a estrutura exibida ali. Mudanças de layout só após paridade"). `/admin/staff` é uma tela nova que fica lado a lado com essas telas na navegação de admin; migrá-la sozinha para um grid de 4/8px puro a deixaria visualmente estranha ao lado das irmãs.
+- **Escopo da exceção:** apenas 6px, 10px e 14px. Todo o restante do espaçamento desta fase segue múltiplos de 4 normalmente (4, 8, 16, 24, 32...), conforme a tabela acima.
 
 ---
 
 ## Typography
 
-O projeto usa 2 pesos na prática (não 3): **regular (400)**, implícito no corpo de texto sem classe de peso, e um peso de ênfase que a convenção existente escreve ora como `font-semibold` (600) ora como `font-bold` (700) — **mantido aqui como definido abaixo**, não convergido para um só, porque a tela nova precisa ficar irmã visual de `admin/invites` (que já usa os dois papéis lado a lado: `font-bold` no H1/H2, `font-semibold` nos botões/badges).
+Verificado contra o código real de `app/(app)/admin/invites/page.tsx` e `app/(app)/team/page.tsx` nesta revisão (2026-08-07) — convergido para exatamente **4 tamanhos** e **2 pesos**.
 
-| Role | Size | Weight | Line Height |
-|------|------|--------|-------------|
-| Body | 13px (`text-[13px]`, células de tabela / linhas de lista) | 400 (regular) | 1.5 |
-| Label | 11px (`text-[11px]`, cabeçalho de tabela / badge, `uppercase tracking-wide`) | 700 (bold) para th de tabela; 600 (semibold) para badges/pills | 1.3 |
-| Heading | 14px (`text-sm`, título de seção — ex. "Liberar novo e-mail") | 700 (bold) | 1.3 |
-| Display | 18px (`text-lg`, título de página — H1) | 700 (bold) | 1.2 |
+**Tamanhos.** A versão anterior deste contrato declarava um `text-[13px]` para "Body" que **não existe em lugar nenhum do código real** — foi um valor inventado. As células de tabela de `admin/invites`/`team` herdam `text-sm` (14px) do elemento pai (`<table className="w-full text-sm">`), o mesmo tamanho já usado no H2 de seção (`<h2 className="text-sm font-bold">`). Corrigido: **Body agora é 14px** (o valor real, `text-sm`), o que elimina o 13px fabricado. O antigo "texto auxiliar 12px", que vivia como prosa solta fora da tabela principal, volta como uma linha explícita do papel **Auxiliary** — o próprio código mostra que 12px (`text-xs`) já é a convenção real e recorrente para esse papel (subtítulo de página, link "← Voltar", nota de rodapé em `/team`), então foi mantido como está, e não fundido para 13px. Resultado: exatamente 4 tamanhos distintos — **11 / 12 / 14 / 18** — todos extraídos diretamente dos componentes reais, nenhum inventado, todos numa única tabela.
 
-Texto auxiliar/descrição de página: 12px (`text-xs`), 400, `text-mut` — mesmo papel de `<p className="text-xs text-mut">` em `admin/invites/page.tsx:49`.
+| Role | Size | Weight | Line Height | Uso |
+|------|------|--------|-------------|-----|
+| Label | 11px (`text-[11px]`, `uppercase tracking-wide` quando aplicável) | 700 (bold) | 1.3 | Cabeçalho de tabela (`th`), badges/pills de status, ações de linha (Revogar/Reenviar/Ver oportunidade), badge "Órfã", badge de escopo "Agindo em" |
+| Auxiliary | 12px (`text-xs`) | 400 (regular) | 1.4 | Subtítulo de página, link "← Voltar", notas de rodapé, texto dentro de chips ("Admin nas empresas") |
+| Body | 14px (`text-sm`) | 400 (regular) | 1.5 | Célula de tabela, linha de lista, corpo de texto padrão |
+| Heading | 14px (`text-sm`) | 700 (bold) | 1.3 | Título de seção (H2 — ex. "Liberar novo e-mail", "Convites pendentes") |
+| Display | 18px (`text-lg`) | 700 (bold) | 1.2 | Título de página (H1) |
+
+**Pesos.** Exatamente 2 pesos reais: **400 (regular)** para corpo de texto e texto auxiliar; **700 (bold)** para toda ênfase (headings, `th` de tabela, badges, ações de linha, chips). A versão anterior declarava 3 pesos (400/600/700) e a própria prosa já admitia que isso era indesejado ("2 pesos na prática... não 3") sem de fato convergir a tabela para 2 — corrigido aqui: a tabela agora reflete exatamente o que a prosa sempre quis dizer.
+
+No código real hoje, alguns elementos legados usam `font-semibold` (600) em vez de `font-bold` (700) — os badges `✓ Usado`/`⏳ Pendente`, o botão "Revogar" de linha e o link "← Voltar" em `admin/invites`/`team`. Esse código é **legado, fora do escopo desta fase** (não é reescrito por ela) e permanece como está até ser tocado por uma fase futura. O contrato aqui declarado vale para o que **esta fase constrói**: todo elemento **novo** introduzido pela fase 18 — badge "Órfã", badge de escopo "Agindo em: {Empresa}", chips "Admin nas empresas", botão "Revogar" e cabeçalhos da nova tabela de `/admin/staff` — usa `font-bold` (700), não `font-semibold`, mesmo onde a classe irmã em código legado ainda usa 600. Isso evita introduzir um terceiro peso na única tela nova desta fase.
 
 ---
 
