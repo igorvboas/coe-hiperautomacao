@@ -50,6 +50,20 @@ export async function createClient() {
 //      defensivamente — service role bypassa RLS por design.
 //   4. NUNCA chamar com user input que controle o `tenant_id` — sempre derivar
 //      server-side a partir de auth.uid() lookup OU de tenants.slug resolvido.
+//
+// NUANCE (Phase 17, D-11): a regra "toda mutação carrega um filtro defensivo
+// de tenant" continua valendo — o que muda, a partir desta fase, é que esse
+// `$TENANT_ID` **não pode mais vir de `profile.tenant_id` cru** nas Server
+// Actions de escrita de `lib/opportunities/*.ts`. Existe agora um papel
+// (`psw_staff`) cujo tenant do profile NÃO é o tenant da linha que ele está
+// autorizado a escrever (é multi-tenant por atribuição, via
+// `opportunity_assignees`). Essas actions resolvem o tenant do filtro
+// chamando `resolveWriteTenantId()` (`lib/security/role.ts`) — o ponto único
+// dessa resolução — em vez de ler `profiles.tenant_id` do ator diretamente.
+// Este client (`serviceRoleClient`) não foi alterado por essa mudança: ele
+// roda fora de sessão de usuário (sem `profile` para resolver), então o
+// `$TENANT_ID` aqui continua vindo de onde já vinha (ex.: da própria
+// oportunidade sendo processada), nunca de um profile psw_staff.
 // ============================================================================
 
 /**
