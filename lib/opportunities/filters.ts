@@ -9,6 +9,19 @@ import { SEGMENTO_STATUSES, type Segmento } from './status';
 import { CARGOS, type Cargo } from '@/lib/security/cargo';
 
 export type SortKey =
+  // `manual_asc` (0049) é a ÚNICA ordenação em que a lista pode ser
+  // rearranjada por arrasto — nas demais o handle some, porque arrastar
+  // dentro de uma ordem calculada produziria um resultado que o próximo
+  // render desfaz. Ver `isManualSort` abaixo (fonte única dessa pergunta).
+  | 'manual_asc'
+  // Espelho decrescente da ordem manual. Só LEITURA: arrastar exige
+  // `manual_asc`, senão a posição solta na tela seria o inverso da gravada.
+  | 'manual_desc'
+  // 0050 — ordena pela TAG manual (`priority_tag`), não pelo score. A ordem de
+  // declaração do enum no banco já é alta→media→baixa, então `asc` = "altas
+  // primeiro" sem CASE nenhum.
+  | 'tag_asc'
+  | 'tag_desc'
   | 'score_desc'
   | 'score_asc'
   | 'fte_desc'
@@ -31,7 +44,13 @@ export type OpportunityFilters = {
   source?: OpportunitySource;
   area?: string;
   ferramenta?: ToolFilter;
+  /** Filtro pela prioridade CALCULADA (`priority_level`, faixa do score). */
   priority?: PriorityFilter;
+  /** Filtro pela tag MANUAL (`priority_tag`, 0050) — independente de
+   *  `priority`: os dois podem ser usados juntos (interseção). O valor
+   *  especial `'sem'` recorta as ainda NÃO classificadas (`is null`), que é a
+   *  fila de trabalho de quem vai priorizar. */
+  priorityTag?: PriorityFilter | 'sem';
   status?: OpportunityStatus;
   sort?: SortKey;
   /** Range de data de criação (`created_at`), formato ISO `YYYY-MM-DD`. Inclusivo
@@ -67,6 +86,13 @@ export type OpportunityFilters = {
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
 const TOOL_VALUES: ToolFilter[] = ['rpa', 'n8n', 'ambos'];
 const PRIORITY_VALUES: PriorityFilter[] = ['alta', 'media', 'baixa'];
+/** 0050 — as 3 tags + `sem` (não classificadas). */
+const PRIORITY_TAG_VALUES: (PriorityFilter | 'sem')[] = [
+  'alta',
+  'media',
+  'baixa',
+  'sem',
+];
 const STATUS_VALUES: OpportunityStatus[] = [
   'novo',
   'em_analise',
@@ -94,6 +120,10 @@ const REQUEST_TYPE_VALUES: OpportunityRequestType[] = [
 ];
 const SEGMENTO_VALUES: Segmento[] =['todos', 'legado', 'gestao', 'novas', 'manutencao'];
 export const SORT_VALUES: SortKey[] = [
+  'manual_asc',
+  'manual_desc',
+  'tag_asc',
+  'tag_desc',
   'score_desc',
   'score_asc',
   'fte_desc',
@@ -142,6 +172,7 @@ export function parseFilters(
     area: get('area')?.trim() || undefined,
     ferramenta: pickEnum(get('ferramenta'), TOOL_VALUES),
     priority: pickEnum(get('priority'), PRIORITY_VALUES),
+    priorityTag: pickEnum(get('priorityTag'), PRIORITY_TAG_VALUES),
     status: pickEnum(get('status'), STATUS_VALUES),
     sort: pickEnum(get('sort'), SORT_VALUES),
     dateFrom: pickDate(get('dateFrom')),
@@ -177,6 +208,7 @@ export function buildQuery(
   if (filters.area) next.set('area', filters.area);
   if (filters.ferramenta) next.set('ferramenta', filters.ferramenta);
   if (filters.priority) next.set('priority', filters.priority);
+  if (filters.priorityTag) next.set('priorityTag', filters.priorityTag);
   if (filters.status) next.set('status', filters.status);
   if (filters.sort && filters.sort !== 'score_desc') next.set('sort', filters.sort);
   if (filters.dateFrom) next.set('dateFrom', filters.dateFrom);
@@ -195,6 +227,7 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
   'area',
   'ferramenta',
   'priority',
+  'priorityTag',
   'status',
   'sort',
   'dateFrom',
@@ -206,6 +239,10 @@ export const FILTER_KEYS: (keyof OpportunityFilters)[] = [
 ];
 
 export const SORT_LABELS: Record<SortKey, string> = {
+  manual_asc: '✋ Prioridade manual: 1 → N',
+  manual_desc: '✋ Prioridade manual: N → 1',
+  tag_asc: '🔺 Prioridade: Alta → Baixa',
+  tag_desc: 'Prioridade: Baixa → Alta',
   score_desc: '🏆 Score: Maior primeiro',
   score_asc: 'Score: Menor primeiro',
   fte_desc: 'FTE: Maior primeiro',
@@ -218,3 +255,12 @@ export const SORT_LABELS: Record<SortKey, string> = {
   processo_asc: 'Processo A → Z',
   status_asc: 'Status',
 };
+
+/**
+ * Fonte única do "esta lista é rearranjável por arrasto?" (0049). Table, Cards
+ * e Kanban perguntam AQUI em vez de cada um comparar a string por conta —
+ * quando um segundo modo manual existir, muda-se um lugar só.
+ */
+export function isManualSort(sort: SortKey | undefined): boolean {
+  return sort === 'manual_asc';
+}

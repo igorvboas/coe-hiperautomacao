@@ -75,6 +75,17 @@ export type OpportunityTask =
 
 export type TaskStatus = Database['public']['Enums']['task_status'];
 
+/** Tag de prioridade da tarefa/subtarefa (0049) — alta/media/baixa, INPUT
+ *  MANUAL. Não confundir com `opportunity_risks.priority` (4 valores,
+ *  GENERATED pela matriz impacto×probabilidade) nem com `priority_level` da
+ *  oportunidade (3 valores, derivado do score). */
+export type TaskPriority = Database['public']['Enums']['task_priority'];
+
+/** Tag de prioridade MANUAL da oportunidade (0050) — `priority_tag`. Não
+ *  confundir com `priority_level`, que é DERIVADO do score: as duas convivem
+ *  e são independentes (decisão de produto, 2026-08-07). */
+export type ManualPriority = Database['public']['Enums']['manual_priority'];
+
 /**
  * Buckets de KPI usados pela KPI bar.
  * Calculado a partir do array de Opportunity no Server Component.

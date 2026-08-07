@@ -11,6 +11,7 @@ import {
   type SortKey,
 } from '@/lib/opportunities/filters';
 import { STATUS_OPTIONS } from '@/lib/opportunities/status';
+import { PRIORITY_OPTIONS } from '@/lib/opportunities/priority-labels';
 import {
   assigneeName,
   type AssignableProfile,
@@ -163,6 +164,7 @@ export function Toolbar({
     !!filters.area ||
     !!filters.ferramenta ||
     !!filters.priority ||
+    !!filters.priorityTag ||
     !!filters.status ||
     !!filters.dateFrom ||
     !!filters.dateTo ||
@@ -353,6 +355,9 @@ export function Toolbar({
           <option value="n8n">n8n</option>
           <option value="ambos">Ambos</option>
         </select>
+        {/* Prioridade CALCULADA — faixa do score. Os rótulos dizem a faixa
+            justamente para não se confundir com o filtro da tag manual ao
+            lado. */}
         <select
           value={filters.priority ?? ''}
           onChange={(e) =>
@@ -362,12 +367,35 @@ export function Toolbar({
             })
           }
           className={selectClass}
-          aria-label="Filtrar por prioridade"
+          aria-label="Filtrar pela prioridade calculada (faixa de score)"
+        >
+          <option value="">Score: todas as faixas</option>
+          <option value="alta">Score alto (≥ 70)</option>
+          <option value="media">Score médio (40–69)</option>
+          <option value="baixa">Score baixo (&lt; 40)</option>
+        </select>
+        {/* Tag MANUAL (0050) — independente da faixa de score acima; os dois
+            podem ser combinados. "Sem prioridade" é a fila de quem ainda não
+            foi classificado. */}
+        <select
+          value={filters.priorityTag ?? ''}
+          onChange={(e) =>
+            applyChange({
+              priorityTag:
+                (e.target.value as OpportunityFilters['priorityTag']) ||
+                undefined,
+            })
+          }
+          className={selectClass}
+          aria-label="Filtrar pela prioridade definida manualmente"
         >
           <option value="">Todas as Prioridades</option>
-          <option value="alta">Alta (≥ 70)</option>
-          <option value="media">Média (40–69)</option>
-          <option value="baixa">Baixa (&lt; 40)</option>
+          {PRIORITY_OPTIONS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.icon} {p.label}
+            </option>
+          ))}
+          <option value="sem">— Sem prioridade definida</option>
         </select>
         <select
           value={filters.status ?? ''}
@@ -408,6 +436,40 @@ export function Toolbar({
             aria-label="Data de criação — até"
             className="text-[12px] bg-transparent text-txt focus:outline-none"
           />
+        </div>
+        {/* Controle segmentado de prioridade (0050) — o MESMO par de modos da
+            lista de tarefas, trazido para cá porque era onde a ordenação
+            manual estava escondida (só existia como uma opção no dropdown ao
+            lado). "Ordem manual" é o único modo em que o arrasto funciona. O
+            dropdown continua existindo para os demais critérios (score, FTE,
+            nome, área...) e reflete o que estes botões escolhem. */}
+        <div className="flex items-center gap-1 bg-bg border border-bdr rounded-lg p-0.5">
+          {(
+            [
+              { key: 'manual_asc' as SortKey, label: '✋ Ordem manual' },
+              { key: 'tag_asc' as SortKey, label: '🔺 Prioridade' },
+            ]
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => applyChange({ sort: opt.key })}
+              aria-pressed={sortValue === opt.key}
+              title={
+                opt.key === 'manual_asc'
+                  ? 'Ordenar pela ordem que você montou — libera o arrasto'
+                  : 'Ordenar pela prioridade definida manualmente (Alta → Baixa)'
+              }
+              className={
+                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ' +
+                (sortValue === opt.key
+                  ? 'bg-wh text-txt shadow-sm'
+                  : 'text-mut hover:text-txt')
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
         <select
           value={sortValue}

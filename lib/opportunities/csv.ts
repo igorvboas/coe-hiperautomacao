@@ -53,7 +53,11 @@ const COLUMNS: Column[] = [
   { header: 'FTE (bucket)', value: (o) => o.fte },
   { header: 'FTE (h/mês)', value: (o) => o.fte_horas },
   { header: 'Score', value: (o) => o.score },
-  { header: 'Prioridade', value: (o) => o.priority_level },
+  // Duas prioridades independentes (0050): a calculada pela faixa de score e a
+  // definida à mão. Cabeçalhos distintos para não virar a mesma coluna no Excel.
+  { header: 'Prioridade calculada (score)', value: (o) => o.priority_level },
+  { header: 'Prioridade (manual)', value: (o) => o.priority_tag },
+  { header: 'Ordem de prioridade', value: (o) => o.priority_order },
   { header: 'RPA Score (0-6)', value: (o) => o.rpa_score },
   { header: 'Status', value: (o) => o.status },
   // Legado: a UI não mostra mais `responsavel` (0032), mas o dado histórico

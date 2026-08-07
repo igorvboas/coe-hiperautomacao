@@ -1,4 +1,11 @@
-import type { TaskStatus } from './types';
+import type { TaskStatus, TaskPriority } from './types';
+import {
+  PRIORITY_ORDER,
+  PRIORITY_META,
+  PRIORITY_OPTIONS,
+  PRIORITY_RANK,
+  type PriorityMeta,
+} from './priority-labels';
 
 // =============================================================================
 // task-labels.ts — fonte única de metadados dos 4 status de `opportunity_tasks`
@@ -44,6 +51,22 @@ export const TASK_STATUS_OPTIONS: { value: TaskStatus; label: string; icon: stri
     label: TASK_STATUS_META[s].label,
     icon: TASK_STATUS_META[s].icon,
   }));
+
+// =============================================================================
+// Tag de prioridade da tarefa (0049) — a APARÊNCIA (rótulo, ícone, cores) vem
+// de `priority-labels.ts`, compartilhada com a tag da oportunidade (0050):
+// "Alta" tem que ser o mesmo vermelho nas duas telas, e duas paletas
+// divergiriam no primeiro ajuste. O que continua daqui são os NOMES do domínio
+// de tarefa — os consumidores da Lista/Kanban/formulário não precisam saber
+// que o módulo compartilhado existe.
+// =============================================================================
+export type TaskPriorityMeta = PriorityMeta;
+
+export const TASK_PRIORITY_ORDER = PRIORITY_ORDER as TaskPriority[];
+export const TASK_PRIORITY_META = PRIORITY_META as Record<TaskPriority, PriorityMeta>;
+export const TASK_PRIORITY_OPTIONS = PRIORITY_OPTIONS;
+/** alta(0) < media(1) < baixa(2) — `sort` crescente põe as altas no topo. */
+export const TASK_PRIORITY_RANK = PRIORITY_RANK as Record<TaskPriority, number>;
 
 /**
  * Rótulo resiliente do responsável — mesma ideia de `priorityLabel` em

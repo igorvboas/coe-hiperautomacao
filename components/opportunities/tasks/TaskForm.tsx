@@ -4,9 +4,18 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTask, updateTask } from '@/lib/opportunities/task-actions';
 import type { TaskInput } from '@/lib/opportunities/task-schema';
-import { TASK_STATUS_ORDER, TASK_STATUS_META } from '@/lib/opportunities/task-labels';
+import {
+  TASK_STATUS_ORDER,
+  TASK_STATUS_META,
+  TASK_PRIORITY_ORDER,
+  TASK_PRIORITY_META,
+} from '@/lib/opportunities/task-labels';
 import { assigneeName, type AssignableProfile } from '@/lib/opportunities/assignee-types';
-import type { OpportunityTask, TaskStatus } from '@/lib/opportunities/types';
+import type {
+  OpportunityTask,
+  TaskStatus,
+  TaskPriority,
+} from '@/lib/opportunities/types';
 
 type Props = {
   opportunityId: string;
@@ -60,6 +69,11 @@ export function TaskForm({
   const [description, setDescription] = useState(initial?.description ?? '');
   const [assigneeId, setAssigneeId] = useState(initial?.assignee_id ?? '');
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? 'backlog');
+  // 0049 — 'media' é o mesmo default da coluna e do Zod: nasce no meio, não
+  // no topo (senão toda tarefa nova seria "alta" e a tag perderia o sentido).
+  const [priority, setPriority] = useState<TaskPriority>(
+    initial?.priority ?? 'media'
+  );
   const [startDate, setStartDate] = useState(initial?.start_date ?? '');
   const [dueDate, setDueDate] = useState(initial?.due_date ?? '');
   const [blockedReason, setBlockedReason] = useState(
@@ -76,6 +90,7 @@ export function TaskForm({
       title,
       description,
       status,
+      priority,
       start_date: startDate,
       due_date: dueDate,
       assignee_id: assigneeId,
@@ -192,22 +207,41 @@ export function TaskForm({
         )}
       </div>
 
-      <div>
-        <label className={labelCls} htmlFor="tf-status">
-          Status
-        </label>
-        <select
-          id="tf-status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as TaskStatus)}
-          className={inputCls}
-        >
-          {TASK_STATUS_ORDER.map((s) => (
-            <option key={s} value={s}>
-              {TASK_STATUS_META[s].icon} {TASK_STATUS_META[s].label}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls} htmlFor="tf-status">
+            Status
+          </label>
+          <select
+            id="tf-status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as TaskStatus)}
+            className={inputCls}
+          >
+            {TASK_STATUS_ORDER.map((s) => (
+              <option key={s} value={s}>
+                {TASK_STATUS_META[s].icon} {TASK_STATUS_META[s].label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="tf-priority">
+            Prioridade
+          </label>
+          <select
+            id="tf-priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TaskPriority)}
+            className={inputCls}
+          >
+            {TASK_PRIORITY_ORDER.map((p) => (
+              <option key={p} value={p}>
+                {TASK_PRIORITY_META[p].icon} {TASK_PRIORITY_META[p].label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

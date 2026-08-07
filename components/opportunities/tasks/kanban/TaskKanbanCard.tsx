@@ -2,7 +2,11 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import type { OpportunityTask, TaskStatus } from '@/lib/opportunities/types';
-import { TASK_STATUS_ORDER, TASK_STATUS_META } from '@/lib/opportunities/task-labels';
+import {
+  TASK_STATUS_ORDER,
+  TASK_STATUS_META,
+  TASK_PRIORITY_META,
+} from '@/lib/opportunities/task-labels';
 import {
   assigneeName,
   assigneeInitials,
@@ -76,6 +80,18 @@ export function TaskKanbanCard({
     >
       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
         <span className="text-[10px] font-bold text-pri">#{idLabel}</span>
+        {/* Tag de prioridade (0049) — mesma fonte de metadados da Lista. */}
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap"
+          style={{
+            background: TASK_PRIORITY_META[task.priority].bg,
+            color: TASK_PRIORITY_META[task.priority].color,
+          }}
+          title={`Prioridade: ${TASK_PRIORITY_META[task.priority].label}`}
+        >
+          <span aria-hidden="true">{TASK_PRIORITY_META[task.priority].icon}</span>
+          <span>{TASK_PRIORITY_META[task.priority].label}</span>
+        </span>
         {hierarchyCaption && (
           <span className="text-[10px] text-mut truncate" title={hierarchyCaption}>
             {hierarchyCaption}

@@ -1,6 +1,24 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Opportunity } from '@/lib/opportunities/types';
 import {
   StatusBadge,
@@ -10,7 +28,21 @@ import {
   FteCell,
 } from './cells';
 import { getInitials } from '@/lib/opportunities/utils';
-import { buildQuery, parseFilters, type SortKey } from '@/lib/opportunities/filters';
+import {
+  buildQuery,
+  isManualSort,
+  parseFilters,
+  type SortKey,
+} from '@/lib/opportunities/filters';
+import {
+  reorderOpportunities,
+  setOpportunityPriorityTag,
+} from '@/lib/opportunities/priority-actions';
+import {
+  PRIORITY_META,
+  PRIORITY_OPTIONS,
+} from '@/lib/opportunities/priority-labels';
+import type { ManualPriority } from '@/lib/opportunities/types';
 import {
   assigneeInitials,
   assigneeName,
@@ -36,14 +68,28 @@ type Props = {
   /** Exibe a coluna "Empresa" — flag calculada no servidor a partir do papel
    *  do usuário. Este componente NÃO decide por papel; só lê a flag. */
   showCompany?: boolean;
+  /** RBAC (v0.3) — `viewer` não rearranja a ordem de prioridade (0049). O
+   *  handle de arrasto some inteiro; a coluna de ordem continua visível. */
+  readOnly?: boolean;
 };
 
 type SortableColumn = {
   asc: SortKey;
   desc: SortKey;
+  /** Direção do PRIMEIRO clique. Default `desc` (score/FTE: "maior primeiro"
+   *  é o que se quer ver). A coluna de ordem manual (0049) inverte isso —
+   *  entrar nela pelo fim da fila não ajuda ninguém, e só a direção crescente
+   *  permite arrastar. */
+  first?: 'asc' | 'desc';
 };
 
 const SORTABLE_COLS: Record<string, SortableColumn> = {
+  // 0049 — a coluna "#" da ordem manual. Clicar nela é o caminho mais curto
+  // para entrar no modo arrastável (o dropdown da toolbar é o outro).
+  ordem: { asc: 'manual_asc', desc: 'manual_desc', first: 'asc' },
+  // 0050 — a TAG manual. Separada de `score`: são duas colunas na tabela,
+  // ordenáveis independentemente.
+  prioridade: { asc: 'tag_asc', desc: 'tag_desc', first: 'asc' },
   id: { asc: 'seq_asc', desc: 'seq_desc' },
   nome: { asc: 'nome_asc', desc: 'nome_desc' },
   area: { asc: 'area_asc', desc: 'area_asc' },
@@ -58,18 +104,70 @@ export function OpportunityTable({
   assigneesByOpportunity,
   companyById = {},
   showCompany = false,
+  readOnly = false,
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const filters = parseFilters(params);
   const currentSort: SortKey = filters.sort ?? 'score_desc';
 
+  // ===========================================================================
+  // Ordem manual de prioridade (0049)
+  // ===========================================================================
+  // Arrastar só faz sentido quando a lista JÁ está na ordem manual crescente —
+  // em qualquer outra ordenação a posição solta pelo usuário seria desfeita no
+  // próximo render pela regra de ordenação vigente. Fora do modo manual o
+  // handle não é renderizado.
+  const canReorder = isManualSort(currentSort) && !readOnly;
+
+  // Cópia local só para o arrasto otimista — o servidor continua sendo a fonte
+  // da verdade. Mesma técnica de ressincronização durante o render usada pelo
+  // Kanban (Board.tsx): quando a lista do servidor muda (filtro, revalidate),
+  // a cópia é descartada em vez de continuar mostrando a ordem velha.
+  const [rows, setRows] = useState(opportunities);
+  const [syncedFrom, setSyncedFrom] = useState(opportunities);
+  if (syncedFrom !== opportunities) {
+    setSyncedFrom(opportunities);
+    setRows(opportunities);
+  }
+  const [reorderError, setReorderError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const sensors = useSensors(
+    // 5px antes de virar arrasto — preserva o clique que navega para a
+    // oportunidade (mesma constante do Kanban).
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const from = rows.findIndex((o) => o.id === active.id);
+    const to = rows.findIndex((o) => o.id === over.id);
+    if (from < 0 || to < 0) return;
+
+    const prev = rows;
+    const next = arrayMove(rows, from, to);
+    setRows(next);
+    setReorderError(null);
+
+    startTransition(async () => {
+      const result = await reorderOpportunities(next.map((o) => o.id));
+      if (!result.ok) {
+        setRows(prev); // rollback
+        setReorderError(result.error);
+      }
+    });
+  }
+
   function toggleSort(colKey: keyof typeof SORTABLE_COLS) {
     const col = SORTABLE_COLS[colKey];
     let next: SortKey;
     if (currentSort === col.desc) next = col.asc;
     else if (currentSort === col.asc) next = col.desc;
-    else next = col.desc; // primeira vez: desc se score, senão asc (a config define)
+    else next = col.first === 'asc' ? col.asc : col.desc; // primeira vez
     if (currentSort === col.asc && col.asc === col.desc) next = col.asc; // colunas sem reverso
 
     const sp = new URLSearchParams(params.toString());
@@ -99,12 +197,38 @@ export function OpportunityTable({
   }
 
   return (
-    <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
+    <div className="flex flex-col gap-2">
+      {reorderError && (
+        <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800 rounded-lg px-3 py-2">
+          {reorderError}
+        </div>
+      )}
+      {canReorder && (
+        <p className="text-[11px] text-mut">
+          Arraste pelo <span aria-hidden="true">⠿</span> para montar a ordem de
+          prioridade. A ordem vale para a empresa inteira e é salva na hora.
+        </p>
+      )}
+      <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
+        {/* DndContext/SortableContext existem SEMPRE (hooks não podem ser
+            condicionais, e `useSortable` exige o provider acima); quem decide
+            se arrasta é o `disabled` de cada linha. */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
         <table className="w-full border-collapse">
           <thead>
             {/* Gradiente diagonal — mockup _giba_wsi-dashboard.html:48 (thead) */}
             <tr className="bg-gradient-to-br from-pril to-pri text-white">
+              <ThSort
+                active={isActive('ordem')}
+                onClick={() => toggleSort('ordem')}
+              >
+                #{arrowFor('ordem')}
+              </ThSort>
               <ThSort
                 active={isActive('id')}
                 onClick={() => toggleSort('id')}
@@ -158,16 +282,28 @@ export function OpportunityTable({
               >
                 Score{arrowFor('score')}
               </ThSort>
+              <ThSort
+                active={isActive('prioridade')}
+                onClick={() => toggleSort('prioridade')}
+              >
+                Prioridade{arrowFor('prioridade')}
+              </ThSort>
               <Th>Atribuído a</Th>
               <Th>Data de Registro</Th>
             </tr>
           </thead>
           <tbody>
-            {opportunities.map((o) => (
-              <tr
+            <SortableContext
+              items={rows.map((o) => o.id)}
+              strategy={verticalListSortingStrategy}
+            >
+            {rows.map((o, index) => (
+              <SortableRow
                 key={o.id}
-                onClick={() => router.push(`/opportunities/${o.id}`)}
-                className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                id={o.id}
+                position={index + 1}
+                draggable={canReorder}
+                onOpen={() => router.push(`/opportunities/${o.id}`)}
               >
                 <Td>
                   <SeqIdDisplay seqId={o.seq_id} />
@@ -226,6 +362,14 @@ export function OpportunityTable({
                   <ScoreDisplay score={o.score} />
                 </Td>
                 <Td>
+                  <PriorityTagCell
+                    opportunityId={o.id}
+                    value={o.priority_tag}
+                    readOnly={readOnly}
+                    onError={setReorderError}
+                  />
+                </Td>
+                <Td>
                   <AssigneeStack assignees={assigneesByOpportunity[o.id] ?? []} />
                 </Td>
                 <Td>
@@ -233,12 +377,171 @@ export function OpportunityTable({
                     {fmtDataRegistro(o.created_at)}
                   </span>
                 </Td>
-              </tr>
+              </SortableRow>
             ))}
+            </SortableContext>
           </tbody>
         </table>
+        </DndContext>
+      </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Célula da tag de prioridade manual (0050). Editável direto na lista — é onde
+ * a priorização acontece; abrir a oportunidade só para classificar seria um
+ * round-trip por linha. `viewer` vê o badge sem o controle.
+ *
+ * Update otimista com rollback, mesmo contrato do arrasto. O `stopPropagation`
+ * é obrigatório: a `<tr>` inteira navega no clique, e sem ele abrir o select
+ * levaria o usuário para a página da oportunidade.
+ */
+function PriorityTagCell({
+  opportunityId,
+  value,
+  readOnly,
+  onError,
+}: {
+  opportunityId: string;
+  value: ManualPriority | null;
+  readOnly: boolean;
+  onError: (msg: string | null) => void;
+}) {
+  const [tag, setTag] = useState<ManualPriority | null>(value);
+  const [syncedFrom, setSyncedFrom] = useState(value);
+  if (syncedFrom !== value) {
+    setSyncedFrom(value);
+    setTag(value);
+  }
+  const [, startTransition] = useTransition();
+
+  if (readOnly) {
+    return tag ? (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+        style={{ background: PRIORITY_META[tag].bg, color: PRIORITY_META[tag].color }}
+      >
+        <span aria-hidden="true">{PRIORITY_META[tag].icon}</span>
+        <span>{PRIORITY_META[tag].label}</span>
+      </span>
+    ) : (
+      <span className="text-[11px] text-mut">—</span>
+    );
+  }
+
+  function onChange(raw: string) {
+    const next = (raw || null) as ManualPriority | null;
+    const prev = tag;
+    setTag(next);
+    onError(null);
+
+    startTransition(async () => {
+      const result = await setOpportunityPriorityTag(opportunityId, next);
+      if (!result.ok) {
+        setTag(prev); // rollback
+        onError(result.error);
+      }
+    });
+  }
+
+  return (
+    <select
+      value={tag ?? ''}
+      onChange={(e) => onChange(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      aria-label="Prioridade definida manualmente"
+      className="text-[11px] font-bold border border-bdr rounded-full px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-pri"
+      style={
+        tag
+          ? { background: PRIORITY_META[tag].bg, color: PRIORITY_META[tag].color }
+          : undefined
+      }
+    >
+      <option value="">—</option>
+      {PRIORITY_OPTIONS.map((p) => (
+        <option key={p.value} value={p.value}>
+          {p.icon} {p.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/**
+ * Linha arrastável (0049). A primeira célula é a da ordem: mostra a posição
+ * (1..N na tela) e, quando `draggable`, o handle. O handle é o ÚNICO ponto de
+ * arrasto — o resto da linha continua sendo um clique que navega, que é o
+ * comportamento que a lista sempre teve.
+ *
+ * `useSortable` é chamado incondicionalmente (regra dos hooks) e desligado por
+ * `disabled` fora do modo manual.
+ */
+function SortableRow({
+  id,
+  position,
+  draggable,
+  onOpen,
+  children,
+}: {
+  id: string;
+  position: number;
+  draggable: boolean;
+  onOpen: () => void;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !draggable });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      onClick={onOpen}
+      className="border-b border-bdr last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+    >
+      <td className="px-2.5 py-2 align-middle whitespace-nowrap">
+        <div className="flex items-center gap-1.5">
+          {draggable && (
+            <button
+              type="button"
+              ref={setActivatorNodeRef}
+              {...listeners}
+              {...attributes}
+              // O handle vive dentro de uma linha clicável: sem isto, soltar o
+              // card dispara o onClick da <tr> e a página navega no fim de
+              // todo arrasto.
+              onClick={(e) => e.stopPropagation()}
+              title="Arrastar para reordenar a prioridade"
+              aria-label={`Reordenar — posição atual ${position}`}
+              className="text-mut hover:text-txt cursor-grab active:cursor-grabbing leading-none px-0.5 focus:outline-none focus:ring-2 focus:ring-pri rounded"
+              style={{ touchAction: 'none' }}
+            >
+              ⠿
+            </button>
+          )}
+          <span className="text-[11px] font-bold text-mut tabular-nums">
+            {position}
+          </span>
+        </div>
+      </td>
+      {children}
+    </tr>
   );
 }
 

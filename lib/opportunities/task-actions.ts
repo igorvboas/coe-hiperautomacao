@@ -108,6 +108,7 @@ export async function createTask(
       title: data.title,
       description: data.description || null,
       status: normalized.status,
+      priority: data.priority, // 0049 — Zod já aplicou o default 'media'
       start_date: data.start_date || null,
       due_date: data.due_date || null,
       assignee_id: data.assignee_id || null,
@@ -179,11 +180,15 @@ export async function updateTask(
       title: data.title,
       description: data.description || null,
       status: normalized.status,
+      priority: data.priority, // 0049
       start_date: data.start_date || null,
       due_date: data.due_date || null,
       assignee_id: data.assignee_id || null,
       blocked_reason: normalized.blocked_reason, // sempre explícito (Pitfall 4)
       // parent_task_id NÃO enviado — D-01, a UI nunca re-parenta.
+      // priority_order TAMBÉM não — quem escreve a ordem é
+      // `reorderTasks`/`set_task_priority_order` (0049); mandá-la daqui
+      // apagaria a posição da tarefa a cada edição de título.
     })
     .eq('id', taskId)
     .eq('tenant_id', tenantId);

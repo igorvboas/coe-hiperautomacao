@@ -176,7 +176,7 @@ export default async function OpportunitiesPage({
             sourceLabel={tenant?.name ?? null}
           />
         ) : view === 'cards' ? (
-          <OpportunityCards opportunities={opportunities} />
+          <OpportunityCards opportunities={opportunities} readOnly={readOnly} />
         ) : view === 'kanban' ? (
           <KanbanBoard opportunities={opportunities} readOnly={readOnly} />
         ) : view === 'gantt' ? (
@@ -187,6 +187,7 @@ export default async function OpportunitiesPage({
             assigneesByOpportunity={assigneesByOpportunity}
             companyById={companyById}
             showCompany={showCompany}
+            readOnly={readOnly}
           />
         )}
       </div>

@@ -1,12 +1,31 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { OpportunityTask } from '@/lib/opportunities/types';
-import { TASK_STATUS_META } from '@/lib/opportunities/task-labels';
+import { TASK_STATUS_META, TASK_PRIORITY_META } from '@/lib/opportunities/task-labels';
 import { assigneeName, type AssignableProfile } from '@/lib/opportunities/assignee-types';
 import { computeTaskRollup, groupTasksByParent } from '@/lib/opportunities/task-rollup';
+import { sortSiblings, type TaskOrderMode } from '@/lib/opportunities/task-order';
+import { reorderTasks } from '@/lib/opportunities/priority-actions';
 import { DeleteTaskButton } from './DeleteTaskButton';
 
 type Props = {
@@ -28,6 +47,20 @@ function fmtDate(iso: string | null): string {
 
 function pad3(n: number): string {
   return String(n).padStart(3, '0');
+}
+
+function PriorityBadge({ priority }: { priority: OpportunityTask['priority'] }) {
+  const meta = TASK_PRIORITY_META[priority];
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+      style={{ background: meta.bg, color: meta.color }}
+      title={`Prioridade: ${meta.label}`}
+    >
+      <span aria-hidden="true">{meta.icon}</span>
+      <span>{meta.label}</span>
+    </span>
+  );
 }
 
 function StatusBadge({ status }: { status: OpportunityTask['status'] }) {
@@ -63,8 +96,87 @@ export function TaskList({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { roots, childrenByParent } = groupTasksByParent(tasks);
+
+  // ===========================================================================
+  // Ordenação e arrasto (0049)
+  // ===========================================================================
+  // Dois modos, como na lista de oportunidades: a ordem que a pessoa MONTA
+  // (arrastável) e a ordem derivada da TAG de prioridade (alta → baixa, só
+  // leitura). Estado local em vez de query string: diferente da lista de
+  // oportunidades, aqui a ordenação não vai ao servidor — a página já trouxe
+  // todas as tarefas da oportunidade, e o modo é um recorte de leitura de
+  // quem está olhando, não um filtro compartilhável.
+  const [orderMode, setOrderMode] = useState<TaskOrderMode>('manual');
+  const canReorder = orderMode === 'manual' && !readOnly;
+
+  // Cópia local para o arrasto otimista + ressincronização durante o render
+  // quando o servidor devolve uma lista nova (mesma técnica do Kanban).
+  const [rows, setRows] = useState(tasks);
+  const [syncedFrom, setSyncedFrom] = useState(tasks);
+  if (syncedFrom !== tasks) {
+    setSyncedFrom(tasks);
+    setRows(tasks);
+  }
+  const [reorderError, setReorderError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const grouped = groupTasksByParent(rows);
+  const roots = sortSiblings(grouped.roots, orderMode);
+  const childrenByParent = grouped.childrenByParent;
   const nameById = new Map(assignableProfiles.map((p) => [p.id, assigneeName(p)]));
+
+  /**
+   * Rearranja UM grupo de irmãos e persiste só esse grupo. Uma tarefa nunca
+   * troca de pai por arrasto (D-01 — a hierarquia é fixa): soltar uma raiz
+   * sobre uma subtarefa (ou vice-versa) é ignorado, em vez de re-parentar.
+   */
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const dragged = rows.find((t) => t.id === active.id);
+    const target = rows.find((t) => t.id === over.id);
+    if (!dragged || !target) return;
+    if (dragged.parent_task_id !== target.parent_task_id) return; // grupos diferentes
+
+    const siblings = rows.filter(
+      (t) => t.parent_task_id === dragged.parent_task_id
+    );
+    const from = siblings.findIndex((t) => t.id === dragged.id);
+    const to = siblings.findIndex((t) => t.id === target.id);
+    if (from < 0 || to < 0) return;
+
+    const reordered = arrayMove(siblings, from, to);
+
+    // Reprojeta a nova ordem do grupo de volta na lista plana, mantendo as
+    // posições ocupadas por ele — assim as raízes não "sobem" por cima das
+    // subtarefas e o agrupamento seguinte enxerga exatamente o mesmo arranjo
+    // que a função SQL vai gravar.
+    const queue = [...reordered];
+    const prev = rows;
+    const next = rows.map((t) =>
+      t.parent_task_id === dragged.parent_task_id ? queue.shift()! : t
+    );
+
+    setRows(next);
+    setReorderError(null);
+
+    startTransition(async () => {
+      const result = await reorderTasks(
+        opportunityId,
+        reordered.map((t) => t.id)
+      );
+      if (!result.ok) {
+        setRows(prev); // rollback
+        setReorderError(result.error);
+      }
+    });
+  }
 
   // Constrói o href de um soft-path (`?tarefa=...`) preservando os demais
   // parâmetros correntes (em especial `?view=`) — mesma regra de fechamento
@@ -110,11 +222,61 @@ export function TaskList({
   }
 
   return (
-    <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
+    <div className="flex flex-col gap-2">
+      {/* Controle de ordenação (0049) — "Ordem manual" é o único modo em que
+          o handle de arrasto aparece; "Prioridade" é leitura, derivada da tag. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-mut">
+          Ordenar por
+        </span>
+        <div className="flex items-center gap-1 bg-bg border border-bdr rounded-lg p-0.5">
+          {(
+            [
+              { mode: 'manual' as const, label: '✋ Ordem manual' },
+              { mode: 'prioridade' as const, label: '🔺 Prioridade' },
+            ]
+          ).map((opt) => (
+            <button
+              key={opt.mode}
+              type="button"
+              onClick={() => setOrderMode(opt.mode)}
+              aria-pressed={orderMode === opt.mode}
+              className={
+                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ' +
+                (orderMode === opt.mode
+                  ? 'bg-wh text-txt shadow-sm'
+                  : 'text-mut hover:text-txt')
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {canReorder && (
+          <span className="text-[11px] text-mut">
+            Arraste pelo <span aria-hidden="true">⠿</span> — tarefas entre
+            tarefas, subtarefas dentro da sua tarefa.
+          </span>
+        )}
+      </div>
+
+      {reorderError && (
+        <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800 rounded-lg px-3 py-2">
+          {reorderError}
+        </div>
+      )}
+
+      <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-bdr">
+              <th className="px-2 py-2 w-8" aria-hidden="true" />
               <th className="px-2 py-2 w-16" aria-hidden="true" />
               <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
                 ID
@@ -127,6 +289,9 @@ export function TaskList({
               </th>
               <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
                 Status
+              </th>
+              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+                Prioridade
               </th>
               <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
                 Início → Fim
@@ -142,9 +307,16 @@ export function TaskList({
             </tr>
           </thead>
           <tbody>
+            <SortableContext
+              items={roots.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
             {roots.map((root, i) => {
               const rootTid = `T${pad3(i + 1)}`;
-              const children = childrenByParent.get(root.id) ?? [];
+              const children = sortSiblings(
+                childrenByParent.get(root.id) ?? [],
+                orderMode
+              );
               const hasChildren = children.length > 0;
               const rollup = hasChildren ? computeTaskRollup(children) : null;
               const expanded = expandedIds.has(root.id);
@@ -154,7 +326,12 @@ export function TaskList({
 
               return (
                 <Fragment key={root.id}>
-                  <tr className="border-b border-bdr/60 align-top">
+                  <SortableTaskRow
+                    id={root.id}
+                    draggable={canReorder}
+                    label={`tarefa ${rootTid}`}
+                    className="border-b border-bdr/60 align-top"
+                  >
                     <td className="px-2 py-2">
                       {hasChildren && (
                         <button
@@ -200,6 +377,9 @@ export function TaskList({
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap">
                       <StatusBadge status={root.status} />
+                    </td>
+                    <td className="px-2 py-2 whitespace-nowrap">
+                      <PriorityBadge priority={root.priority} />
                     </td>
                     <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
                       {hasChildren ? (
@@ -249,16 +429,26 @@ export function TaskList({
                         </div>
                       </td>
                     )}
-                  </tr>
+                  </SortableTaskRow>
 
-                  {expanded &&
-                    children.map((child, j) => {
+                  {expanded && (
+                  <SortableContext
+                    items={children.map((c) => c.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                  {children.map((child, j) => {
                       const childTid = `${rootTid}.${j + 1}`;
                       const childAssigneeLabel = child.assignee_id
                         ? (nameById.get(child.assignee_id) ?? '—')
                         : '—';
                       return (
-                        <tr key={child.id} className="border-b border-bdr/60 align-top bg-bg/40">
+                        <SortableTaskRow
+                          key={child.id}
+                          id={child.id}
+                          draggable={canReorder}
+                          label={`subtarefa ${childTid}`}
+                          className="border-b border-bdr/60 align-top bg-bg/40"
+                        >
                           <td className="px-2 py-2" aria-hidden="true" />
                           <td className="px-2 py-2 text-[11px] font-semibold text-pri whitespace-nowrap">
                             {childTid}
@@ -276,6 +466,9 @@ export function TaskList({
                           </td>
                           <td className="px-2 py-2 whitespace-nowrap">
                             <StatusBadge status={child.status} />
+                          </td>
+                          <td className="px-2 py-2 whitespace-nowrap">
+                            <PriorityBadge priority={child.priority} />
                           </td>
                           <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
                             {fmtDate(child.start_date)} → {fmtDate(child.due_date)}
@@ -303,15 +496,81 @@ export function TaskList({
                               </div>
                             </td>
                           )}
-                        </tr>
+                        </SortableTaskRow>
                       );
                     })}
+                  </SortableContext>
+                  )}
                 </Fragment>
               );
             })}
+            </SortableContext>
           </tbody>
         </table>
+        </DndContext>
+      </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Linha de tarefa/subtarefa arrastável (0049). A primeira célula é o handle —
+ * o único ponto de arrasto, para não competir com os links de editar/excluir
+ * que vivem na mesma linha.
+ *
+ * `useSortable` é chamado incondicionalmente (regra dos hooks) e desligado por
+ * `disabled` quando a lista está no modo "Prioridade" ou o usuário é `viewer`.
+ */
+function SortableTaskRow({
+  id,
+  draggable,
+  label,
+  className,
+  children,
+}: {
+  id: string;
+  draggable: boolean;
+  /** Nome da linha para o leitor de tela — ex: "tarefa T001". */
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !draggable });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className={className}>
+      <td className="px-2 py-2 align-middle">
+        {draggable && (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...listeners}
+            {...attributes}
+            title="Arrastar para reordenar"
+            aria-label={`Reordenar ${label}`}
+            className="text-mut hover:text-txt cursor-grab active:cursor-grabbing leading-none px-0.5 focus:outline-none focus:ring-2 focus:ring-pri rounded"
+            style={{ touchAction: 'none' }}
+          >
+            ⠿
+          </button>
+        )}
+      </td>
+      {children}
+    </tr>
   );
 }

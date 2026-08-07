@@ -69,6 +69,19 @@ export type RiskPriority = 'critica' | 'alta' | 'media' | 'baixa';
 // Kanban de tarefas (D-03): Backlog → Em Andamento → Bloqueio → Finalizado.
 export type TaskStatus = 'backlog' | 'em_andamento' | 'bloqueio' | 'finalizado';
 
+// opportunity_tasks (0049) — tag de prioridade de tarefa/subtarefa. MESMO
+// vocabulário de `priority_level` das oportunidades (alta/media/baixa), não o
+// de 4 valores de `opportunity_risks.priority`. Ao contrário daquela, esta é
+// INPUT MANUAL — não é GENERATED nem derivada de matriz nenhuma.
+export type TaskPriority = 'alta' | 'media' | 'baixa';
+
+// opportunities (0050) — tag de prioridade MANUAL da oportunidade. Mesmos
+// valores de `TaskPriority`, tipo SEPARADO de propósito: são dois domínios
+// (tarefa e oportunidade) que hoje coincidem e podem divergir amanhã. NÃO
+// substitui `priority_level`, que continua DERIVADO do score — as duas
+// convivem, com nomes distintos na tela.
+export type ManualPriority = 'alta' | 'media' | 'baixa';
+
 export type PhaseKey =
   | 'em_analise'
   | 'planejamento'
@@ -442,6 +455,17 @@ export type Database = {
           observacao: string | null;
           risco: string | null;
           visivel: boolean; // 0030 — not null default true, alterada só via SQL
+          /** 0049 — ordem manual de prioridade, ÚNICA POR TENANT. Input humano
+           *  (não é valor derivado: `score`/`priority_level` continuam
+           *  calculados e não-persistidos). NULL = nunca posicionada; ordena
+           *  por último e some no primeiro reorder do tenant. Escrita SÓ pela
+           *  função `set_opportunity_priority_order` — nunca por update solto. */
+          priority_order: number | null;
+          /** 0050 — tag de prioridade MANUAL. NULL = ninguém classificou ainda
+           *  (a UI mostra "—"); sem default, ao contrário de
+           *  `opportunity_tasks.priority`. Independente de `priority_level`,
+           *  que continua derivado do score. */
+          priority_tag: ManualPriority | null;
           // v0.2 (0011)
           fte_horas: number | null;
           fonte: string | null;
@@ -499,6 +523,8 @@ export type Database = {
           observacao?: string | null;
           risco?: string | null;
           visivel?: boolean;
+          priority_order?: number | null; // 0049 — ver nota no Row
+          priority_tag?: ManualPriority | null; // 0050 — ver nota no Row
           // v0.2 (0011) — rpa_score é GENERATED (omitido do Insert)
           fte_horas?: number | null;
           fonte?: string | null;
@@ -665,6 +691,11 @@ export type Database = {
           title: string;
           description: string | null;
           status: TaskStatus;
+          /** 0049 — tag de prioridade, input manual. not null default 'media'. */
+          priority: TaskPriority;
+          /** 0049 — ordem manual dentro da oportunidade. NULL = nunca
+           *  posicionada. Escrita SÓ por `set_task_priority_order`. */
+          priority_order: number | null;
           start_date: string | null;
           due_date: string | null;
           assignee_id: string | null;
@@ -681,6 +712,8 @@ export type Database = {
           title: string;
           description?: string | null;
           status?: TaskStatus;
+          priority?: TaskPriority; // 0049
+          priority_order?: number | null; // 0049
           start_date?: string | null;
           due_date?: string | null;
           assignee_id?: string | null;
@@ -910,6 +943,18 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string;
       };
+      // 0049 — reordenação manual. `security invoker`: toda leitura e toda
+      // escrita passa pela RLS do chamador (um `viewer` não escreve; um id de
+      // outro tenant não é encontrado). Recebem o array ORDENADO dos ids
+      // VISÍVEIS e renumeram o escopo inteiro; devolvem quantas linhas mudaram.
+      set_opportunity_priority_order: {
+        Args: { p_ids: string[] };
+        Returns: number;
+      };
+      set_task_priority_order: {
+        Args: { p_opportunity_id: string; p_ids: string[] };
+        Returns: number;
+      };
       fetch_public_tenant: {
         Args: { p_slug: string };
         Returns: {
@@ -1005,6 +1050,8 @@ export type Database = {
       risk_status: RiskStatus;
       risk_priority: RiskPriority;
       task_status: TaskStatus;
+      task_priority: TaskPriority; // 0049
+      manual_priority: ManualPriority; // 0050
       ai_enrichment_status: AiEnrichmentStatus;
       phase_key: PhaseKey;
       tenant_role: TenantRole;

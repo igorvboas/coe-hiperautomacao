@@ -46,6 +46,12 @@ const OPPORTUNITY_COLUMNS =
   'criticidade, azure_boards_codigo, linguagem, execucao, usuarios_servico, ' +
   'execucoes_mes, data_conclusao, data_abertura_coe, data_fechamento_coe, ' +
   'created_by, created_at, updated_at, ' +
+  // 0049 — ordem manual de prioridade. Decisão explícita (HARDEN-E-06): não é
+  // sensível, e a lista precisa do valor para renderizar o número da ordem.
+  'priority_order, ' +
+  // 0050 — tag de prioridade manual. Decisão explícita (HARDEN-E-06): input
+  // humano, nada sensível. Convive com `priority_level` (derivado do score).
+  'priority_tag, ' +
   'score, priority_level';
 
 /**
@@ -72,6 +78,9 @@ const RISK_COLUMNS =
  */
 const TASK_COLUMNS =
   'id, opportunity_id, tenant_id, parent_task_id, title, description, status, ' +
+  // 0049 — tag de prioridade (input manual) + ordem manual. Nenhuma das duas é
+  // derivada: continuam valendo o D-02 e a regra do score.
+  'priority, priority_order, ' +
   'start_date, due_date, assignee_id, blocked_reason, created_by, created_at, updated_at';
 
 /** Whitelist para `opportunity_documents` (v0.3, 0018). */
@@ -131,6 +140,10 @@ export async function fetchOpportunities(
   if (filters.area) q = q.eq('area', filters.area);
   if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
   if (filters.priority) q = q.eq('priority_level', filters.priority);
+  // 0050 — filtro pela tag MANUAL, independente do filtro por faixa de score
+  // acima. `sem` recorta as ainda não classificadas.
+  if (filters.priorityTag === 'sem') q = q.is('priority_tag', null);
+  else if (filters.priorityTag) q = q.eq('priority_tag', filters.priorityTag);
   if (filters.status) q = q.eq('status', filters.status);
   if (filters.requestType) q = q.eq('request_type', filters.requestType);
   if (filters.segmento && filters.segmento !== 'todos') {
@@ -156,6 +169,38 @@ export async function fetchOpportunities(
 
   const sort = filters.sort ?? 'score_desc';
   switch (sort) {
+    // 0049 — ordem manual montada pela pessoa. `nullsFirst: false` põe no fim
+    // quem nunca foi posicionado (oportunidade recém-chegada não fura a fila);
+    // `seq_id` desempata para a ordem ser estável entre renders.
+    case 'manual_asc':
+      q = q
+        .order('priority_order', { ascending: true, nullsFirst: false })
+        .order('seq_id', { ascending: true });
+      break;
+    // `nullsFirst: false` também aqui: quem nunca foi posicionado fica no fim
+    // nas DUAS direções — a lista invertida não deve começar pelos sem ordem.
+    case 'manual_desc':
+      q = q
+        .order('priority_order', { ascending: false, nullsFirst: false })
+        .order('seq_id', { ascending: true });
+      break;
+    // 0050 — pela TAG manual. A ordem de declaração do enum `manual_priority`
+    // é alta→media→baixa, então `ascending: true` já é "altas primeiro"; as
+    // não classificadas (null) vão para o fim nas duas direções, e a ordem
+    // manual desempata dentro de cada tag (duas "alta" ficam na fila que a
+    // pessoa montou, em vez de saírem por seq_id).
+    case 'tag_asc':
+      q = q
+        .order('priority_tag', { ascending: true, nullsFirst: false })
+        .order('priority_order', { ascending: true, nullsFirst: false })
+        .order('seq_id', { ascending: true });
+      break;
+    case 'tag_desc':
+      q = q
+        .order('priority_tag', { ascending: false, nullsFirst: false })
+        .order('priority_order', { ascending: true, nullsFirst: false })
+        .order('seq_id', { ascending: true });
+      break;
     case 'score_asc':
       q = q.order('score', { ascending: true }).order('seq_id', { ascending: true });
       break;
@@ -375,9 +420,14 @@ export async function fetchRiskById(
  * Busca as tarefas (raiz + subtarefas) de uma oportunidade (`opportunity_tasks`,
  * 0037, Phase 16). RLS protege por tenant — não precisa passar tenant_id.
  *
- * Ordenação: `created_at asc` — é a ordem estável que dá o rótulo T001/T002 da
- * UI-SPEC (mesma convenção de `fetchRisksForOpportunity`). Neste tracer (16-02)
- * a Lista renderiza só as tarefas raiz; a expansão hierárquica é do plano 16-04.
+ * Ordenação (0049): `priority_order asc` com `nulls last`, desempatado por
+ * `created_at asc`. Enquanto ninguém arrastou nada, TODO `priority_order` é
+ * null e o resultado é byte-a-byte o de antes (`created_at asc`) — a
+ * numeração T001/T002 da UI-SPEC não muda em nenhuma oportunidade existente.
+ * Depois do primeiro arrasto a ordem manual manda, e o rótulo passa a segui-la
+ * (é o comportamento pedido: o número reflete a fila que a pessoa montou).
+ * A ordenação por TAG de prioridade (alta→baixa) é aplicada no cliente, em
+ * `sortTasks` — depende do agrupamento pai/filha, que só existe lá.
  */
 export async function fetchTasksForOpportunity(
   opportunityId: string
@@ -388,6 +438,7 @@ export async function fetchTasksForOpportunity(
     .from('opportunity_tasks')
     .select(TASK_COLUMNS)
     .eq('opportunity_id', opportunityId)
+    .order('priority_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
     .returns<OpportunityTask[]>();
 

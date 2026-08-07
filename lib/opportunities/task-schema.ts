@@ -23,6 +23,11 @@ export const taskStatusEnum = z.enum([
   'finalizado',
 ]);
 
+// 0049 — tag de prioridade. `.default('media')` espelha o default da coluna:
+// um payload antigo (sem o campo) continua válido e cai no mesmo valor que o
+// banco daria.
+export const taskPriorityEnum = z.enum(['alta', 'media', 'baixa']);
+
 export const taskInputSchema = z
   .object({
     title: z
@@ -35,6 +40,7 @@ export const taskInputSchema = z
       .optional()
       .or(z.literal('')),
     status: taskStatusEnum.default('backlog'),
+    priority: taskPriorityEnum.default('media'),
     start_date: z.string().optional().or(z.literal('')),
     due_date: z.string().optional().or(z.literal('')),
     assignee_id: z.string().uuid('Responsável inválido').optional().or(z.literal('')),

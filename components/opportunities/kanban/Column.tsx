@@ -1,6 +1,10 @@
 'use client';
 
 import { useDroppable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import type { Opportunity, OpportunityStatus } from '@/lib/opportunities/types';
 import { KanbanCard } from './Card';
 
@@ -58,15 +62,23 @@ export function KanbanColumn({
           (isOver ? 'bg-blue-100/50 dark:bg-blue-900/60' : '')
         }
       >
-        {opportunities.length === 0 ? (
-          <div className="text-[10px] text-mut text-center py-4 italic">
-            Nenhuma
-          </div>
-        ) : (
-          opportunities.map((o) => (
-            <KanbanCard key={o.id} opportunity={o} readOnly={readOnly} />
-          ))
-        )}
+        {/* 0049 — SortableContext por coluna: os cards são rearranjáveis
+            verticalmente entre si (ordem de prioridade), além de continuarem
+            arrastáveis para outra coluna (mudança de status). */}
+        <SortableContext
+          items={opportunities.map((o) => o.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {opportunities.length === 0 ? (
+            <div className="text-[10px] text-mut text-center py-4 italic">
+              Nenhuma
+            </div>
+          ) : (
+            opportunities.map((o) => (
+              <KanbanCard key={o.id} opportunity={o} readOnly={readOnly} />
+            ))
+          )}
+        </SortableContext>
       </div>
     </div>
   );

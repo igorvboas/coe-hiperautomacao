@@ -29,6 +29,8 @@ function mkTask(overrides: Partial<OpportunityTask> = {}): OpportunityTask {
     title: `Tarefa ${seq}`,
     description: null,
     status: 'backlog',
+    priority: 'media',
+    priority_order: null,
     start_date: null,
     due_date: null,
     assignee_id: null,

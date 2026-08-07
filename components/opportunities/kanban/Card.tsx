@@ -1,10 +1,12 @@
 'use client';
 
-import { useDraggable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/navigation';
 import type { Opportunity } from '@/lib/opportunities/types';
 import { SourceBadge, RpaFitBadge } from '@/components/opportunities/cells';
 import { scoreColor } from '@/lib/opportunities/utils';
+import { PRIORITY_META } from '@/lib/opportunities/priority-labels';
 
 type Props = {
   opportunity: Opportunity;
@@ -13,17 +15,26 @@ type Props = {
 
 export function KanbanCard({ opportunity: o, readOnly = false }: Props) {
   const router = useRouter();
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: o.id,
-      data: { status: o.status },
-      disabled: readOnly,
-    });
+  // 0049 — era `useDraggable`. Virou `useSortable` para o card ser também um
+  // ALVO de drop: soltar sobre outro card da mesma coluna passa a reordenar a
+  // prioridade, enquanto soltar sobre outra coluna continua mudando o status
+  // (o `data.status` é o que o Board usa para distinguir os dois casos).
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: o.id,
+    data: { status: o.status },
+    disabled: readOnly,
+  });
 
   const style: React.CSSProperties = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.4 : 1,
     cursor: readOnly ? 'pointer' : isDragging ? 'grabbing' : 'grab',
     touchAction: 'none',
@@ -47,10 +58,24 @@ export function KanbanCard({ opportunity: o, readOnly = false }: Props) {
       onClick={onClick}
       className="bg-wh border border-bdr rounded-lg p-2.5 hover:border-pril hover:shadow-md transition-shadow"
     >
-      <div className="flex items-center gap-1.5 mb-1">
+      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
         <span className="text-[10px] font-extrabold text-pri tracking-wider">
           #{String(o.seq_id).padStart(4, '0')}
         </span>
+        {/* Tag manual (0050) — só quando classificada. */}
+        {o.priority_tag && (
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap"
+            style={{
+              background: PRIORITY_META[o.priority_tag].bg,
+              color: PRIORITY_META[o.priority_tag].color,
+            }}
+            title={`Prioridade: ${PRIORITY_META[o.priority_tag].label}`}
+          >
+            <span aria-hidden="true">{PRIORITY_META[o.priority_tag].icon}</span>
+            <span>{PRIORITY_META[o.priority_tag].label}</span>
+          </span>
+        )}
         {isCritica && (
           <span
             className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"
