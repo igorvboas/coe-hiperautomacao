@@ -1,9 +1,23 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { cargoLabel } from '@/lib/security/cargo';
+import { ScopeBadge } from '@/components/admin/ScopeBadge';
 import { InviteForm } from './InviteForm';
 import { ResendButton } from './ResendButton';
 import { revokeInvite } from './actions';
+
+// =============================================================================
+// /admin/invites — a única das 4 telas de admin que já lia cross-tenant
+// corretamente (Phase 18, Plan 07) — NENHUMA consulta muda aqui.
+// -----------------------------------------------------------------------------
+// Herda o guard platform_admin-only de `app/(app)/admin/layout.tsx` (D-N): só
+// o super-admin da PSW visita esta tela, e ele escolhe a empresa DENTRO do
+// próprio formulário (`InviteForm`), não pelo seletor da Sidebar — o contexto
+// de escrita do seletor não governa esta tela. Por isso `ScopeBadge` recebe
+// `multiple={false}` sempre: não existe ambiguidade "em qual empresa estou
+// agindo" a resolver aqui (SC-12) — o componente só é adicionado para
+// consistência visual entre as 4 abas de admin, e não renderiza nada.
+// =============================================================================
 
 type InviteRow = {
   id: string;
@@ -50,12 +64,15 @@ export default async function InvitesPage() {
             Libere e-mails para que empresas criem suas contas.
           </p>
         </div>
-        <Link
-          href="/opportunities"
-          className="text-xs font-semibold text-pri hover:underline"
-        >
-          ← Voltar
-        </Link>
+        <div className="flex items-center gap-3">
+          <ScopeBadge tenantName={null} multiple={false} />
+          <Link
+            href="/opportunities"
+            className="text-xs font-semibold text-pri hover:underline"
+          >
+            ← Voltar
+          </Link>
+        </div>
       </div>
 
       <InviteForm tenants={tenants} />
