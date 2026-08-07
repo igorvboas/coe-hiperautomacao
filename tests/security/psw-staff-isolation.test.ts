@@ -1094,11 +1094,67 @@ describe.skipIf(!HAS_DB)('psw_staff — RLS multi-tenant por atribuição (0040+
       if (data?.id) createdInviteIds.push(data.id);
     });
   });
+
+  // ===========================================================================
+  // Plan 17-07 — a listagem unificada (coluna/filtro de empresa). Consulta a
+  // MESMA view que `fetchOpportunities()` usa (`opportunities_with_score`,
+  // `visivel = true`) com o cliente autenticado do staff PSW — não é um spec
+  // de UI, é a prova de que a consulta real da tela devolve tenants
+  // diferentes na mesma resposta, e que o filtro de empresa (o `tenant_id`
+  // já resolvido pela page a partir do slug) restringe dentro do escopo sem
+  // jamais alcançar o que não foi atribuído.
+  // ===========================================================================
+
+  describe('lista unificada', () => {
+    it('sem filtro de empresa, a consulta devolve X e Z — cujos tenant_id são diferentes entre si — e não devolve Y', async () => {
+      const { client } = await asPswStaff();
+      const { data, error } = await client
+        .from('opportunities_with_score')
+        .select('id, tenant_id')
+        .eq('visivel', true)
+        .in('id', [PSW_OPP_X_ID, PSW_OPP_Y_ID, PSW_OPP_Z_ID]);
+      expect(error).toBeNull();
+
+      const ids = (data ?? []).map((r) => r.id).sort();
+      expect(ids).toEqual([PSW_OPP_X_ID, PSW_OPP_Z_ID].sort());
+
+      // O que caracteriza "unificada" não é a contagem (2 linhas) — é que os
+      // tenant_id das linhas retornadas são DISTINTOS entre si, na mesma
+      // consulta, sem seletor de contexto nem troca de tenant ativo.
+      const tenantIds = new Set((data ?? []).map((r) => r.tenant_id));
+      expect(tenantIds.size).toBe(2);
+    });
+
+    it('com filtro de empresa do tenant de X (FGCoop), a consulta devolve X e não devolve Z — restringe, nunca amplia', async () => {
+      const { client } = await asPswStaff();
+      const { data, error } = await client
+        .from('opportunities_with_score')
+        .select('id, tenant_id')
+        .eq('visivel', true)
+        .eq('tenant_id', FGCOOP_TEST_ID)
+        .in('id', [PSW_OPP_X_ID, PSW_OPP_Y_ID, PSW_OPP_Z_ID]);
+      expect(error).toBeNull();
+
+      const ids = (data ?? []).map((r) => r.id).sort();
+      expect(ids).toEqual([PSW_OPP_X_ID]);
+    });
+
+    it('com filtro de empresa de um tenant sem NENHUMA atribuição, a consulta devolve vazio — o filtro nunca é vetor para alcançar dado fora do escopo', async () => {
+      const { client } = await asPswStaff();
+      const { data, error } = await client
+        .from('opportunities_with_score')
+        .select('id, tenant_id')
+        .eq('visivel', true)
+        .eq('tenant_id', CONTROL_TENANT_ID);
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+    });
+  });
 });
 
 // =============================================================================
 // Nomes de grupo RESERVADOS para os planos seguintes — não inventar nome
 // divergente; estender este arquivo com um novo `describe` por item, no
 // exato texto abaixo:
-//   - `lista unificada` (Plan 17-07 — coluna/filtro de empresa)
+//   (nenhum pendente — suíte completa para a Phase 17)
 // =============================================================================
