@@ -317,6 +317,53 @@ export type Database = {
         ];
       };
 
+      // Phase 18 (0045, a criar em 18-02) — concessão de admin cross-tenant a
+      // `psw_staff`: N:N entre profile e tenant, só inserível/removível por
+      // `platform_admin` (RLS da 0045). Hand-maintained — ARQUIVO MANTIDO À
+      // MÃO (ver header do arquivo, `npm run gen:types` bloqueado) — este
+      // bloco precisa casar com o DDL da 0045 quando ela existir.
+      psw_tenant_admins: {
+        Row: {
+          id: string;
+          profile_id: string;
+          tenant_id: string;
+          granted_at: string;
+          granted_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          tenant_id: string;
+          granted_at?: string;
+          granted_by?: string | null;
+        };
+        Update: Partial<{
+          profile_id: string;
+          tenant_id: string;
+          granted_by: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'psw_tenant_admins_profile_id_fkey';
+            columns: ['profile_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'psw_tenant_admins_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'psw_tenant_admins_granted_by_fkey';
+            columns: ['granted_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       // v0.4 (0032) — atribuição de pessoas a oportunidades (N:N). Escrita só
       // por tenant_admin (do próprio tenant) ou platform_admin — ver RLS 0032.
       opportunity_assignees: {
