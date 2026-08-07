@@ -1,7 +1,9 @@
 ---
 phase: 18
 slug: staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
-status: draft
+status: approved
+reviewed_at: 2026-08-07
+revisions: 1
 shadcn_initialized: false
 preset: none
 created: 2026-08-07
@@ -120,7 +122,23 @@ Cor adicional usada só nesta fase, **dentro da paleta semântica já existente*
 
 ## UI Considerations
 
-Applicable state considerations resolved: 11 covered, 3 backstop, 0 unresolved.
+Cobertura de estados verificada pelo `ui-consideration-probe` em 2026-08-07, sobre 8 elementos/
+superfícies desta fase (E1 lista de staff, E2 form de concessão, E3 bloco "Admin nas empresas",
+E4 bloco "Atribuições individuais", E5 diálogo de revogação, E6 badge de concessão órfã,
+E7 banner de escrita desabilitada, E8 badge de escopo).
+
+**Correção de classificação aplicada (mitigação partial-cue).** O classificador heurístico do probe
+detectou `interactive-control` apenas para E5 e **nenhum** kind para E6/E7/E8. Isso é falso-negativo:
+E6/E7/E8 são `static-content` e E5 é também `form` (tem pending e erro). Os kinds foram sobrescritos
+com a união detectado + identificado antes de gerar o relatório — sem isso, 4 dos 8 elementos não
+teriam nenhuma categoria levantada e a cobertura leria verde sem ter checado nada.
+
+**Resultado: 39 considerações aplicáveis (pares elemento × categoria), 0 sem resolução** — 26
+`covered` + 5 `backstop`, em **31 linhas** de tabela. A tabela tem menos linhas que considerações
+porque algumas cobrem mais de um elemento na mesma linha (ex. "E3 / E4"); nenhuma consideração foi
+descartada. Quando várias colapsam na mesma resposta (o estado de loading de um bloco dentro de uma
+página server-rendered É o da página), a linha é registrada como *covered-by-reference* nomeando a
+referência — nunca omitida, nunca `dismiss` silencioso.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
@@ -138,6 +156,23 @@ Applicable state considerations resolved: 11 covered, 3 backstop, 0 unresolved.
 | long-text | Nome de empresa/pessoa nos chips e badges (`static-content`) | 🧪 backstop | `truncate` + `title` no elemento pai — mesma técnica acima |
 | partial | Concessão órfã (D-S) — pessoa sem `role='psw_staff'` mas com linha em `psw_tenant_admins` | ✅ covered | Renderizada com o badge "Órfã" (neutro, opacity reduzida na linha) em vez de omitida ou tratada como erro — comportamento exigido por D-S |
 | populated | Tabela de staff PSW em volume típico (dezenas de linhas, conforme RESEARCH §4) | ✅ covered | Tabela simples sem virtualização — volume é "dezenas", mesmo raciocínio de índice da RESEARCH (`psw_tenant_admins` é pequena) |
+| empty | E2 form de concessão — nenhuma empresa restante para conceder | ✅ covered | Quando a pessoa selecionada já é admin de **todas** as empresas, o select de empresa fica vazio: renderiza a opção desabilitada **"Esta pessoa já é admin de todas as empresas."** e o botão de submit fica `disabled`. Nunca um select vazio silencioso. |
+| empty | E2 form de concessão — nenhum staff PSW cadastrado | ✅ covered | *Covered-by-reference:* o form inteiro não é renderizado quando E1 está vazio; vale o empty state de E1 ("Nenhum staff PSW cadastrado ainda." + link para `/admin/invites`). |
+| error | E1 lista de staff PSW (falha de leitura server-side) | ✅ covered | Erro na busca do Server Component renderiza o banner vermelho `role="alert"` com **"Não foi possível carregar a lista de staff PSW. Recarregue a página."** — a página não renderiza uma lista vazia, que seria indistinguível de "não há staff". |
+| error | E3 / E4 blocos de origem de acesso | ✅ covered | *Covered-by-reference:* os dois blocos são buscados junto com E1 no mesmo Server Component; a falha é a de E1, acima. Não existe fetch independente por bloco. |
+| loading | E3 / E4 blocos de origem de acesso | ✅ covered | *Covered-by-reference:* idem — server-rendered junto com E1, sem estado de loading próprio a desenhar. |
+| populated | E3 "Admin nas empresas" / E4 "Atribuições individuais" em volume típico | ✅ covered | Chips em `flex-wrap` sem paginação; volume típico é unidades por pessoa (uma pessoa administra poucas empresas). O caso de volume alto está coberto pelo backstop de `overflow`. |
+| partial | E2 form com pessoa escolhida e empresa ainda não | ✅ covered | Botão de submit `disabled` até os dois selects terem valor — mesmo padrão de `InviteForm.tsx`. Sem submit parcial. |
+| partial | E3 / E4 — pessoa com uma origem preenchida e a outra vazia | ✅ covered | Exigido por D-F: os **dois** blocos aparecem sempre, o vazio com seu próprio texto ("Não é admin de nenhuma empresa." / "Nenhuma atribuição individual."). Nunca esconder o bloco vazio — esconder faria o leitor concluir que aquela origem não existe. |
+| partial | E7 banner / E8 badge de escopo — empresa selecionada mas sem concessão nela | ✅ covered | O badge mostra a empresa e as ações de escrita ficam desabilitadas com o mesmo banner âmbar; o servidor ainda valida (`ADMIN_SCOPE_DENIED_MESSAGE`). UI e servidor concordam, mas o servidor é o bloqueio real. |
+| overflow | E1 lista de staff PSW com muitas pessoas | ✅ covered | Volume é "dezenas" (RESEARCH §4); tabela simples sem virtualização nem paginação, mesmo raciocínio de `admin/invites`. |
+| overflow | E6 badge órfã / E7 banner / E8 badge de escopo | ✅ covered | Elementos de linha única com texto curto e fixo; sem transbordo possível além do nome de empresa, coberto pelo backstop de `long-text`. |
+| zero-one-many | E1 contagem de staff PSW | ✅ covered | *Covered-by-reference:* a lista não exibe contagem agregada — D-F proíbe número único de alcance. As contagens que existem (N/M em E4, N em E5) já estão resolvidas acima. |
+| long-text | E5 título do diálogo "Revogar acesso de admin em {empresa}?" | 🧪 backstop | `truncate` no nome da empresa com `title` completo; validar visualmente com nome de empresa > 40 caracteres. |
+| long-text | E7 banner de escrita desabilitada | ✅ covered | Texto fixo, sem interpolação — não há transbordo possível. |
+| long-text | E8 badge "Agindo em: {Empresa}" | 🧪 backstop | `truncate` + `title`; validar com nome de empresa longo no cabeçalho das 4 telas de admin. |
+| long-text | E2 selects do form de concessão | ✅ covered | `<option>` nativo trunca por conta do browser; sem tratamento adicional. |
+| long-text | E1 nome/e-mail da pessoa na linha | ✅ covered | *Covered-by-reference:* mesma técnica `truncate` + `title` do backstop de nomes já registrado acima. |
 
 ---
 
@@ -262,11 +297,17 @@ aviso quando não há empresa selecionada.**
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS — 4 tamanhos (11/12/14/18), 2 pesos (400/700), verificados contra o codigo real
+- [x] Dimension 5 Spacing: PASS — com excecao formal ao grid de 4/8px, aprovada pelo PO em 2026-08-07
+- [x] Dimension 6 Registry Safety: PASS — shadcn nao inicializado, com rationale
 
-**Approval:** pending
+**Approval:** approved 2026-08-07 (gsd-ui-checker, revisao 1 de 2)
+
+**Historico de verificacao:**
+- Revisao 0 — BLOCKED nas dimensoes 4 (5 tamanhos / 3 pesos) e 5 (meios-passos fora do grid de 4).
+- Revisao 1 — APPROVED 6/6. Tipografia corrigida na substancia: o "13px Body" da revisao 0 era
+  fabricado (nao existe no codigo; as celulas de tabela herdam `text-sm` = 14px). Espacamento
+  preservado por decisao do PO, registrado como excecao formal.
