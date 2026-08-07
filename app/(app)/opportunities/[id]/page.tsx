@@ -16,11 +16,14 @@ import {
   getCurrentProfile,
   isPlatformAdmin,
   isTenantAdmin,
+  isPswStaff,
 } from '@/lib/security/role';
 import {
   fetchAssigneesForOpportunity,
   fetchAssignableProfiles,
+  fetchAssignableProfilesForPlatformAdmin,
 } from '@/lib/opportunities/assignees';
+import { fetchTenantsByIds } from '@/lib/tenants/queries';
 import { AssigneesPanel } from '@/components/opportunities/AssigneesPanel';
 import { TasksEntryCard } from '@/components/opportunities/tasks/TasksEntryCard';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
@@ -51,12 +54,28 @@ export default async function OpportunityDetailPage({
     ]);
 
   // Atribuir é privilégio de admin (0032). O platform_admin atribui em qualquer
-  // empresa; o tenant_admin, só na sua — e os candidatos saem sempre do tenant
-  // da OPORTUNIDADE, não do usuário (a trigger de 0032 recusa vínculo cruzado).
+  // empresa — e é o ÚNICO papel que recebe a lista ampliada com o staff PSW
+  // do tenant da PSW como candidato (ACCESS-09/D-05, Phase 17): o tenant_admin
+  // de cliente continua vendo só as pessoas da própria empresa, exatamente
+  // como hoje. Quem de fato autoriza o vínculo cross-tenant continua sendo a
+  // trigger/policy de `opportunity_assignees` — esta lista só monta candidatos.
   const canAssign = isTenantAdmin(profile) || isPlatformAdmin(profile);
-  const assignableProfiles = canAssign
-    ? await fetchAssignableProfiles(opportunity.tenant_id)
-    : [];
+  const assignableProfiles = !canAssign
+    ? []
+    : isPlatformAdmin(profile)
+      ? await fetchAssignableProfilesForPlatformAdmin(
+          opportunity.tenant_id,
+          profile!.tenantId
+        )
+      : await fetchAssignableProfiles(opportunity.tenant_id);
+
+  // Sinalização de contexto (Phase 17): o staff PSW, ao abrir uma oportunidade
+  // de outra empresa, precisa enxergar de qual empresa ela é — "por que estou
+  // vendo isto". Só para este papel: para os demais, a empresa deles é sempre
+  // a mesma e o rótulo seria ruído. Nenhuma query extra fora deste papel.
+  const companyTenant = isPswStaff(profile)
+    ? (await fetchTenantsByIds([opportunity.tenant_id]))[0] ?? null
+    : null;
 
   return (
     <div className="px-6 lg:px-8 py-6">
@@ -90,6 +109,7 @@ export default async function OpportunityDetailPage({
           notes={notes}
           history={history}
           readOnly={readOnly}
+          companyName={companyTenant?.name ?? null}
         />
       </div>
     </div>

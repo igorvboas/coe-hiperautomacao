@@ -3,7 +3,7 @@ import {
   fetchOpportunityById,
   fetchTaskById,
 } from '@/lib/opportunities/queries';
-import { fetchAssignableProfiles } from '@/lib/opportunities/assignees';
+import { fetchTaskAssignableProfiles } from '@/lib/opportunities/assignees';
 import { TaskFormPage } from '@/components/opportunities/tasks/TaskFormPage';
 import { isReadOnlyViewer } from '@/lib/security/role';
 
@@ -17,8 +17,9 @@ import { isReadOnlyViewer } from '@/lib/security/role';
  * caminho que o trigger de profundidade (0037) recusaria no banco.
  *
  * `fetchTaskById` é RLS-scoped: tarefa de outro tenant devolve `null` →
- * `notFound()` (T-16-07). Os candidatos a responsável saem SEMPRE do tenant
- * da OPORTUNIDADE (D-08/TASK-03), reusando `fetchAssignableProfiles`.
+ * `notFound()` (T-16-07). Os candidatos a responsável saem do tenant da
+ * OPORTUNIDADE + o staff PSW atribuído a ela (ACCESS-11/D-14, Phase 17),
+ * reusando `fetchTaskAssignableProfiles` — nenhuma query nova.
  */
 export default async function NewSubtaskPage({
   params,
@@ -37,7 +38,10 @@ export default async function NewSubtaskPage({
   const opportunity = await fetchOpportunityById(id);
   if (!opportunity) notFound();
 
-  const assignableProfiles = await fetchAssignableProfiles(opportunity.tenant_id);
+  const assignableProfiles = await fetchTaskAssignableProfiles(
+    opportunity.id,
+    opportunity.tenant_id
+  );
 
   return (
     <TaskFormPage

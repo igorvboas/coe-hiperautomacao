@@ -8,6 +8,12 @@ import { AiEnrichmentBadge } from './AiEnrichmentBadge';
 
 type Props = {
   opportunity: Opportunity;
+  /**
+   * Empresa dona desta oportunidade — sinalização de "por que estou vendo
+   * isto" para o staff PSW (Phase 17). `null`/ausente para os demais papéis:
+   * o markup não muda.
+   */
+  companyName?: string | null;
   // ── Edição global do modal (Phase 13, D-12) ───────────────────────────────
   editMode: boolean;
   pending: boolean;
@@ -37,6 +43,7 @@ const PRIORITY_LABEL: Record<'alta' | 'media' | 'baixa', string> = {
  */
 export function ModalHeader({
   opportunity: o,
+  companyName = null,
   editMode,
   pending,
   submitError,
@@ -83,6 +90,14 @@ export function ModalHeader({
                 status={o.ai_enrichment_status}
                 error={o.ai_enrichment_error}
               />
+              {companyName && (
+                <span
+                  className="px-2.5 py-1 rounded-full bg-white/20 text-white text-[11px] font-bold inline-flex items-center gap-1"
+                  title="Empresa dona desta oportunidade"
+                >
+                  🏢 {companyName}
+                </span>
+              )}
             </div>
           </div>
         </div>

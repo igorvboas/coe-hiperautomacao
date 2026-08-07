@@ -4,7 +4,7 @@ import {
   fetchOpportunityById,
   fetchTasksForOpportunity,
 } from '@/lib/opportunities/queries';
-import { fetchAssignableProfiles } from '@/lib/opportunities/assignees';
+import { fetchTaskAssignableProfiles } from '@/lib/opportunities/assignees';
 import { isReadOnlyViewer } from '@/lib/security/role';
 import { TaskList } from '@/components/opportunities/tasks/TaskList';
 import { TaskFormDialog } from '@/components/opportunities/tasks/TaskFormDialog';
@@ -60,10 +60,13 @@ export default async function TarefasPage({
     searchParams,
   ]);
 
-  // Reusa fetchAssignableProfiles (D-08) só para resolver o nome do
-  // responsável na Lista/Kanban e popular o form do diálogo — nenhuma query
-  // nova de pessoas do tenant.
-  const assignableProfiles = await fetchAssignableProfiles(opportunity.tenant_id);
+  // Reusa fetchTaskAssignableProfiles (ACCESS-11/D-14, Phase 17) para resolver
+  // o nome do responsável na Lista/Kanban e popular o form do diálogo — inclui
+  // o staff PSW atribuído a ESTA oportunidade, além das pessoas do tenant.
+  const assignableProfiles = await fetchTaskAssignableProfiles(
+    opportunity.id,
+    opportunity.tenant_id
+  );
 
   const view = parseTaskView(rawSearchParams.view);
 

@@ -205,6 +205,91 @@ export async function fetchAssignableProfiles(
   }));
 }
 
+/** Mesma ordenação de `byName`, mas para `AssignableProfile` (campo `id`, não `profileId`). */
+function byProfileName(a: AssignableProfile, b: AssignableProfile): number {
+  return (a.fullName ?? a.email).localeCompare(b.fullName ?? b.email, 'pt-BR');
+}
+
+/**
+ * Lista de possíveis RESPONSÁVEIS DE TAREFA de UMA oportunidade específica
+ * (ACCESS-11/D-14, Phase 17): as pessoas do tenant da oportunidade +
+ * qualquer `psw_staff` que esteja de fato ATRIBUÍDO a esta `opportunityId`
+ * via `opportunity_assignees`. As duas condições — papel `psw_staff` E
+ * vínculo com ESTA oportunidade — são obrigatórias e espelham exatamente o
+ * que `check_task_tenant_coherence()` (migration 0041) aceita como
+ * responsável de outro tenant: oferecer aqui alguém que o banco rejeitaria
+ * produz um erro incompreensível na hora de salvar a tarefa. Composta sobre
+ * `fetchAssignableProfiles` (tenant da oportunidade) e
+ * `fetchAssigneesForOpportunity` (vínculo por oportunidade) — nenhuma query
+ * nova nem reimplementação da degradação de `cargo`.
+ */
+export async function fetchTaskAssignableProfiles(
+  opportunityId: string,
+  opportunityTenantId: string
+): Promise<AssignableProfile[]> {
+  const [base, assignees] = await Promise.all([
+    fetchAssignableProfiles(opportunityTenantId),
+    fetchAssigneesForOpportunity(opportunityId),
+  ]);
+
+  const byId = new Map<string, AssignableProfile>();
+  for (const p of base) byId.set(p.id, p);
+
+  for (const a of assignees) {
+    if (a.role !== 'psw_staff') continue; // só o papel novo pode ser cross-tenant aqui
+    if (byId.has(a.profileId)) continue; // já é do tenant da oportunidade — não duplica
+    byId.set(a.profileId, {
+      id: a.profileId,
+      email: a.email,
+      fullName: a.fullName,
+      cargo: a.cargo,
+      role: a.role,
+    });
+  }
+
+  return Array.from(byId.values()).sort(byProfileName);
+}
+
+/**
+ * Lista do painel de atribuição de `opportunity_assignees` QUANDO quem opera
+ * é `platform_admin` (ACCESS-09/D-05, Phase 17): as pessoas do tenant da
+ * oportunidade + os `psw_staff` do tenant da PSW — candidatos a RECEBER uma
+ * nova atribuição cross-tenant. Só o `platform_admin` recebe esta lista
+ * ampliada; `tenant_admin`/demais papéis continuam chamando
+ * `fetchAssignableProfiles(opportunity.tenant_id)` sem composição nenhuma
+ * (D-05 — cliente nunca enxerga pessoas de fora do próprio tenant). Quem de
+ * fato autoriza o vínculo continua sendo a trigger/policy de
+ * `opportunity_assignees` — esta função só monta a lista de candidatos.
+ *
+ * PREMISSA (documentar sempre junto de quem chama): `pswTenantId` é o
+ * `tenantId` do próprio `platform_admin` logado (`getCurrentProfile()`), que
+ * por construção é o tenant da PSW — não existe hoje uma marcação explícita
+ * separada de "qual é o tenant da PSW". Isso deixaria de valer se um dia
+ * existir um `platform_admin` lotado num tenant de cliente; nesse caso o
+ * caminho correto é introduzir uma marcação explícita do tenant da PSW, não
+ * presumir a partir do ator logado.
+ */
+export async function fetchAssignableProfilesForPlatformAdmin(
+  opportunityTenantId: string,
+  pswTenantId: string
+): Promise<AssignableProfile[]> {
+  const [base, pswTenantProfiles] = await Promise.all([
+    fetchAssignableProfiles(opportunityTenantId),
+    fetchAssignableProfiles(pswTenantId),
+  ]);
+
+  const byId = new Map<string, AssignableProfile>();
+  for (const p of base) byId.set(p.id, p);
+
+  for (const p of pswTenantProfiles) {
+    if (p.role !== 'psw_staff') continue;
+    if (byId.has(p.id)) continue;
+    byId.set(p.id, p);
+  }
+
+  return Array.from(byId.values()).sort(byProfileName);
+}
+
 /**
  * Todas as pessoas visíveis para o usuário corrente, sem recorte de tenant —
  * usado só pelo platform_admin em "Todas as empresas", para que o filtro

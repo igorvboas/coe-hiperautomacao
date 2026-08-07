@@ -97,6 +97,12 @@ type Props = {
   history: TimelineEntry[];
   /** RBAC (v0.3) — viewer não edita nada; abas de mutação viram somente leitura. */
   readOnly?: boolean;
+  /**
+   * Nome da empresa dona desta oportunidade — sinalização de contexto para o
+   * staff PSW (Phase 17): `null`/ausente para os demais papéis, cujo cabeçalho
+   * não muda.
+   */
+  companyName?: string | null;
 };
 
 export function OpportunityDetail({
@@ -107,6 +113,7 @@ export function OpportunityDetail({
   notes,
   history,
   readOnly = false,
+  companyName = null,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('processo');
 
@@ -223,6 +230,7 @@ export function OpportunityDetail({
       <div className="rounded-2xl overflow-hidden border border-bdr shadow-sm">
         <ModalHeader
           opportunity={opportunity}
+          companyName={companyName}
           editMode={editMode}
           pending={pending}
           submitError={submitError}
