@@ -455,5 +455,50 @@ Plans:
    - `lib/security/role.ts` + `lib/supabase/session.ts` são o ponto único onde papel e tenant do usuário são resolvidos no servidor; o escopo de acesso novo mora ali, não espalhado por call site.
 6. **Sem painel admin novo**: a fase não cria rotas super-admin além do que já existe em `app/(app)/admin/` e `app/(app)/team/`.
 
+### Phase 18: Staff PSW como Admin de Tenant (concessão pessoa × empresa)
+
+**Goal**: Um `psw_staff` passa a poder ser **admin de N empresas** ao mesmo tempo: sem concessão ele continua vendo somente as oportunidades atribuídas a ele (comportamento da `0044`, intocado); com concessão no tenant A ele vê tudo de A e exerce ali os mesmos poderes de um `tenant_admin` — convites, equipe, configurações/branding e logs — sem deixar de ver, na mesma listagem, as oportunidades que lhe foram atribuídas em outras empresas. A concessão é dada e retirada apenas pelo `platform_admin`, numa tela `/admin/staff` que também mostra, por pessoa, as duas origens de acesso separadas.
+**Depends on**: Phase 17 (papel `psw_staff`, `opportunity_assignees` cross-tenant, `current_assigned_opportunity_ids()`, `resolveWriteTenantId()` e as restritivas da `0044` — esta fase estende exatamente esse mecanismo um nível acima)
+**Requirements**: GRANT-01, GRANT-02, GRANT-03, GRANT-04, GRANT-05, GRANT-06, GRANT-07, GRANT-08, GRANT-09, GRANT-10
+
+**Success Criteria** (what must be TRUE):
+
+  1. Existe a tabela de concessão `psw_tenant_admins` (pessoa × empresa) com `tenant_id`, RLS ativa e escrita restrita ao `platform_admin`; um mesmo `psw_staff` tem linhas para N tenants simultaneamente, e `profiles.tenant_id` continua único e NOT NULL.
+  2. Existe `current_admin_tenant_ids()` — `security definer`, `stable`, `set search_path = public`, consumido como `t in (select current_admin_tenant_ids())` e usando `(select auth.uid())` para virar InitPlan — espelhando na forma o `current_assigned_opportunity_ids()` da `0040`, com índice de suporte por `profile_id`.
+  3. Existe `is_tenant_admin_of(t uuid)` como **fonte única** do predicado "é admin deste tenant", verdadeiro para (a) `tenant_admin` cujo `current_tenant_id()` é `t` e (b) `psw_staff` com concessão em `t` — e os 17 predicados de RLS hoje escritos como `tenant_id = current_tenant_id() and current_user_role() = 'tenant_admin'` passam todos a chamá-la, sem que nenhum fique para trás.
+  4. Um `psw_staff` **sem** concessão enxerga exatamente o mesmo conjunto de oportunidades que enxergava antes desta fase — a contagem é idêntica, provada por teste.
+  5. Um `psw_staff` **com** concessão no tenant A enxerga todas as oportunidades de A mais as atribuídas a ele em qualquer outra empresa, na listagem unificada com coluna e filtro de empresa; e não enxerga nada de um tenant onde não tem nem concessão nem atribuição.
+  6. Esse mesmo staff exerce em A os poderes de `tenant_admin`: gerencia a allowlist de convites de A, a equipe de A, o branding/configurações de A e lê os logs de A — e recebe erro do banco ao tentar o mesmo num tenant B onde não tem concessão.
+  7. As Server Actions de admin recebem o **tenant-alvo explícito** e o validam contra a concessão antes de mutar; nenhuma delas deriva o tenant de `profile.tenantId` para um `psw_staff`, e nenhuma responde `{ ok: true }` tendo afetado zero linhas (o sucesso silencioso que `resolveWriteTenantId()` eliminou uma camada abaixo).
+  8. Um `psw_staff` com concessão **não** consegue conceder nem revogar a condição de admin para ninguém — nem para si, nem em tenant onde já é admin; só o `platform_admin` escreve em `psw_tenant_admins`, garantido por RLS e não só por UI.
+  9. A tela `/admin/staff` existe sob o guard `platform_admin` de `app/(app)/admin/layout.tsx`, lista os `psw_staff`, concede e revoga concessões, e mostra por pessoa as duas origens de acesso **separadas** — empresas administradas e atribuições individuais, sinalizando quantas destas são redundantes por estarem em empresa já administrada.
+ 10. Revogar exige confirmação explícita informando quantas oportunidades a pessoa deixará de enxergar; após a revogação ela continua vendo as que lhe foram atribuídas nominalmente naquele tenant.
+ 11. A tela de admin **não** escreve em `opportunity_assignees` — atribuição continua editável apenas na oportunidade (`AssigneesPanel`); ali as atribuições aparecem em leitura, com link.
+ 12. Nada muda para `member`, `viewer`, `tenant_admin` e `platform_admin`: os testes de isolamento cross-tenant existentes continuam passando sem alteração, e um teste de não-regressão prova que a contagem de linhas visíveis de um `member` e de um `tenant_admin` é idêntica à de antes da fase.
+ 13. `lib/database.types.ts` (hand-maintained — type-gen bloqueado) reflete a tabela nova e `tsc --noEmit` passa limpo.
+
+### Decisões travadas com o PO (2026-08-07) — não reabrir no planejamento
+
+1. **A concessão é uma tabela, não um valor de enum** — "admin nas empresas A e C" é um par (pessoa × empresa) que se repete; nenhuma coluna `role` expressa isso. `profiles.tenant_id` **não** vira N:N: continua sendo o tenant de lotação da pessoa (a PSW, no caso do staff).
+2. **Poderes = `tenant_admin` daquele tenant** — não é só leitura ampliada. Inclui convites/allowlist, equipe, configurações/branding e logs do tenant concedido.
+3. **Só o `platform_admin` concede e revoga** — sem escalada lateral: um staff-admin do tenant A não promove outra pessoa em A.
+4. **Atribuição continua editada só na oportunidade** (`AssigneesPanel`) — dois pontos de escrita divergiriam em validação e deixariam `check_assignee_tenant()` como única barreira. A tela de admin lê, não escreve.
+5. **`psw_staff` sem concessão não muda** — a restritiva da `0044` continua valendo integralmente para ele; a concessão só acrescenta um disjunto.
+6. **Mecanismo reusado, não inventado** — é o padrão `opportunity_assignees` (0032) + `current_assigned_opportunity_ids()` (0040) elevado de "pessoa × oportunidade" para "pessoa × tenant". Não criar helper com forma diferente.
+7. **A tela mostra as duas origens separadas** — um número agregado de acesso levaria a conclusão errada sobre o alcance real da pessoa, já que atribuições dentro de um tenant administrado são redundantes.
+
+## Restrições aplicadas à Phase 18 (de PROJECT.md / CLAUDE.md)
+
+1. **Isolamento multi-tenant é existencial**: a fase **afrouxa** uma fronteira. Cada policy nova é aditiva; a troca dos 17 predicados por `is_tenant_admin_of()` precisa ser **byte-equivalente** para `tenant_admin` (a função retorna exatamente o predicado antigo nesse ramo). Testes obrigatórios: os de isolamento existentes verdes **+** "psw_staff sem concessão vê o mesmo de antes" **+** "psw_staff com concessão em A não vê nada de B".
+2. **Migrations em write-only mode**: arquivo + apply manual pelo PO no SQL Editor do Supabase Cloud, com bloco de verificação pós-apply e bloco de ROLLBACK no padrão da `0044`. **Próximo número livre: `0045`.**
+3. **`lib/database.types.ts` é hand-maintained** (type-gen bloqueado — MCP aponta para o projeto errado): a fase inclui a task de atualizá-lo à mão.
+4. **Reuso obrigatório** (verificado no `main` em 2026-08-07):
+   - `current_assigned_opportunity_ids()` (`0040:86`) é a forma exata a espelhar no helper novo — mesma assinatura, mesmo `(select auth.uid())`, mesmo índice de suporte por `profile_id`.
+   - O laço das 8 policies restritivas da `0044` é o ponto de encaixe do disjunto novo — estender o laço, não escrever 8 blocos à mão.
+   - `resolveWriteTenantId()` + `WRITE_SCOPE_DENIED_MESSAGE` (`lib/security/role.ts`, D-11 da Phase 17) são o padrão a aplicar uma camada acima nas actions de admin; não inventar um segundo mecanismo de resolução de tenant-alvo.
+   - `app/(app)/admin/layout.tsx` já é o guard `platform_admin` — `/admin/staff` herda dele, sem plumbing de auth novo.
+   - `lib/tenants/scope.ts` (`resolveEmpresaSlug`, cookie `coe_empresa`) já resolve a empresa selecionada; o contexto de escrita das telas de admin parte dali em vez de criar outro seletor.
+5. **Sem persistir o que é derivado**: a contagem de "quantas oportunidades a pessoa deixa de ver" e a marcação de atribuição redundante são calculadas em runtime, nunca gravadas.
+
 ---
-*Seção v0.5 criada em 2026-08-04. 2 fases (16, 17). 11/11 REQ-IDs `TASK-*` → Phase 16; 11/11 REQ-IDs `ACCESS-*` → Phase 17. Phase 17 adicionada em 2026-08-06.*
+*Seção v0.5 criada em 2026-08-04. 3 fases (16, 17, 18). 11/11 REQ-IDs `TASK-*` → Phase 16; 11/11 REQ-IDs `ACCESS-*` → Phase 17; 10/10 REQ-IDs `GRANT-*` → Phase 18. Phase 17 adicionada em 2026-08-06. Phase 18 adicionada em 2026-08-07.*
