@@ -972,6 +972,15 @@ export type Database = {
           created_at: string;
         }[];
       };
+      // Phase 18 (0045) — fonte única do predicado "é admin deste tenant"
+      // (D-I/D-O): true para tenant_admin do próprio tenant OU psw_staff com
+      // concessão em `psw_tenant_admins`. Espelhada em TypeScript por
+      // `isTenantAdminOf()` (lib/security/role.ts, Plan 18-06) — os dois
+      // precisam concordar (tests/schema/tenant-admin-parity.test.ts).
+      is_tenant_admin_of: {
+        Args: { t: string };
+        Returns: boolean;
+      };
     };
 
     Enums: {

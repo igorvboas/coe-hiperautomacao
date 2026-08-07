@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { resolveEmpresaSlug } from '@/lib/tenants/scope';
+import { fetchTenantIdBySlug } from '@/lib/tenants/queries';
 import type { TenantRole } from '@/lib/opportunities/types';
 
 // =============================================================================
@@ -217,4 +219,148 @@ export async function resolveWriteTenantId(
  */
 export function isTenantAdmin(profile: Pick<CurrentProfile, 'role'> | null): boolean {
   return profile?.role === 'tenant_admin';
+}
+
+// =============================================================================
+// isTenantAdminOf / resolveAdminTenantId — escopo de escrita de ADMIN (Phase
+// 18, D-11/D-O), uma camada acima de resolveWriteTenantId()
+// -----------------------------------------------------------------------------
+// `resolveWriteTenantId()` (acima) resolve o tenant-alvo de uma Server Action
+// a partir de uma OPORTUNIDADE. As Server Actions de admin (convite de
+// equipe, branding) não têm oportunidade — têm uma EMPRESA. Este par é a
+// irmã direta, uma camada acima, para esse caso: staff PSW pode agora
+// administrar N empresas ao mesmo tempo (concessão em `psw_tenant_admins`,
+// migration `0045`), e o tenant-alvo de uma escrita de admin precisa vir
+// dessa concessão — nunca do tenant de lotação do profile.
+// =============================================================================
+
+/**
+ * Mensagem pt-BR única para quando `resolveAdminTenantId` devolve `null` —
+ * toda Server Action de admin que resolve tenant-alvo usa este texto (em vez
+ * de reescrevê-lo cada uma a sua maneira), pela mesma disciplina de
+ * `WRITE_SCOPE_DENIED_MESSAGE`: não revelar se a empresa não existe ou
+ * simplesmente está fora do escopo de quem pediu — os dois casos colapsam de
+ * propósito na mesma frase.
+ */
+export const ADMIN_SCOPE_DENIED_MESSAGE =
+  'Empresa não encontrada ou fora do seu escopo de administração.';
+
+/**
+ * Espelha o predicado SQL `is_tenant_admin_of(t uuid)` (migration `0045`,
+ * reemitido como fonte única das 11 policies vivas de `tenant_admin` pela
+ * `0047`) — mantenha os dois em sincronia, como já acontece com
+ * `isPlatformAdmin()`/`is_platform_admin()`.
+ *
+ * true quando (a) o profile é `tenant_admin` e `tenantId` é o tenant dele —
+ * ramo SEM ida ao banco, byte-equivalente ao `isTenantAdmin()` de hoje (D-J:
+ * zero regressão de latência para papéis de cliente) — ou (b) o profile é
+ * `psw_staff` e existe uma linha de concessão dele para `tenantId` em
+ * `psw_tenant_admins` (a policy `psw_tenant_admins_select` permite que a
+ * própria pessoa leia suas concessões, então nenhum client privilegiado é
+ * necessário aqui). Qualquer outro papel (`member`, `viewer`,
+ * `platform_admin` — que tem o próprio caminho via `isPlatformAdmin()`) ou
+ * profile nulo devolve `false` sem consulta.
+ *
+ * É assíncrona enquanto `isTenantAdmin()` (a irmã síncrona acima) continua
+ * existindo — de propósito: a assinatura diferente força quem for tocar um
+ * ponto de uso a olhar aquele ponto especificamente, em vez de uma troca
+ * textual às cegas. Os pontos de uso desta fase precisavam ser revistos um a
+ * um de qualquer forma (RESEARCH.md §6).
+ */
+export async function isTenantAdminOf(
+  profile: CurrentProfile | null,
+  tenantId: string
+): Promise<boolean> {
+  if (!profile) return false;
+
+  if (profile.role === 'tenant_admin') {
+    return profile.tenantId === tenantId;
+  }
+
+  if (profile.role !== 'psw_staff') return false;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('psw_tenant_admins')
+    .select('id')
+    .eq('profile_id', profile.id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
+/**
+ * Resolve o `tenant_id`-ALVO de uma Server Action de ADMIN — irmã de
+ * `resolveWriteTenantId()` uma camada acima: lá o escopo vem da oportunidade,
+ * aqui vem da empresa. Chamar DEPOIS de obter o profile e ANTES de qualquer
+ * mutação.
+ *
+ * - Para `member`/`viewer`/`tenant_admin`/`platform_admin`: retorna
+ *   `profile.tenantId` sem nenhuma consulta ao banco, IGNORANDO
+ *   `requestedTenantId` — comportamento idêntico ao filtro por tenant de
+ *   hoje, zero regressão (mesmo padrão do ramo "cliente" de
+ *   `resolveWriteTenantId`).
+ * - Para `psw_staff`: o tenant-alvo NUNCA vem do profile (o tenant dele é o
+ *   da PSW, nunca o da empresa administrada). Sem `requestedTenantId` (sem
+ *   empresa selecionada) devolve `null` sem consulta — adivinhar seria
+ *   gravar no tenant errado. Com `requestedTenantId`, valida contra a
+ *   concessão via `isTenantAdminOf()` e só devolve o id quando a concessão
+ *   existir; caso contrário devolve `null`.
+ *
+ * O chamador DEVE tratar `null` como erro e retornar
+ * `{ error: ADMIN_SCOPE_DENIED_MESSAGE }` (ou o early-return equivalente da
+ * action) ANTES de tentar a mutação — é este early return que elimina o
+ * sucesso silencioso (RLS que casa zero linhas e devolve sucesso).
+ */
+export async function resolveAdminTenantId(
+  profile: CurrentProfile,
+  requestedTenantId: string | undefined
+): Promise<string | null> {
+  if (!isPswStaff(profile)) {
+    return profile.tenantId;
+  }
+
+  if (!requestedTenantId) return null;
+
+  const allowed = await isTenantAdminOf(profile, requestedTenantId);
+  return allowed ? requestedTenantId : null;
+}
+
+/**
+ * Auxiliar de conveniência: resolve o tenant-alvo de uma Server Action de
+ * admin diretamente a partir do CONTEXTO já existente do seletor de empresa
+ * da Sidebar, em vez de cada call site repetir os três passos (resolver slug
+ * → resolver id → validar concessão) — e um deles acabar esquecendo a
+ * validação.
+ *
+ * A origem é sempre o seletor (`?empresa=` na URL, com queda para o cookie
+ * `coe_empresa` via `resolveEmpresaSlug()`) — NUNCA um campo de formulário.
+ * Numa Server Action não há `searchParams` de rota; passar um
+ * `URLSearchParams` vazio faz `resolveEmpresaSlug()` cair direto no cookie,
+ * que é exatamente o comportamento desejado (o seletor persiste ali entre
+ * submits). A disciplina "o tenant não vem do formulário" (comentário de
+ * cabeçalho de `team/actions.ts`) é preservada invertendo a FONTE, não
+ * relaxando a regra.
+ *
+ * Para papéis de cliente, resolve direto para `profile.tenantId` sem nenhuma
+ * consulta — o seletor de empresa nem aparece pra eles (D-J). Devolve `null`
+ * quando não há slug selecionado, quando o slug não resolve a um tenant
+ * existente, ou quando o tenant resolvido não é administrado pela pessoa —
+ * mesmo contrato de `null` de `resolveAdminTenantId()`.
+ */
+export async function resolveAdminTenantIdFromSelector(
+  profile: CurrentProfile
+): Promise<string | null> {
+  if (!isPswStaff(profile)) {
+    return resolveAdminTenantId(profile, undefined);
+  }
+
+  const slug = await resolveEmpresaSlug(new URLSearchParams());
+  if (!slug) return null;
+
+  const tenantId = await fetchTenantIdBySlug(slug);
+  if (!tenantId) return null;
+
+  return resolveAdminTenantId(profile, tenantId);
 }
