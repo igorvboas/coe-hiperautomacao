@@ -2,6 +2,20 @@
 -- 0043-recarimbar-linhas-divergentes.sql — correção das linhas filhas cujo
 -- `tenant_id` diverge do tenant da sua oportunidade
 -- =============================================================================
+-- ✅ JÁ EXECUTADO EM PRODUÇÃO — 2026-08-07
+--
+-- O PO inspecionou as linhas e escolheu o PASSO 2B (apagar): 5 notas, 2 riscos
+-- e 1 linha de histórico. Conferência pós-execução devolveu 0 nas quatro
+-- tabelas. Este arquivo fica versionado como registro do que foi feito e como
+-- ferramenta reutilizável caso a divergência reapareça.
+--
+-- Nota sobre o que sobreviveu: `audit_trigger` (0038) cobre `opportunity_notes`
+-- e `opportunity_risks`, então o teor das 7 linhas dessas duas tabelas está
+-- preservado em `audit_log.old_data`, carimbado com o tenant PSW — visível
+-- para a PSW, invisível para o cliente dono da oportunidade, que era
+-- exatamente o objetivo. A linha de `opportunity_history` não é auditada
+-- (a 0038 não instala trigger nessa tabela) e foi perdida de vez.
+--
 -- Complemento de `supabase/migrations/0043_child_tenant_coherence.sql`. Aquela
 -- migration impede que linhas assim NASÇAM; este script corrige as que já
 -- existem. Está separado de propósito: a correção MUDA QUEM ENXERGA a linha,
