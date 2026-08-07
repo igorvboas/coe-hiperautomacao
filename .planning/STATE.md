@@ -4,16 +4,16 @@ milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
 current_phase: 18
 current_phase_name: staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
-status: planned
-stopped_at: "Phase 18 planejada — 8 planos em 7 waves, verificação passou na 1ª iteração"
-last_updated: "2026-08-07T13:16:25.115Z"
+status: executing
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-08-07T15:17:37.113Z"
 last_activity: 2026-08-07
-last_activity_desc: Phase 18 planned (8 plans, 7 waves)
+last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 23
-  completed_plans: 14
+  completed_plans: 15
   percent: 33
 ---
 
@@ -132,14 +132,14 @@ alterar datas, notificar o responsável por e-mail, comentários/anexos/log de h
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Cliente final consegue ver suas demandas de automação e cadastrar novas em um único lugar, sem planilhas/e-mails.
-**Current focus:** Phase 17 — acesso-multi-tenant-do-staff-psw-por-atribui-o
+**Current focus:** Phase 18 — staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
 
 ## Current Position
 
-Phase: 18 (staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa) — PLANNED
-Plan: 0 of 8
+Phase: 18 (staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-08-07 — Phase 18 planejada (8 planos, 7 waves; verificação passou na 1ª iteração)
+Last activity: 2026-08-07 — Phase 18 execution started
 
 **Phase 17 não está selada:** `17-08` Task 3 (`checkpoint:human-verify`, roteiros A–G) segue pendente.
 
@@ -149,7 +149,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [█████████░] 93%
+Progress: [███████░░░] 65%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -212,6 +212,7 @@ Progress: [█████████░] 93%
 | Phase 17 P06 | 35min | 3 tasks | 8 files |
 | Phase 17 P05 | ~50min | 2 tasks | 1 files |
 | Phase 17 P07 | ~7min | 3 tasks | 6 files |
+| Phase 18 P01 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -264,6 +265,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - [Phase ?]: Coluna e filtro Empresa condicionados a flag isPswStaff calculada no servidor; UI client nunca decide por papel.
 - [Phase ?]: 17-08: painel de atribuicao de [id]/page.tsx usa fetchAssignableProfilesForPlatformAdmin (candidatos a RECEBER atribuicao), nao fetchTaskAssignableProfiles (quem JA esta atribuido e pode ser responsavel de tarefa) — funcoes com proposito distinto
 - [Phase ?]: 17-08: sinalizacao de empresa no cabecalho exigiu tocar Header.tsx/OpportunityDetail.tsx (fora dos files_modified do plano) porque page.tsx delega todo o markup do cabecalho a esses componentes
+- [Phase ?]: 18-01: PO escolheu env-test-populado (Task 1) — .env.test antes do apply da 0045; suíte pulada passa a contar como falha, não como verde
+- [Phase ?]: 18-01: psw_tenant_admins escrito à mão em lib/database.types.ts, casando com o DDL da 0045 (RESEARCH); typecheck limpo
 
 ### Pending Todos
 
@@ -292,7 +295,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-08-07T13:16:25.100Z
+Last session: 2026-08-07T15:17:37.104Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -337,7 +340,7 @@ Previous session: 2026-06-04 — `/gsd-discuss-phase 11`. Contexto da Phase 11 (
 Previous session: 2026-06-04 — `/gsd-discuss-phase 10`. Contexto da Phase 10 (Backend — Queries, Validação e Paridade de Score) capturado em `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md` (+ DISCUSSION-LOG, commit 38a94c6). 4 áreas discutidas, **todas delegadas pelo PO ("Você decide")** → direções recomendadas travadas (D-01..D-04): (1) **Paridade SCORE-04** = módulo único `lib/opportunities/score.ts` (5 fatores `_giba`) importado por ScorePreview + teste, com 2º nível de teste SQL `skipIf` contra `opportunity_score()`; achado: `ScorePreview.tsx` tem a fórmula v0.1 obsoleta, `tests/schema/score-rule.test.ts` já tem a nova travada. (2) **Schema Zod aditivo** — adiciona campos novos, corrige `criterioEnum`→minúsculo (D-08) e `timeBucketEnum`→frequência, **mantém** o split persona/formulário (P11 reestrutura). (3) **opportunity_risks** = só tipos + `riskInputSchema` Zod; CRUD vai p/ Phase 12. (4) **Tipos** via MCP Supabase `generate_typescript_types` (fallback `npm run gen:types`, ref já no `.env.local`) + migrar ~7 testes legados (`tempo:'medio'/'pequeno'`) ao domínio de frequência. Riscos de execução flagados: confirmar domínio de `p_tempo` da RPC `create_public_opportunity` pós-0011; checar compat MODEL-10 (`enrichment.ts`). Próximo: `/gsd-plan-phase 10 --skip-research`.
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-UI-SPEC.md
+Resume file: None
 
 ---
 
@@ -375,5 +378,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: Phase 18 UI-SPEC approved
+Stopped at: Completed 18-01-PLAN.md
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.

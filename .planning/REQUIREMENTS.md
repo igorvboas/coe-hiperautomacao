@@ -101,8 +101,8 @@ Adicionado em 2026-08-06 a pedido do PO. Problema estrutural: hoje uma pessoa da
 
 Adicionado em 2026-08-07 a pedido do PO. Problema estrutural: `profiles` tem **um** `role` e **um** `tenant_id`, o que codifica "esta pessoa tem este papel nesta empresa". O requisito novo — "é admin nas empresas A e C, e nas demais só vê o atribuído" — é um par (pessoa × empresa) que se repete: cardinalidade, não valor novo de enum. A concessão sai de `profiles` e vira tabela. Decisões travadas: ver Phase 18 no ROADMAP.
 
-- [ ] **GRANT-01**: Existe uma concessão N:N (pessoa × empresa) que registra de quais tenants um `psw_staff` é admin — um mesmo staff é admin de N empresas simultaneamente, sem duplicar `profiles` nem alterar `profiles.tenant_id`
-- [ ] **GRANT-02**: Um `psw_staff` **sem** nenhuma concessão continua enxergando **somente** as oportunidades atribuídas a ele — o comportamento entregue pela `0044` não muda em nada
+- [x] **GRANT-01**: Existe uma concessão N:N (pessoa × empresa) que registra de quais tenants um `psw_staff` é admin — um mesmo staff é admin de N empresas simultaneamente, sem duplicar `profiles` nem alterar `profiles.tenant_id`
+- [x] **GRANT-02**: Um `psw_staff` **sem** nenhuma concessão continua enxergando **somente** as oportunidades atribuídas a ele — o comportamento entregue pela `0044` não muda em nada
 - [ ] **GRANT-03**: Um `psw_staff` **com** concessão no tenant A enxerga todas as oportunidades de A **mais** as atribuídas a ele em qualquer outra empresa, numa mesma listagem unificada
 - [ ] **GRANT-04**: Dentro de um tenant onde tem concessão, o `psw_staff` exerce os **mesmos poderes de um `tenant_admin`** daquele tenant — convites/allowlist, equipe, configurações/branding e logs
 - [ ] **GRANT-05**: As Server Actions de admin operam sobre um **tenant-alvo explícito**, validado contra a concessão, em vez de derivá-lo de `profile.tenant_id` — nenhuma escrita grava no tenant errado nem responde sucesso tendo afetado zero linhas
@@ -110,7 +110,7 @@ Adicionado em 2026-08-07 a pedido do PO. Problema estrutural: `profiles` tem **u
 - [ ] **GRANT-07**: Existe uma tela `/admin/staff`, restrita ao `platform_admin`, onde ele concede e revoga a concessão e vê, por pessoa, as **duas origens de acesso separadas** — empresas onde é admin e atribuições individuais (indicando quantas são redundantes por já estarem em empresa administrada)
 - [ ] **GRANT-08**: Revogar uma concessão exige confirmação explícita que informa **quantas oportunidades** a pessoa deixará de enxergar; a atribuição individual sobrevive à revogação
 - [ ] **GRANT-09**: A atribuição de oportunidade continua sendo editada **somente** na própria oportunidade (`AssigneesPanel`) — a tela de admin exibe atribuições em leitura, com link, e nunca escreve nelas
-- [ ] **GRANT-10**: Nenhum papel existente muda de comportamento — `member`, `viewer`, `tenant_admin` e `platform_admin` mantêm visibilidade e poderes byte-idênticos, provado por teste de não-regressão
+- [x] **GRANT-10**: Nenhum papel existente muda de comportamento — `member`, `viewer`, `tenant_admin` e `platform_admin` mantêm visibilidade e poderes byte-idênticos, provado por teste de não-regressão
 
 ## Future Requirements (deferred)
 
