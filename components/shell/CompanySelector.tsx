@@ -11,19 +11,32 @@ type Tenant = { slug: string; name: string };
  * `?empresa=<slug>` — SLUG legível na URL, nunca o UUID. O server resolve para
  * tenant_id.
  */
-export function CompanySelector({ tenants }: { tenants: Tenant[] }) {
+export function CompanySelector({
+  tenants,
+  selected = '',
+}: {
+  tenants: Tenant[];
+  /** Slug lembrado no cookie — usado quando a URL não traz `?empresa=`. */
+  selected?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const current = searchParams.get('empresa') ?? '';
+  const current = searchParams.get('empresa') ?? selected;
 
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value;
+    // Cookie = memória da escolha: sobrevive a redirects/refresh que perdem a
+    // query string. "Todas as empresas" (value vazio) apaga o cookie.
+    document.cookie = value
+      ? `coe_empresa=${encodeURIComponent(value)}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`
+      : 'coe_empresa=; path=/; max-age=0; samesite=lax';
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set('empresa', value);
     else params.delete('empresa');
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
+    router.refresh();
   }
 
   return (

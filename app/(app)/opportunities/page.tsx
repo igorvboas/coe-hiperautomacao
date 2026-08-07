@@ -11,6 +11,7 @@ import {
   fetchAssignableProfiles,
   fetchAllAssignableProfiles,
 } from '@/lib/opportunities/assignees';
+import { resolveEmpresaSlug } from '@/lib/tenants/scope';
 import {
   getCurrentTenant,
   fetchTenantIdBySlug,
@@ -58,8 +59,9 @@ export default async function OpportunitiesPage({
   const profile = await getCurrentProfile();
   const isAdmin = isPlatformAdmin(profile);
   const isStaff = isPswStaff(profile);
+  // A URL manda; o cookie do seletor cobre as navegações que perdem a query.
   const empresaSlug =
-    isAdmin || isStaff ? sp.get('empresa')?.trim() || undefined : undefined;
+    isAdmin || isStaff ? await resolveEmpresaSlug(sp) : undefined;
   const scopedTenantId = empresaSlug
     ? (await fetchTenantIdBySlug(empresaSlug)) ?? undefined
     : undefined;

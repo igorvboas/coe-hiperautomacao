@@ -11,6 +11,7 @@
 // Portado de origin/feat/v0.3-produtizacao (commit 6ce45d1, nunca mesclada).
 // =============================================================================
 
+import { resolveEmpresaSlug } from '@/lib/tenants/scope';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fetchOpportunities } from '@/lib/opportunities/queries';
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   // Seletor de empresa (platform_admin): a URL carrega o SLUG, resolvido para
   // tenant_id server-side. Membro comum → RLS restringe de qualquer forma.
-  const empresaSlug = sp.get('empresa')?.trim() || undefined;
+  const empresaSlug = await resolveEmpresaSlug(sp);
   const tenantId = empresaSlug
     ? (await fetchTenantIdBySlug(empresaSlug)) ?? undefined
     : undefined;

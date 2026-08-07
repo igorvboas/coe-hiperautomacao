@@ -116,16 +116,19 @@ export function Sidebar({
   profile,
   tenants,
   logoUrl,
+  selectedEmpresa = '',
 }: {
   profile: SidebarProfile;
   tenants: Tenant[];
+  /** Empresa lembrada no cookie — vale quando a URL não traz `?empresa=`. */
+  selectedEmpresa?: string;
   /** Logo da empresa (/configuracoes). null → identidade PSW padrão. */
   logoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = searchParams.get('view');
-  const empresa = searchParams.get('empresa');
+  const empresa = searchParams.get('empresa') ?? selectedEmpresa;
   const isAdmin = profile.role === 'platform_admin';
   const isTenantAdmin = profile.role === 'tenant_admin';
   const [expanded, setExpanded] = useState(false);
@@ -247,7 +250,7 @@ export function Sidebar({
           {/* Seletor de empresa (só admin, só quando expandida) */}
           {isAdmin && expanded && tenants.length > 0 && (
             <div className="border-t border-white/10">
-              <CompanySelector tenants={tenants} />
+              <CompanySelector tenants={tenants} selected={selectedEmpresa} />
             </div>
           )}
 

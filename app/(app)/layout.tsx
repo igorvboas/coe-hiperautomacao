@@ -5,6 +5,8 @@ import { getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
 import { fetchTenantBranding } from '@/lib/branding/queries';
 import { brandingCss } from '@/lib/branding/theme';
 import { Sidebar } from '@/components/shell/Sidebar';
+import { EMPRESA_COOKIE } from '@/lib/tenants/scope';
+import { cookies } from 'next/headers';
 
 export default async function AppLayout({
   children,
@@ -35,6 +37,11 @@ export default async function AppLayout({
     tenants = data ?? [];
   }
 
+  // Empresa lembrada: o `?empresa=` da URL some em qualquer navegação que não
+  // carregue a query (redirect após mutação, refresh de rota). O cookie
+  // devolve o recorte para o seletor e para os links do menu.
+  const selectedEmpresa = (await cookies()).get(EMPRESA_COOKIE)?.value ?? '';
+
   return (
     <div className="min-h-screen flex bg-bg">
       {/* Override dos tokens de marca (:root + .dark). Inline porque a cor vem
@@ -50,6 +57,7 @@ export default async function AppLayout({
             tenantName: profile.tenantName,
           }}
           tenants={tenants}
+          selectedEmpresa={selectedEmpresa}
           logoUrl={branding.logoUrl}
         />
       </Suspense>
