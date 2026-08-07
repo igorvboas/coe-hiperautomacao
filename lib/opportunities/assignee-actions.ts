@@ -1,19 +1,30 @@
 'use server';
 
 // =============================================================================
-// assignee-actions.ts — atribuir/desatribuir pessoas (0032)
+// assignee-actions.ts — atribuir/desatribuir pessoas (0032; cross-tenant D-05
+// na Phase 17)
 // -----------------------------------------------------------------------------
 // Camadas de defesa (mesmo padrão do resto do projeto):
 //   1. Guard de role aqui — só tenant_admin ou platform_admin escrevem.
 //   2. `tenant_id` derivado da OPORTUNIDADE no servidor, nunca do formulário.
-//   3. Candidatos validados contra os profiles daquele tenant.
-//   4. RLS (0032) é o bloqueio real, e a trigger `check_assignee_tenant()`
-//      recusa vínculo cruzado entre empresas mesmo para platform_admin.
+//   3. Candidatos validados: do MESMO tenant da oportunidade sempre; OU
+//      `psw_staff` de QUALQUER tenant quando quem atribui é `platform_admin`
+//      (D-05) — o único vínculo cruzado legítimo desta fase.
+//   4. RLS (0032) é o bloqueio real. A trigger `check_assignee_tenant()`
+//      (reescrita na 0040) repete esta mesma regra no banco: aceita vínculo
+//      cruzado SOMENTE quando o profile atribuído é `psw_staff`, e continua
+//      rejeitando qualquer outro profile de tenant diferente — inclusive
+//      quando quem atribui é `platform_admin`.
 // =============================================================================
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentProfile, isPlatformAdmin, isTenantAdmin } from '@/lib/security/role';
+import {
+  getCurrentProfile,
+  isPlatformAdmin,
+  isTenantAdmin,
+  isPswStaff,
+} from '@/lib/security/role';
 
 export type AssignResult = { ok: true } | { ok: false; error: string };
 
@@ -50,17 +61,28 @@ export async function setOpportunityAssignees(
     return { ok: false, error: 'Oportunidade de outra empresa.' };
   }
 
-  // Só aceita profiles do MESMO tenant da oportunidade. A trigger de 0032
-  // repetiria essa checagem, mas aqui a mensagem é legível.
+  // Aceita profiles do MESMO tenant da oportunidade — a regra de sempre — OU,
+  // quando quem atribui é `platform_admin`, também profiles `psw_staff` de
+  // QUALQUER tenant (D-05: só o platform_admin vincula gente da PSW a
+  // oportunidades de outra empresa; um tenant_admin de cliente não pode, e a
+  // UI de convite nem oferece essa opção — esta é a segunda camada). A
+  // trigger `check_assignee_tenant()` (0040) repete a checagem no banco —
+  // esta camada existe para a mensagem legível, não como bloqueio único.
   const unique = Array.from(new Set(profileIds.filter(Boolean)));
   let valid: string[] = [];
   if (unique.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('tenant_id', opp.tenant_id)
+      .select('id, tenant_id, role')
       .in('id', unique);
-    valid = (profiles ?? []).map((p) => p.id);
+    const actingAsPlatformAdmin = isPlatformAdmin(profile);
+    valid = (profiles ?? [])
+      .filter(
+        (p) =>
+          p.tenant_id === opp.tenant_id ||
+          (actingAsPlatformAdmin && isPswStaff(p))
+      )
+      .map((p) => p.id);
     if (valid.length !== unique.length) {
       return { ok: false, error: 'Alguma das pessoas não pertence a esta empresa.' };
     }
