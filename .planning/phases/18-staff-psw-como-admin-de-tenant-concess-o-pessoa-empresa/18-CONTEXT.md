@@ -90,22 +90,45 @@ oportunidades que lhe foram atribuídas em outras empresas.
   **quantas oportunidades** a pessoa deixará de enxergar. O comportamento
   (perder a visão de tudo em A exceto o atribuído nominalmente) é correto, mas
   surpreendente o bastante para não acontecer em silêncio.
+- **D-R (Seletor da Sidebar é o contexto de escrita):** o seletor de empresa que
+  já existe para `platform_admin`/`psw_staff` (`lib/tenants/scope.ts`,
+  `resolveEmpresaSlug()`, cookie `coe_empresa`) passa a definir **também** o
+  tenant-alvo das ações das telas de admin. Não se cria um segundo seletor por
+  tela. **Consequência obrigatória:** com "Todas as empresas" selecionado não
+  existe alvo definido, então as ações de escrita dessas telas ficam
+  **desabilitadas** com explicação em pt-BR ("selecione uma empresa para
+  editar"), nunca gravando num tenant adivinhado. O tenant-alvo continua sendo
+  validado contra a concessão no servidor (D-K) — o seletor é conveniência de
+  UI, jamais a autorização.
+- **D-S (Concessão órfã sobrevive inerte):** se a pessoa deixa de ser
+  `psw_staff`, as linhas de `psw_tenant_admins` **permanecem**. Elas param de
+  conceder sozinhas, porque `is_tenant_admin_of()` exige
+  `current_user_role() = 'psw_staff'` no seu segundo disjunto. A `/admin/staff`
+  mostra essas linhas **sinalizadas como órfãs**. Não há trigger de limpeza:
+  apagar dado em silêncio numa troca de papel é pior que exibir uma linha
+  inerte, e promover a pessoa de volta restaura o acesso sem reconceder tudo à
+  mão. (A FK de `tenant_id` continua com `on delete cascade` — apagar a empresa
+  apaga a concessão, o que é outro caso e está correto.)
 
 ### Derivadas do estado real do código (medidas no `main`, 2026-08-07)
 
 - **D-H (Numeração de migration):** a última migration é a
   `0044_psw_staff_only_assigned.sql`. Esta fase começa em **`0045`**.
-- **D-I (Superfície de `tenant_admin` = 17 predicados, forma idêntica):** as ~75
-  ocorrências de `tenant_admin` no SQL incluem seeds e CHECKs de enum. Os
-  predicados **reais** de policy são 17, e todos têm a mesma forma
-  `tenant_id = current_tenant_id() and current_user_role() = 'tenant_admin'`:
-  4 em `opportunity_assignees` (0032:94,101,104,111), 3 em `invited_emails`
-  (0029:43,53,64), 5 em `tenants`/branding + `storage.objects`
-  (0033:56,58,115,126,137), 1 em `audit_log` (0038:229), 1 em 0041:447. Mais 3
-  CHECKs de allowlist de papel convidável (0028:27, 0041:432) que não são
-  predicados de policy mas precisam ser revistos. Essa uniformidade é o que
-  permite um helper único em vez de 17 reescritas à mão — e reescrever à mão é
-  como um fica esquecido.
+- **D-I (Superfície de `tenant_admin` — CORRIGIDA pela pesquisa de 2026-08-07):**
+  a contagem inicial do orquestrador ("17 predicados") contava **ocorrências de
+  texto**, não policies vivas. O número real é **11 policies vivas** em 14
+  ocorrências textuais, e a diferença esconde uma armadilha:
+
+  **`0029:53` é CÓDIGO MORTO.** A policy `invited_emails_insert_tenant_admin`
+  foi dropada e recriada mais restrita pela `0041:444-449`, que acrescentou
+  `and role not in ('platform_admin', 'psw_staff')`. Um plano que varra as
+  ocorrências por número de linha **ressuscita a versão de 0029 e apaga essa
+  cláusula**, reabrindo exatamente a escalada de privilégio que a 0041 fechou
+  (um `tenant_admin` de cliente convidando alguém como `psw_staff` direto pela
+  API). Aplica limpo, não dá erro em lugar nenhum, e só
+  `psw-staff-isolation.test.ts:1045` pega. **Trabalhar por NOME DE POLICY, nunca
+  por número de linha**, e no ROLLBACK reaplicar o BLOCO 6b da 0041 por último.
+  Ver §5 da RESEARCH.md para as 11 nomeadas.
 - **D-J (`is_tenant_admin_of()` precisa ser byte-equivalente no ramo
   `tenant_admin`):** o primeiro disjunto da função tem que reproduzir
   exatamente o predicado antigo (`current_user_role() = 'tenant_admin' and
@@ -122,9 +145,48 @@ oportunidades que lhe foram atribuídas em outras empresas.
   auditado em `/configuracoes`, `/admin/invites`, `/logs` e no branding.
 - **D-L (O ponto de encaixe na RLS já está escrito):** a `0044` já é um laço
   sobre 8 tabelas com predicado idêntico. O disjunto novo entra no laço —
-  não se escrevem 8 blocos à mão. Na tabela `opportunities` a chave é `id`; nas
-  filhas é `opportunity_id`, e o disjunto por tenant precisa resolver pela
-  coluna que existir em cada uma (várias filhas carregam `tenant_id` próprio).
+  não se escrevem 8 blocos à mão. **Verificado (2026-08-07): as 8 tabelas têm
+  `tenant_id uuid not null`** (`opportunities`, `opportunity_phases`,
+  `opportunity_risks`, `opportunity_notes`, `opportunity_documents`,
+  `opportunity_history`, `opportunity_tasks`, `opportunity_assignees`), então o
+  predicado por tenant é **uniforme** — a ressalva anterior sobre "resolver pela
+  coluna que existir" não se aplica. O laço deve `raise exception` (não
+  `continue`) se alguma tabela não tiver a coluna: silenciar aqui é o mesmo que
+  esquecer uma tabela.
+
+- **D-P (A RESTRITIVA SOZINHA É INERTE — descoberto na pesquisa, muda o plano):**
+  uma policy RESTRICTIVE só **subtrai**. Para um `psw_staff`, a camada
+  PERMISSIVE concede hoje exatamente dois conjuntos: linhas com
+  `tenant_id = current_tenant_id()` (o tenant da PSW) e linhas ligadas a
+  `current_assigned_opportunity_ids()`. **Nenhum dos dois concede as linhas de
+  um tenant A ao qual ele não pertence** — `opportunities_select` (0001:332),
+  `opportunities_select_platform_admin` (0021) e
+  `opportunities_select_psw_staff` (0040:192) todas falham para A. O Postgres é
+  explícito: *"there needs to be at least one permissive policy to grant access
+  before restrictive policies can be usefully used to reduce that access."*
+
+  Consequência: acrescentar `or tenant_id in (select current_admin_tenant_ids())`
+  **só** na restritiva da `0044` não concede nada. A fase precisa das **duas
+  metades** — policies PERMISSIVE aditivas novas por tabela **e** o disjunto na
+  restritiva — e cada metade é inútil sem a outra. Entregar só uma delas produz
+  uma migration que aplica limpo, não erra em lugar nenhum, e **não faz nada**.
+  A exceção que prova a regra: `opportunity_assignees` está nas duas listas, e
+  por isso trocar os predicados da 0032 lá dentro já concede. SQL exato das duas
+  metades em §1 da RESEARCH.md.
+
+- **D-Q (`is_tenant_admin_of(t)` nunca vira InitPlan — e a forma óbvia mata o
+  inlining):** a função recebe uma **coluna da linha** como argumento, então não
+  pode ser InitPlan. Pior: `security definer` + `set search_path` **bloqueiam o
+  inlining de função SQL**, transformando-a numa chamada opaca por linha com a
+  subquery reconstruída dentro. Recomendação da pesquisa (§4): manter
+  `security definer` nos helpers **sem argumento** (que retornam conjuntos), e
+  fazer o booleano ser um wrapper fino `stable`, **sem** definer, **sem** `SET`,
+  com chamadas schema-qualified — aí ele inlina para
+  `tenant_id in (select effective_admin_tenant_ids())`, um subplano com hash
+  avaliado uma vez por statement. `immutable` está **errado** aqui: o resultado
+  depende de `auth.uid()`, e marcá-lo immutable vazaria resultado entre sessões.
+  A mecânica de inlining está marcada `[ASSUMED: A2]` na pesquisa — o plano deve
+  incluir o bloco `EXPLAIN (analyze)` que ela sugere para confirmar.
 - **D-M (`resolveWriteTenantId()` já cobre a camada de oportunidade):**
   [`lib/security/role.ts`](lib/security/role.ts) resolve o tenant-alvo lendo a
   oportunidade quando o papel é `psw_staff`. Assim que a RLS alargar, ele alarga
@@ -269,6 +331,9 @@ oportunidades que lhe foram atribuídas em outras empresas.
   or id in (select current_assigned_opportunity_ids())
   or tenant_id in (select current_admin_tenant_ids())   -- ← acrescentado
   ```
+  **Isto é metade da mudança.** Sem a PERMISSIVE aditiva correspondente (D-P),
+  este disjunto não concede nada — ele apenas deixa de subtrair algo que nunca
+  foi concedido.
 
 - A visão diagnóstica da `/admin/staff` responde a pergunta "por que fulano vê
   isto?". O valor dela é diagnóstico, não gestão — por isso as atribuições são
