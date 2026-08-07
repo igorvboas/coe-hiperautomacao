@@ -40,7 +40,7 @@ describe('formatValue', () => {
   });
 
   it('traduz enum e booleano', () => {
-    expect(formatValue('em_analise')).toBe('Em análise');
+    expect(formatValue('em_analise')).toBe('Refinamento');
     expect(formatValue('tenant_admin')).toBe('Admin da empresa');
     expect(formatValue(true)).toBe('Sim');
     expect(formatValue(false)).toBe('Não');

@@ -551,6 +551,8 @@ export type Database = {
           phase_key: PhaseKey;
           started_at: string | null;
           finished_at: string | null;
+          planned_start_at: string | null;
+          planned_end_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -561,6 +563,8 @@ export type Database = {
           phase_key: PhaseKey;
           started_at?: string | null;
           finished_at?: string | null;
+          planned_start_at?: string | null;
+          planned_end_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -568,6 +572,8 @@ export type Database = {
           phase_key: PhaseKey;
           started_at: string | null;
           finished_at: string | null;
+          planned_start_at: string | null;
+          planned_end_at: string | null;
           updated_at: string;
         }>;
         Relationships: [

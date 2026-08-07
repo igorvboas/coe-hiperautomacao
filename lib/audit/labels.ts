@@ -126,7 +126,7 @@ export const FIELD_LABEL: Record<string, string> = {
 const VALUE_LABEL: Record<string, string> = {
   // status de oportunidade
   novo: 'Novo',
-  em_analise: 'Em análise',
+  em_analise: 'Refinamento',
   planejamento: 'Planejamento',
   backlog: 'Backlog',
   desenvolvimento: 'Desenvolvimento',

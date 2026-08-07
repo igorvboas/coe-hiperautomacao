@@ -304,7 +304,8 @@ function renderTab(args: {
   // Fases, Risco, Documentos e Histórico têm sua própria interatividade (CRUD
   // inline gated só por `readOnly`) — independem do fluxo global Editar/Salvar
   // (D-12) e por isso NÃO fazem parte do payload de updateOpportunity.
-  if (tab === 'fases') return <FasesTab opportunity={opp} phases={phases} />;
+  if (tab === 'fases')
+    return <FasesTab opportunity={opp} phases={phases} readOnly={readOnly} />;
   if (tab === 'risco')
     return <RiscoTab opportunity={opp} risks={risks} readOnly={readOnly} />;
   if (tab === 'documentos')

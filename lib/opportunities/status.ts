@@ -27,14 +27,15 @@ export type StatusMeta = {
 
 // Ordem canônica exibida (dropdown de status, filtro, colunas do kanban):
 // primeiro os status do pipeline de oportunidades, com Backlog posicionado
-// entre Em Análise e Planejamento para refletir o fluxo de priorização.
+// entre Planejamento e Desenvolvimento — a espera entre "já planejado" e "em
+// construção" (mesma ordem da aba Fases do modal).
 // `gestao`/`manutencao` foram removidos da seleção (continuam no STATUS_ORDER
 // só para renderizar registros legados que ainda os tenham — ver STATUS_ALL).
 export const STATUS_ORDER: OpportunityStatus[] = [
   'novo',
   'em_analise',
-  'backlog',
   'planejamento',
+  'backlog',
   'desenvolvimento',
   'homologacao',
   'producao',
@@ -44,7 +45,9 @@ export const STATUS_ORDER: OpportunityStatus[] = [
 
 export const STATUS_META: Record<OpportunityStatus, StatusMeta> = {
   novo: { status: 'novo', label: 'Registrado', icon: '🆕', bg: '#f1f5f9', color: '#64748b' },
-  em_analise: { status: 'em_analise', label: 'Em Análise', icon: '🔍', bg: '#ede9fe', color: '#8b5cf6' },
+  // Rótulo de UI trocado para "Refinamento" (o valor do enum segue `em_analise`
+  // — renomear o status no banco seria migration de dado sem ganho).
+  em_analise: { status: 'em_analise', label: 'Refinamento', icon: '🔍', bg: '#ede9fe', color: '#8b5cf6' },
   planejamento: { status: 'planejamento', label: 'Planejamento', icon: '📋', bg: '#dbeafe', color: '#3b82f6' },
   backlog: { status: 'backlog', label: 'Backlog', icon: '⏳', bg: '#fef3c7', color: '#f59e0b' },
   desenvolvimento: { status: 'desenvolvimento', label: 'Desenvolvimento', icon: '⚙️', bg: '#ffedd5', color: '#f97316' },

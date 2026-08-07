@@ -53,7 +53,7 @@ const OPPORTUNITY_COLUMNS =
  */
 const PHASE_COLUMNS =
   'id, opportunity_id, tenant_id, phase_key, ' +
-  'started_at, finished_at, created_at, updated_at';
+  'started_at, finished_at, planned_start_at, planned_end_at, created_at, updated_at';
 
 /**
  * Whitelist para `opportunity_risks` (0011) — mesma motivação de HARDEN-E-06
