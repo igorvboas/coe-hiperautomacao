@@ -463,13 +463,33 @@ Plans:
 **Plans**: 8 plans (7 waves · 3 migrations write-only · 5 gates humanos)
 
 Plans:
+**Wave 1**
+
 - [ ] 18-01-PLAN.md — Wave 0: decisão de como a fase prova a RLS, specs decisivos (baseline → concede → revoga → baseline) e tipos de `psw_tenant_admins` à mão
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 18-02-PLAN.md — **TRACER**: migration `0045` (tabela da concessão + 3 helpers + trigger + as DUAS metades da RLS em `opportunities`) e prova ponta-a-ponta
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 18-03-PLAN.md — Expansão RLS: migration `0046` (7 tabelas filhas por laço com paridade de verbos + `profiles`) e prova de propagação
 - [ ] 18-04-PLAN.md — Tela `/admin/staff`: duas origens separadas, revogação quantificada, concessão órfã sinalizada
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 18-05-PLAN.md — Poderes de `tenant_admin`: migration `0047` (as 11 policies vivas pela fonte única + Storage), com a barreira de escalada de convite preservada
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 18-06-PLAN.md — Camada de servidor: `isTenantAdminOf` / `resolveAdminTenantId` e as escritas de Equipe e Configurações sobre tenant-alvo
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 18-07-PLAN.md — Leitura escopada e gate visual nas 4 telas de admin (marcador de escopo + aviso de escrita desabilitada)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 18-08-PLAN.md — Shell (seletor e menus para o staff-admin), gate de atribuição alinhado à RLS, e verificação visual A–H com auditoria de não-regressão
 
 **Success Criteria** (what must be TRUE):

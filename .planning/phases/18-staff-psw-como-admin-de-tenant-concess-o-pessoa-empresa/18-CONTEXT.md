@@ -129,8 +129,7 @@ oportunidades que lhe foram atribuídas em outras empresas.
   `psw-staff-isolation.test.ts:1045` pega. **Trabalhar por NOME DE POLICY, nunca
   por número de linha**, e no ROLLBACK reaplicar o BLOCO 6b da 0041 por último.
   Ver §5 da RESEARCH.md para as 11 nomeadas.
-- **D-J (`is_tenant_admin_of()` precisa ser byte-equivalente no ramo
-  `tenant_admin`):** o primeiro disjunto da função tem que reproduzir
+- **D-J (`is_tenant_admin_of()` precisa ser byte-equivalente no ramo `tenant_admin`):** o primeiro disjunto da função tem que reproduzir
   exatamente o predicado antigo (`current_user_role() = 'tenant_admin' and
   t = current_tenant_id()`), senão a fase muda silenciosamente o comportamento
   de um papel de cliente. Isto é requisito de não-regressão, não detalhe.
@@ -174,8 +173,7 @@ oportunidades que lhe foram atribuídas em outras empresas.
   por isso trocar os predicados da 0032 lá dentro já concede. SQL exato das duas
   metades em §1 da RESEARCH.md.
 
-- **D-Q (`is_tenant_admin_of(t)` nunca vira InitPlan — e a forma óbvia mata o
-  inlining):** a função recebe uma **coluna da linha** como argumento, então não
+- **D-Q (`is_tenant_admin_of(t)` nunca vira InitPlan — e a forma óbvia mata o inlining):** a função recebe uma **coluna da linha** como argumento, então não
   pode ser InitPlan. Pior: `security definer` + `set search_path` **bloqueiam o
   inlining de função SQL**, transformando-a numa chamada opaca por linha com a
   subquery reconstruída dentro. Recomendação da pesquisa (§4): manter

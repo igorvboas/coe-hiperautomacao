@@ -2,22 +2,56 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
-current_phase: 17
-current_phase_name: acesso-multi-tenant-do-staff-psw-por-atribui-o
-status: executing
-stopped_at: "17-08-PLAN.md: Tasks 1-2 completas (commits 4a06bd2, e4ac497); Task 3 (checkpoint:human-verify, roteiros A-G) pendente — sem acesso a browser"
-last_updated: "2026-08-07T10:14:12.128Z"
-last_activity: 2026-08-06
-last_activity_desc: Phase 17 execution started
+current_phase: 18
+current_phase_name: staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
+status: planned
+stopped_at: "Phase 18 planejada — 8 planos em 7 waves, verificação passou na 1ª iteração"
+last_updated: "2026-08-07T13:16:25.115Z"
+last_activity: 2026-08-07
+last_activity_desc: Phase 18 planned (8 plans, 7 waves)
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 1
-  total_plans: 15
+  total_plans: 23
   completed_plans: 14
-  percent: 50
+  percent: 33
 ---
 
 # Project State
+
+## Milestone v0.5 — Phase 18 (planejada em 2026-08-07)
+
+**Goal:** um `psw_staff` passa a ser **admin de N empresas** ao mesmo tempo. Sem concessão ele continua
+vendo só as oportunidades atribuídas a ele (comportamento da `0044`, intocado); com concessão no tenant
+A ele vê tudo de A e exerce ali os poderes de `tenant_admin` (convites, equipe, configurações/branding,
+logs), sem perder as atribuições em outras empresas. Só o `platform_admin` concede e revoga, na tela
+`/admin/staff`.
+
+**O achado da pesquisa que mudou a FORMA da fase (não só o conteúdo):** o CONTEXT descreve o trabalho de
+RLS como "acrescentar um disjunto na restritiva da `0044`". Lido ao pé da letra isso produz uma migration
+que **aplica limpa, não erra em lugar nenhum e não faz nada** — policy `RESTRICTIVE` só subtrai, e
+nenhuma permissiva viva concede tenant-wide a um `psw_staff`. Toda concessão precisa das **duas metades**
+(restritiva + permissiva) no mesmo pacote.
+
+**Waves:** 1 → `18-01` (Wave 0: decisão do `.env.test`, specs decisivos baseline→concede→revoga→baseline,
+tipos à mão); 2 → `18-02` (**TRACER** — migration `0045`: tabela + 3 helpers + trigger + as duas metades
+da RLS em `opportunities`); 3 → `18-03` (`0046`: 7 filhas + `profiles`) ‖ `18-04` (tela `/admin/staff`);
+4 → `18-05` (`0047`: as 11 policies vivas pela fonte única + Storage); 5 → `18-06` (`isTenantAdminOf` /
+`resolveAdminTenantId` + escritas de admin); 6 → `18-07` (leitura escopada + marcador nas 4 telas);
+7 → `18-08` (shell + gate de atribuição + verificação visual A–H).
+
+**Gates humanos:** 3 applies manuais (`0045` → `0046` → `0047`) + 2 `checkpoint:decision` (18-02 ratifica
+o mecanismo; 18-05 reescreve 11 policies de um papel de cliente vivo em produção). Wave 3 é o único
+paralelismo — zero sobreposição de `files_modified`.
+
+**Três decisões que podem exigir o PO antes de executar:** (1) `.env.test` — se a escolha for "prova por
+SQL no handoff", nenhum SUMMARY desta fase pode dizer "testes verdes", a evidência vira o bloco colado;
+(2) um staff-admin de A **pode convidar um `tenant_admin` de A** — consequência direta de D-A (equivalência
+plena), está no `checkpoint:decision` da 18-05 para ratificação; (3) identidade visual do shell — recomendado
+manter a do tenant de lotação, com a empresa de atuação no marcador de escopo.
+
+**Ainda pendente da Phase 17:** `17-08` Task 3 (`checkpoint:human-verify`, roteiros A–G) nunca rodou —
+sem acesso a browser na sessão. A Phase 17 não está selada.
 
 ## Milestone v0.5 — Phase 17 (planejada em 2026-08-06)
 
@@ -102,10 +136,12 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 17 (acesso-multi-tenant-do-staff-psw-por-atribui-o) — EXECUTING
-Plan: 8 of 8
+Phase: 18 (staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa) — PLANNED
+Plan: 0 of 8
 Status: Ready to execute
-Last activity: 2026-08-06 — Phase 17 execution started
+Last activity: 2026-08-07 — Phase 18 planejada (8 planos, 7 waves; verificação passou na 1ª iteração)
+
+**Phase 17 não está selada:** `17-08` Task 3 (`checkpoint:human-verify`, roteiros A–G) segue pendente.
 
 **Carryover do v0.1 (pendente):** Phase 7.6 (Enriquecimento por IA) ficou `ready_to_execute` mas será REALINHADA aos novos campos do v0.2 antes de executar (os 9 campos-alvo do enrichment mudam). Phase 8 (Deploy) será ABSORVIDA ao final do v0.2 (schema muda por baixo). Artefatos do 7.6 preservados em `.planning/phases/07.6-enriquecimento-ia-oportunidades/`.
 
@@ -256,7 +292,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-08-07T10:12:14.828Z
+Last session: 2026-08-07T13:16:25.100Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -301,7 +337,7 @@ Previous session: 2026-06-04 — `/gsd-discuss-phase 11`. Contexto da Phase 11 (
 Previous session: 2026-06-04 — `/gsd-discuss-phase 10`. Contexto da Phase 10 (Backend — Queries, Validação e Paridade de Score) capturado em `.planning/phases/10-backend-queries-validation-score/10-CONTEXT.md` (+ DISCUSSION-LOG, commit 38a94c6). 4 áreas discutidas, **todas delegadas pelo PO ("Você decide")** → direções recomendadas travadas (D-01..D-04): (1) **Paridade SCORE-04** = módulo único `lib/opportunities/score.ts` (5 fatores `_giba`) importado por ScorePreview + teste, com 2º nível de teste SQL `skipIf` contra `opportunity_score()`; achado: `ScorePreview.tsx` tem a fórmula v0.1 obsoleta, `tests/schema/score-rule.test.ts` já tem a nova travada. (2) **Schema Zod aditivo** — adiciona campos novos, corrige `criterioEnum`→minúsculo (D-08) e `timeBucketEnum`→frequência, **mantém** o split persona/formulário (P11 reestrutura). (3) **opportunity_risks** = só tipos + `riskInputSchema` Zod; CRUD vai p/ Phase 12. (4) **Tipos** via MCP Supabase `generate_typescript_types` (fallback `npm run gen:types`, ref já no `.env.local`) + migrar ~7 testes legados (`tempo:'medio'/'pequeno'`) ao domínio de frequência. Riscos de execução flagados: confirmar domínio de `p_tempo` da RPC `create_public_opportunity` pós-0011; checar compat MODEL-10 (`enrichment.ts`). Próximo: `/gsd-plan-phase 10 --skip-research`.
 
 Previous session: 2026-06-04 — `/gsd-discuss-phase 9`. Contexto da Phase 9 (Schema Evolution + Score/Risk/Contract Foundation) capturado: 4 áreas discutidas e travadas (17 decisões D-01..D-17). Destaques: backfill FGCoop deriva `tempo` da coluna `frequencia` existente (personas→NULL), `fte_horas`/`fte` NULL, `fonte='FGCoop'`; critérios e benefícios em colunas jsonb dedicadas (não escalares); `rpa_score` como coluna GENERATED dos critérios com regra inferida por engenharia reversa do `_giba` (validada contra o seed); `opportunity_risks` com enums (tipo/impacto/probabilidade/status), `responsavel` text livre (tenant-agnóstico) e `priority` GENERATED da matriz. Artefatos: `.planning/phases/09-schema-evolution-foundation/09-CONTEXT.md` + `09-DISCUSSION-LOG.md` (commit bd58604). Próximo: `/gsd-plan-phase 9`.
-Resume file: .planning/phases/17-acesso-multi-tenant-do-staff-psw-por-atribui-o/17-08-SUMMARY.md
+Resume file: .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-UI-SPEC.md
 
 ---
 
@@ -339,5 +375,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: 17-08-PLAN.md: Tasks 1-2 completas (commits 4a06bd2, e4ac497); Task 3 (checkpoint:human-verify, roteiros A-G) pendente — sem acesso a browser
+Stopped at: Phase 18 UI-SPEC approved
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
