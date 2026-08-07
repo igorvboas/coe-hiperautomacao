@@ -199,9 +199,15 @@ export default async function StaffAdminPage() {
         </div>
       )}
 
-      {!readFailed && people.length > 0 && (
+      {/* Só pessoas ATIVAS como psw_staff são grant-áveis (nunca uma órfã —
+          o trigger de coerência do banco rejeitaria, mas a UI nem oferece a
+          opção). Sem nenhuma pessoa ativa, o formulário inteiro some — vale
+          o estado vazio da lista, mesmo que só concessões órfãs existam. */}
+      {!readFailed && people.some((p) => !p.isOrphan) && (
         <GrantForm
-          people={people.map((p) => ({ id: p.id, fullName: p.fullName, email: p.email }))}
+          people={people
+            .filter((p) => !p.isOrphan)
+            .map((p) => ({ id: p.id, fullName: p.fullName, email: p.email }))}
           tenants={tenantOptions}
           grantedTenantIdsByPerson={Object.fromEntries(
             people.map((p) => [p.id, p.grants.map((g) => g.tenantId)])
@@ -304,12 +310,15 @@ export default async function StaffAdminPage() {
                         {person.assignments.length > 0 && (
                           <>
                             {' '}
-                            (
                             {person.assignments.length}
-                            {person.redundantCount > 0
-                              ? `, ${person.redundantCount} redundantes`
-                              : ''}
-                            )
+                            {person.redundantCount > 0 && (
+                              <>
+                                {' '}
+                                (
+                                {pluralize(person.redundantCount, 'redundante', 'redundantes')}
+                                )
+                              </>
+                            )}
                           </>
                         )}
                       </span>
