@@ -40,6 +40,38 @@
 -- ainda não vê as tabelas filhas dela (anotações/tarefas/riscos) — é
 -- ESPERADO e estritamente menos permissivo, não um vazamento.
 --
+-- DESVIO AUTORIZADO DO PLANO (checkpoint da Task 2, resolvido pelo PO em
+-- 2026-08-07): a fatia SELECT-only descrita acima deixaria o verbo UPDATE em
+-- `opportunities` sem NENHUMA permissiva que o conceda ao staff-admin — nem
+-- `opportunities_update` (0015, exige `tenant_id = current_tenant_id()`), nem
+-- `opportunities_update_platform_admin` (0025, exige `is_platform_admin()`),
+-- nem `opportunities_update_psw_staff` (0041, exige atribuição nominal). A
+-- restritiva reemitida (BLOCO 7) é `for all` e já cobre o UPDATE do lado que
+-- SUBTRAI, mas restritiva só subtrai — sem uma permissiva correspondente o
+-- verbo fica igual ao caso já documentado acima (D-P) aplicado a escrita:
+-- o UPDATE casaria ZERO linhas e devolveria `error === null`, o falso-sucesso
+-- silencioso que a releitura por service-role do teste decisivo desta fase
+-- foi escrita para pegar. Nenhuma outra migration da fase fecha isso depois
+-- (a lista de policies do `18-05` não inclui `opportunities_update`). O PO
+-- autorizou, portanto, o acréscimo de UMA permissiva a mais além do escopo
+-- original — `opportunities_update_psw_admin` (BLOCO 6b) — mantendo tudo o
+-- mais (INSERT/DELETE em `opportunities`, e as sete filhas) fora desta
+-- migration.
+--
+-- OBJETOS NOVOS DESTA MIGRATION (lista final, já incorporando o desvio
+-- acima):
+--   tabela   psw_tenant_admins
+--   índices  psw_tenant_admins_profile_only_idx, psw_tenant_admins_tenant_idx
+--   funções  current_admin_tenant_ids(), effective_admin_tenant_ids(),
+--            is_tenant_admin_of(uuid), check_psw_tenant_admin_role()
+--   trigger  psw_tenant_admins_role_guard
+--   policies psw_tenant_admins_select / _insert / _delete (sem _update)
+--            opportunities_select_psw_admin      (PERMISSIVA nova, SELECT)
+--            opportunities_update_psw_admin      (PERMISSIVA nova, UPDATE —
+--                                                  desvio autorizado acima)
+--            tenants_select_psw_admin            (PERMISSIVA nova, SELECT)
+--            opportunities_psw_staff_only_assigned (REEMITIDA, 3 disjuntos)
+--
 -- WRITE-ONLY MODE — este arquivo NÃO é aplicado por este agente. O apply é
 -- SEMPRE manual, no Supabase Cloud SQL Editor, por um humano (ver o handoff
 -- desta fase). Nenhum comando de auto-apply de CLI pertence a este arquivo.
@@ -265,10 +297,11 @@ grant select, insert, delete on psw_tenant_admins to authenticated;
 -- `tenant_admin` byte-equivalente, D-J) — então estas policies NUNCA
 -- concedem nada de novo a ninguém além do staff-admin recém-concedido.
 --
--- ESCOPO DESTA MIGRATION: SOMENTE SELECT. A escrita por concessão nas tabelas
--- filhas (a fatia vertical completa de INSERT/UPDATE/DELETE, espelhando os
--- verbos que um `tenant_admin` de fato tem em cada uma) é entregue na
--- migration seguinte da fase, junto da propagação às sete tabelas filhas.
+-- ESCOPO DESTA MIGRATION: SELECT nas duas tabelas, MAIS o UPDATE mínimo em
+-- `opportunities` do Bloco 6b (desvio autorizado, ver cabeçalho). INSERT e
+-- DELETE em `opportunities`, e todos os verbos nas sete tabelas filhas —
+-- espelhando os verbos que um `tenant_admin` de fato tem em cada uma — ficam
+-- para a migration seguinte da fase, junto da propagação às sete filhas.
 drop policy if exists opportunities_select_psw_admin on opportunities;
 create policy opportunities_select_psw_admin on opportunities
   for select using (is_tenant_admin_of(tenant_id));
@@ -279,6 +312,31 @@ create policy opportunities_select_psw_admin on opportunities
 drop policy if exists tenants_select_psw_admin on tenants;
 create policy tenants_select_psw_admin on tenants
   for select using (is_tenant_admin_of(id));
+
+-- -----------------------------------------------------------------------------
+-- BLOCO 6b — UPDATE em `opportunities` (DESVIO AUTORIZADO — ver cabeçalho)
+-- -----------------------------------------------------------------------------
+-- Por que este objeto existe, apesar do escopo original ser só-leitura: a
+-- restritiva do BLOCO 7 é `for all` e portanto já cobre o UPDATE do lado que
+-- SUBTRAI (ela deixaria de barrar o staff-admin de A) — mas uma RESTRICTIVE
+-- só subtrai, nunca concede (a mesma regra do BLOCO 6). SEM esta permissiva,
+-- nenhuma policy viva de `opportunities` concede UPDATE ao staff-admin sobre
+-- uma oportunidade de A que não lhe foi atribuída nominalmente:
+--   `opportunities_update` (0015)               exige tenant_id = current_tenant_id()
+--   `opportunities_update_platform_admin` (0025) exige is_platform_admin()
+--   `opportunities_update_psw_staff` (0041)      exige atribuição nominal
+-- Nenhuma bate. O UPDATE casaria ZERO linhas e o Supabase devolveria
+-- `error === null` — sucesso silencioso disfarçado (o mesmo padrão descrito
+-- em `lib/security/role.ts:148-155`). É exatamente esse falso-sucesso que a
+-- releitura por `serviceRoleClient()` no teste decisivo desta fase existe
+-- para pegar. Escopo estritamente mínimo: SÓ este verbo, SÓ `opportunities` —
+-- INSERT/DELETE em `opportunities` e todos os verbos nas sete filhas
+-- continuam fora desta migration (D-A pleno é entregue de forma incremental).
+drop policy if exists opportunities_update_psw_admin on opportunities;
+create policy opportunities_update_psw_admin on opportunities
+  for update
+  using      (is_tenant_admin_of(tenant_id))
+  with check (is_tenant_admin_of(tenant_id));
 
 -- -----------------------------------------------------------------------------
 -- BLOCO 7 — a metade RESTRITIVA da fatia: `opportunities_psw_staff_only_assigned`
@@ -348,12 +406,18 @@ where tablename = 'opportunities'
   and policyname = 'opportunities_psw_staff_only_assigned'
   and qual like '%current_admin_tenant_ids%';
 
--- V4. As duas permissivas novas existem.
+-- V4. As duas permissivas de SELECT novas existem.
 --     ESPERADO: 2 linhas (opportunities_select_psw_admin, tenants_select_psw_admin).
 select tablename, policyname, cmd
 from pg_policies
 where policyname like '%_select_psw_admin'
 order by tablename;
+
+-- V4b. A permissiva de UPDATE (desvio autorizado, BLOCO 6b) existe.
+--      ESPERADO: 1 linha (opportunities_update_psw_admin, cmd = UPDATE).
+select tablename, policyname, cmd
+from pg_policies
+where policyname = 'opportunities_update_psw_admin';
 
 -- V5. A MEDIÇÃO QUE IMPORTA — o conjunto visível do staff sobe ao conceder e
 --     volta ao revogar (fingindo a sessão do staff de teste):
@@ -398,9 +462,10 @@ order by tablename;
 -- =============================================================================
 -- BLOCO 9 — ROLLBACK (nesta ordem — a ordem importa)
 -- =============================================================================
--- 1. Dropar as duas permissivas novas (a concessão para de conceder; nada
+-- 1. Dropar as três permissivas novas (a concessão para de conceder; nada
 --    mais muda):
 --      drop policy if exists opportunities_select_psw_admin on opportunities;
+--      drop policy if exists opportunities_update_psw_admin on opportunities;
 --      drop policy if exists tenants_select_psw_admin on tenants;
 --
 -- 2. REAPLICAR O ARQUIVO `0044_psw_staff_only_assigned.sql` NA ÍNTEGRA para
