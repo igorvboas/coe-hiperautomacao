@@ -51,7 +51,10 @@ export type OpportunityFilters = {
   cargo?: Cargo;
   /** Filtro de empresa — `tenant_id` JÁ RESOLVIDO (a URL carrega o slug em
    *  `?empresa=`, resolvido server-side via `fetchTenantIdBySlug`; NUNCA expõe
-   *  UUID). Só efetivo para platform_admin — NÃO vem de `parseFilters` (não é
+   *  UUID). Efetivo para `platform_admin` **e**, desde a Phase 17 (Plan
+   *  17-07, D-03), também para `psw_staff` — sua listagem é unificada
+   *  cross-tenant, e este é o filtro que restringe a uma empresa dentro do
+   *  escopo atribuído. Em ambos os casos NÃO vem de `parseFilters` (não é
    *  lido direto da URL) para não virar um vetor de `tenant_id` arbitrário;
    *  quem popula este campo é a page, depois de resolver o slug. */
   tenant?: string;

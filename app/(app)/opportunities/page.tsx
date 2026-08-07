@@ -11,8 +11,17 @@ import {
   fetchAssignableProfiles,
   fetchAllAssignableProfiles,
 } from '@/lib/opportunities/assignees';
-import { getCurrentTenant, fetchTenantIdBySlug } from '@/lib/tenants/queries';
-import { isReadOnlyViewer, getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
+import {
+  getCurrentTenant,
+  fetchTenantIdBySlug,
+  fetchTenantsByIds,
+} from '@/lib/tenants/queries';
+import {
+  isReadOnlyViewer,
+  getCurrentProfile,
+  isPlatformAdmin,
+  isPswStaff,
+} from '@/lib/security/role';
 import { KpiBar } from '@/components/opportunities/kpi-bar';
 import { Toolbar } from '@/components/opportunities/toolbar';
 import { OpportunityTable } from '@/components/opportunities/table';
@@ -39,14 +48,18 @@ export default async function OpportunitiesPage({
   const view = sp.get('view');
   const isReport = view === 'relatorio';
 
-  // Seletor de empresa (platform_admin): a URL carrega o SLUG (?empresa=fgcoop),
-  // nunca o UUID. Resolve para tenant_id server-side — e só tentamos resolver
-  // se o usuário corrente for platform_admin (para os demais, ?empresa= é
-  // ignorado; a RLS bloquearia de qualquer forma, mas evitamos o round-trip
-  // e uma mensagem de "empresa não encontrada" que não faz sentido pra eles).
+  // Seletor de empresa (platform_admin) / filtro de empresa (psw_staff, Phase
+  // 17 Plan 17-07, D-03): a URL carrega o SLUG (?empresa=fgcoop), nunca o
+  // UUID. Resolve para tenant_id server-side — e só tentamos resolver se o
+  // usuário corrente for platform_admin OU psw_staff (para os demais papéis,
+  // ?empresa= é ignorado; a RLS bloquearia de qualquer forma, mas evitamos o
+  // round-trip e uma mensagem de "empresa não encontrada" que não faz
+  // sentido pra eles — a listagem deles é sempre um único tenant).
   const profile = await getCurrentProfile();
   const isAdmin = isPlatformAdmin(profile);
-  const empresaSlug = isAdmin ? sp.get('empresa')?.trim() || undefined : undefined;
+  const isStaff = isPswStaff(profile);
+  const empresaSlug =
+    isAdmin || isStaff ? sp.get('empresa')?.trim() || undefined : undefined;
   const scopedTenantId = empresaSlug
     ? (await fetchTenantIdBySlug(empresaSlug)) ?? undefined
     : undefined;
@@ -68,6 +81,24 @@ export default async function OpportunitiesPage({
     isReadOnlyViewer(),
   ]);
   const kpis = computeKpis(opportunities);
+
+  // Coluna/filtro "Empresa" (Phase 17, Plan 17-07, D-03/D-06) — SOMENTE para
+  // psw_staff: sua listagem é unificada cross-tenant e, sem o rótulo da
+  // empresa, ele veria demandas de clientes diferentes misturadas sem saber
+  // de quem é cada uma. Para os demais papéis nada disto roda (nenhuma query
+  // extra, flag falsa, markup idêntico ao de hoje). Os ids vêm das
+  // oportunidades JÁ retornadas pela RLS — não é um `select` aberto em
+  // `tenants` — então a lista de opções do filtro nunca revela empresas fora
+  // do escopo atribuído.
+  const showCompany = isStaff;
+  const companies = showCompany
+    ? await fetchTenantsByIds(
+        Array.from(new Set(opportunities.map((o) => o.tenant_id)))
+      )
+    : [];
+  const companyById: Record<string, string> = Object.fromEntries(
+    companies.map((t) => [t.id, t.name])
+  );
 
   // Atribuições (0032). `assigneesByOpportunity` alimenta a coluna da lista;
   // `members` alimenta o filtro "Membro" da toolbar. O recorte de pessoas é o
@@ -118,6 +149,8 @@ export default async function OpportunitiesPage({
         members={members}
         tenantSlug={tenant?.slug ?? null}
         readOnly={readOnly}
+        companies={companies}
+        showCompanyFilter={showCompany}
       />
 
       {!isReport && !empresaNotFound && <KpiBar kpis={kpis} />}
@@ -150,6 +183,8 @@ export default async function OpportunitiesPage({
           <OpportunityTable
             opportunities={opportunities}
             assigneesByOpportunity={assigneesByOpportunity}
+            companyById={companyById}
+            showCompany={showCompany}
           />
         )}
       </div>

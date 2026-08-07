@@ -106,6 +106,46 @@ export async function fetchTenantIdBySlug(slug: string): Promise<string | null> 
   return data?.id ?? null;
 }
 
+/** Item mínimo da coluna/filtro "Empresa" da listagem (Phase 17, Plan 17-07). */
+export type TenantSummary = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+/**
+ * Busca empresas por ids — usada pela coluna e pelo filtro "Empresa" da
+ * listagem do `psw_staff` (Phase 17). Whitelist explícita de colunas (nunca
+ * `select('*')`, HARDEN-E-06); dedupe dos ids antes da query; retorno vazio
+ * sem ida ao banco quando a lista de ids é vazia.
+ *
+ * Segurança: esta função NÃO filtra por papel — a RLS aditiva
+ * `tenants_select_psw_staff` (0040) já garante que um `psw_staff` só resolve
+ * ids de empresas onde tem oportunidade atribuída. Os ids passados aqui vêm
+ * das oportunidades já retornadas por `fetchOpportunities()` (que a RLS já
+ * filtrou), então não há "varredura" possível — é só um lookup de rótulo.
+ *
+ * Degrada para lista vazia em erro (mesmo padrão de `fetchPublicOpportunities`
+ * acima): um rótulo de empresa que falhou não pode derrubar a listagem.
+ */
+export async function fetchTenantsByIds(ids: string[]): Promise<TenantSummary[]> {
+  const uniqueIds = Array.from(new Set(ids));
+  if (uniqueIds.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('id, name, slug')
+    .in('id', uniqueIds)
+    .order('name');
+
+  if (error) {
+    console.error('[tenants/queries] fetchTenantsByIds:', error.message);
+    return [];
+  }
+  return (data ?? []) as TenantSummary[];
+}
+
 /**
  * Retorna o tenant + slug do usuário autenticado corrente.
  * Usado em páginas autenticadas que precisam do slug pra montar URLs públicas.

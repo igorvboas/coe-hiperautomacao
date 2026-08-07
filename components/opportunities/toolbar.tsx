@@ -16,6 +16,7 @@ import {
   type AssignableProfile,
 } from '@/lib/opportunities/assignee-types';
 import { CARGOS, CARGO_LABEL, type Cargo } from '@/lib/security/cargo';
+import type { TenantSummary } from '@/lib/tenants/queries';
 
 type Props = {
   counts: { visible: number; total: number };
@@ -27,6 +28,13 @@ type Props = {
   /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
    *  botão "Nova Oportunidade" (a criação agora é só pelo formulário público). */
   readOnly?: boolean;
+  /** Empresas em que o usuário tem oportunidade atribuída (Phase 17, Plan
+   *  17-07) — alimenta o filtro "Empresa". Vazio por padrão: nenhuma mudança
+   *  de comportamento pros papéis que não são `psw_staff`. */
+  companies?: TenantSummary[];
+  /** Exibe o filtro "Empresa" — calculada no servidor a partir do papel
+   *  (`isPswStaff`). Este componente NÃO decide por papel; só lê a flag. */
+  showCompanyFilter?: boolean;
 };
 
 type View = 'table' | 'cards' | 'kanban' | 'gantt' | 'relatorio';
@@ -45,7 +53,20 @@ function parseView(raw: string | null): View {
   return 'table';
 }
 
-export function Toolbar({ counts, areas, members, tenantSlug }: Props) {
+export function Toolbar({
+  counts,
+  areas,
+  members,
+  tenantSlug,
+  companies = [],
+  showCompanyFilter = false,
+}: Props) {
+  // Filtro "Empresa" (Plan 17-07, Task 2) usa `companies`/`showCompanyFilter`
+  // — mantidos aqui como no-op até a Task 2 acrescentar o `<select>`
+  // correspondente, para o build permanecer verde entre os dois commits
+  // desta plan (deviation Rule 3).
+  void companies;
+  void showCompanyFilter;
   const [copied, setCopied] = useState(false);
 
   async function copyPublicLink() {

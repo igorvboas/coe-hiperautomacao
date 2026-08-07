@@ -29,6 +29,13 @@ type Props = {
   opportunities: Opportunity[];
   /** Assignees por opportunity_id (0032) — buscados em uma query só na page. */
   assigneesByOpportunity: Record<string, Assignee[]>;
+  /** Mapa tenant_id → nome (Phase 17, Plan 17-07) — alimenta a coluna
+   *  "Empresa". Vazio por padrão: nenhuma mudança de comportamento pros
+   *  papéis que não são `psw_staff`. */
+  companyById?: Record<string, string>;
+  /** Exibe a coluna "Empresa" — calculada no servidor a partir do papel
+   *  (`isPswStaff`). Este componente NÃO decide por papel; só lê a flag. */
+  showCompany?: boolean;
 };
 
 type SortableColumn = {
@@ -46,7 +53,18 @@ const SORTABLE_COLS: Record<string, SortableColumn> = {
   fte: { asc: 'fte_asc', desc: 'fte_desc' },
 };
 
-export function OpportunityTable({ opportunities, assigneesByOpportunity }: Props) {
+export function OpportunityTable({
+  opportunities,
+  assigneesByOpportunity,
+  companyById = {},
+  showCompany = false,
+}: Props) {
+  // Renderização da coluna "Empresa" (Plan 17-07, Task 2) usa `companyById`
+  // e `showCompany` — mantidos aqui como no-op até a Task 2 acrescentar o
+  // `<thead>`/`<tbody>` correspondente, para o build permanecer verde entre
+  // os dois commits desta plan (deviation Rule 3).
+  void companyById;
+  void showCompany;
   const router = useRouter();
   const params = useSearchParams();
   const filters = parseFilters(params);
