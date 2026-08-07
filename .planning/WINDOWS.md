@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 30
+open_count: 33
 waived_count: 0
 fixed_count: 1
-total_count: 31
-last_updated: 2026-08-07T18:27:44.087Z
+total_count: 34
+last_updated: 2026-08-07T18:55:05.982Z
 ---
 
 # Broken Windows Ledger
@@ -46,6 +46,9 @@ last_updated: 2026-08-07T18:27:44.087Z
 | 29 | 18 | unrun-verify | .planning/phases/18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa/18-05-MIGRATION-HANDOFF.md |  | C5 (CHECK invited_emails_role_check inalterado apos o apply) nao confirmada via pg_constraint pelo PO. | open |  | 2026-08-07T18:27:43.986Z |  |
 | 30 | 18 | unrun-verify | supabase/migrations/0047_tenant_admin_predicate_swap.sql |  | Prova de idempotencia (rodar o arquivo 0047 uma segunda vez no SQL Editor) nao confirmada explicitamente pelo PO. | open |  | 2026-08-07T18:27:44.038Z |  |
 | 31 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | Grupo d (16 specs novos: d1-d6, d7a-f, d8a-d) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff; suite inteira 47/47 em skip (68 passed \| 151 skipped (219) na suite tests/security completa). | open |  | 2026-08-07T18:27:44.087Z |  |
+| 32 | 18 | unrun-verify | app/(app)/configuracoes/actions.ts |  | Human-check da Task 3 (18-06) nao executado: staff-admin salvando cor/logo/remocao em A pela UI real, e escopo negado com 'todas as empresas' selecionado — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T18:55:05.885Z |  |
+| 33 | 18 | unrun-verify | tests/security/admin-actions-tenant-scope.test.ts |  | 17 specs novos (team/actions.ts + configuracoes/actions.ts, Plan 18-06) em describe.skipIf(!HAS_DB) — .env.test nao existe (prova-por-sql-no-handoff); nunca executados contra DB real nesta sessao, incluindo o proprio import dinamico de app/(app)/team\|configuracoes/actions.ts sob os mocks de next/headers. | open |  | 2026-08-07T18:55:05.934Z |  |
+| 34 | 18 | deviation | app/(app)/team/actions.ts |  | npm run test:security bloqueado pelo classificador de auto-mode do harness (consistente com o binding_proof_mode do plano, que proibe rodar essa suite/integracao contra producao); verificacao substituida por execucao direta dos arquivos de teste afetados via npx vitest run <arquivo>. | open |  | 2026-08-07T18:55:05.982Z |  |
 
 ````json
 [
@@ -419,6 +422,42 @@ last_updated: 2026-08-07T18:27:44.087Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-07T18:27:44.087Z",
+    "resolved_at": null
+  },
+  {
+    "id": 32,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "app/(app)/configuracoes/actions.ts",
+    "line": null,
+    "description": "Human-check da Task 3 (18-06) nao executado: staff-admin salvando cor/logo/remocao em A pela UI real, e escopo negado com 'todas as empresas' selecionado — sem acesso a browser/servidor autenticado nesta sessao.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:55:05.885Z",
+    "resolved_at": null
+  },
+  {
+    "id": 33,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "tests/security/admin-actions-tenant-scope.test.ts",
+    "line": null,
+    "description": "17 specs novos (team/actions.ts + configuracoes/actions.ts, Plan 18-06) em describe.skipIf(!HAS_DB) — .env.test nao existe (prova-por-sql-no-handoff); nunca executados contra DB real nesta sessao, incluindo o proprio import dinamico de app/(app)/team|configuracoes/actions.ts sob os mocks de next/headers.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:55:05.934Z",
+    "resolved_at": null
+  },
+  {
+    "id": 34,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "app/(app)/team/actions.ts",
+    "line": null,
+    "description": "npm run test:security bloqueado pelo classificador de auto-mode do harness (consistente com o binding_proof_mode do plano, que proibe rodar essa suite/integracao contra producao); verificacao substituida por execucao direta dos arquivos de teste afetados via npx vitest run <arquivo>.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T18:55:05.982Z",
     "resolved_at": null
   }
 ]

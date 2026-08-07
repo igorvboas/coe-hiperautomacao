@@ -460,7 +460,7 @@ Plans:
 **Goal**: Um `psw_staff` passa a poder ser **admin de N empresas** ao mesmo tempo: sem concessão ele continua vendo somente as oportunidades atribuídas a ele (comportamento da `0044`, intocado); com concessão no tenant A ele vê tudo de A e exerce ali os mesmos poderes de um `tenant_admin` — convites, equipe, configurações/branding e logs — sem deixar de ver, na mesma listagem, as oportunidades que lhe foram atribuídas em outras empresas. A concessão é dada e retirada apenas pelo `platform_admin`, numa tela `/admin/staff` que também mostra, por pessoa, as duas origens de acesso separadas.
 **Depends on**: Phase 17 (papel `psw_staff`, `opportunity_assignees` cross-tenant, `current_assigned_opportunity_ids()`, `resolveWriteTenantId()` e as restritivas da `0044` — esta fase estende exatamente esse mecanismo um nível acima)
 **Requirements**: GRANT-01, GRANT-02, GRANT-03, GRANT-04, GRANT-05, GRANT-06, GRANT-07, GRANT-08, GRANT-09, GRANT-10
-**Plans**: 5/8 plans executed
+**Plans**: 6/8 plans executed
 
 Plans:
 **Wave 1**
@@ -482,7 +482,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 18-06-PLAN.md — Camada de servidor: `isTenantAdminOf` / `resolveAdminTenantId` e as escritas de Equipe e Configurações sobre tenant-alvo
+- [x] 18-06-PLAN.md — Camada de servidor: `isTenantAdminOf` / `resolveAdminTenantId` e as escritas de Equipe e Configurações sobre tenant-alvo
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
