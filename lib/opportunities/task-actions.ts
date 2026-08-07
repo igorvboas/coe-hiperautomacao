@@ -8,8 +8,11 @@
 //   1. `taskInputSchema.strict()` rejeita id/tenant_id/opportunity_id/created_by
 //      no input (parse falha com `unrecognized_keys`).
 //   2. insert/update enumeram colunas explicitamente — sem spread cego de
-//      `data`. `tenant_id` vem do profile (server-derived); `opportunity_id`
-//      vem do argumento de rota (não do payload).
+//      `data`. `tenant_id` vem do escopo de escrita RESOLVIDO NO SERVIDOR
+//      (Phase 17, D-11, `resolveWriteTenantId()`) — para papéis de cliente é
+//      o tenant do profile; para `psw_staff` (multi-tenant por atribuição) é
+//      o tenant da OPORTUNIDADE-ALVO, nunca o do profile.
+//      `opportunity_id` vem do argumento de rota (não do payload).
 //   3. `requireEditorRole()` barra role='viewer' antes de qualquer escrita
 //      (D-11 — mesmo gate de `opportunity_risks`, NÃO o gate admin-only de
 //      `assignee-actions.ts`). A RLS (0037) já bloqueia; falhar aqui devolve
@@ -35,7 +38,12 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { taskInputSchema } from './task-schema';
-import { requireEditorRole } from '@/lib/security/role';
+import {
+  requireEditorRole,
+  getCurrentProfile,
+  resolveWriteTenantId,
+  WRITE_SCOPE_DENIED_MESSAGE,
+} from '@/lib/security/role';
 import { normalizeTaskStatusUpdate } from './task-status';
 import type { TaskStatus } from './types';
 
@@ -80,23 +88,22 @@ export async function createTask(
 
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sessão expirada.' };
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+  // Escopo de escrita resolvido no servidor (Phase 17, D-11) — ANTES da
+  // mutação. Sem isso, um psw_staff criando tarefa numa oportunidade
+  // atribuída de outro tenant carimbaria `tenant_id` da PSW na linha (o
+  // trigger `check_task_tenant_coherence()`, 0037/0041, rejeitaria com erro
+  // cru do banco em vez desta mensagem pt-BR clara).
+  const tenantId = await resolveWriteTenantId(profile, opportunityId);
+  if (!tenantId) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
 
   const { data: inserted, error } = await supabase
     .from('opportunity_tasks')
     .insert({
       opportunity_id: opportunityId, // server-derived (do arg da rota, não do payload)
-      tenant_id: profile.tenant_id, // server-derived
+      tenant_id: tenantId, // server-derived — da oportunidade quando psw_staff
       parent_task_id: data.parent_task_id || null,
       title: data.title,
       description: data.description || null,
@@ -105,7 +112,7 @@ export async function createTask(
       due_date: data.due_date || null,
       assignee_id: data.assignee_id || null,
       blocked_reason: normalized.blocked_reason, // sempre explícito (Pitfall 4)
-      created_by: user.id,
+      created_by: profile.id,
     })
     .select('id')
     .single();
@@ -158,17 +165,13 @@ export async function updateTask(
 
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sessão expirada.' };
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+  // Escopo de escrita resolvido no servidor (Phase 17, D-11) — ANTES da
+  // mutação. `null` = tarefa/oportunidade fora do escopo do usuário.
+  const tenantId = await resolveWriteTenantId(profile, opportunityId);
+  if (!tenantId) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
 
   const { error } = await supabase
     .from('opportunity_tasks')
@@ -183,7 +186,7 @@ export async function updateTask(
       // parent_task_id NÃO enviado — D-01, a UI nunca re-parenta.
     })
     .eq('id', taskId)
-    .eq('tenant_id', profile.tenant_id);
+    .eq('tenant_id', tenantId);
 
   if (error) {
     return { ok: false, error: 'Erro ao atualizar tarefa.' };
@@ -210,23 +213,19 @@ export async function deleteTask(
 
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sessão expirada.' };
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+  // Escopo de escrita resolvido no servidor (Phase 17, D-11) — ANTES da
+  // mutação. `null` = tarefa/oportunidade fora do escopo do usuário.
+  const tenantId = await resolveWriteTenantId(profile, opportunityId);
+  if (!tenantId) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
 
   const { error } = await supabase
     .from('opportunity_tasks')
     .delete()
     .eq('id', taskId)
-    .eq('tenant_id', profile.tenant_id);
+    .eq('tenant_id', tenantId);
 
   if (error) {
     return { ok: false, error: 'Erro ao excluir tarefa.' };
@@ -240,8 +239,12 @@ export async function deleteTask(
 // =============================================================================
 // updateTaskStatus — mutação de campo único que o Kanban (16-06) chama no
 // drop de um card. `opportunityId` não é parâmetro (contrato exato que o
-// Kanban consome) — é lido de volta do próprio UPDATE via `.select()` para
-// revalidar as rotas certas sem uma query extra.
+// Kanban consome) — por isso, diferente das demais mutações deste arquivo,
+// esta lê a tarefa primeiro (SELECT autenticado, filtrado por RLS) só para
+// descobrir a QUAL oportunidade ela pertence, e só então resolve o escopo de
+// escrita (Phase 17, D-11) — não dá para chamar `resolveWriteTenantId()`
+// antes de saber o `opportunity_id`. O `opportunity_id` final ainda é lido de
+// volta do UPDATE (via `.select()`) para revalidar as rotas certas.
 // =============================================================================
 export async function updateTaskStatus(
   taskId: string,
@@ -256,19 +259,26 @@ export async function updateTaskStatus(
     return { ok: false, error: normalized.error };
   }
 
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
+
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sessão expirada.' };
+  // Leitura autenticada (RLS já escopa por tenant/atribuição) só para saber a
+  // qual oportunidade a tarefa pertence — insumo obrigatório de
+  // resolveWriteTenantId(). Tarefa invisível/inexistente aqui já é o mesmo
+  // "fora do escopo" que a mutação abaixo recusaria de qualquer forma.
+  const { data: task } = await supabase
+    .from('opportunity_tasks')
+    .select('opportunity_id')
+    .eq('id', taskId)
+    .maybeSingle();
+  if (!task) return { ok: false, error: 'Tarefa não encontrada.' };
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+  // Escopo de escrita resolvido no servidor (Phase 17, D-11) — ANTES da
+  // mutação. `null` = oportunidade fora do escopo do usuário.
+  const tenantId = await resolveWriteTenantId(profile, task.opportunity_id);
+  if (!tenantId) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
 
   const { data: updated, error } = await supabase
     .from('opportunity_tasks')
@@ -277,7 +287,7 @@ export async function updateTaskStatus(
       blocked_reason: normalized.blocked_reason, // sempre explícito (Pitfall 4)
     })
     .eq('id', taskId)
-    .eq('tenant_id', profile.tenant_id)
+    .eq('tenant_id', tenantId)
     .select('opportunity_id')
     .single();
 

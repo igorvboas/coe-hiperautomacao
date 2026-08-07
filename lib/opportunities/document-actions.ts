@@ -13,14 +13,28 @@
 // Mass Assignment defense (mesmas 4 camadas de risk-actions.ts):
 //   1. documentLinkInputSchema.strict() rejeita kind/storage_path/tenant_id/etc.
 //   2. insert enumera colunas explicitamente — sem spread cego.
-//   3. tenant_id/opportunity_id são server-derived (nunca do payload).
-//   4. delete escopa por .eq('tenant_id', profile.tenant_id) — defesa em
-//      profundidade sobre a RLS (0018).
+//   3. tenant_id/opportunity_id são server-derived, via o escopo de escrita
+//      RESOLVIDO NO SERVIDOR (Phase 17, D-11, `resolveWriteTenantId()`) —
+//      nunca do payload. Para papéis de cliente é o tenant do profile; para
+//      `psw_staff` (multi-tenant por atribuição) é o tenant da
+//      OPORTUNIDADE-ALVO, nunca o do profile. Isto também alimenta o path do
+//      Storage (`{tenant_id}/{opportunity_id}/{arquivo}`) — usar o tenant
+//      errado ali apagaria/gravaria no caminho errado (T-17-33).
+//   4. insert/delete escopam por `.eq('tenant_id', ctx.tenantId)` — defesa em
+//      profundidade sobre a RLS (0018). Escopo `null` recusa ANTES de
+//      qualquer mutação (inclusive antes do upload no Storage), em vez de um
+//      `.eq()` casando zero linhas silenciosamente ou de um insert/upload
+//      carimbado com o tenant errado.
 // =============================================================================
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireEditorRole } from '@/lib/security/role';
+import {
+  requireEditorRole,
+  getCurrentProfile,
+  resolveWriteTenantId,
+  WRITE_SCOPE_DENIED_MESSAGE,
+} from '@/lib/security/role';
 import {
   documentLinkInputSchema,
   DOCUMENT_MAX_SIZE_BYTES,
@@ -33,21 +47,22 @@ export type DocumentActionResult =
 
 export type MutationResult = { ok: true } | { ok: false; error: string };
 
-async function resolveProfile() {
+/**
+ * Resolve profile + client + escopo de escrita para a oportunidade-alvo, num
+ * único ponto usado pelas três mutações deste arquivo (Phase 17, D-11). O
+ * `tenantId` devolvido é o escopo RESOLVIDO NO SERVIDOR — não `profile.tenant_id`
+ * cru — e é o mesmo valor usado tanto nos filtros de tabela quanto no path do
+ * Storage, para as duas coisas nunca divergirem (T-17-33).
+ */
+async function resolveProfile(opportunityId: string) {
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false as const, error: 'Sessão expirada.' };
+
+  const tenantId = await resolveWriteTenantId(profile, opportunityId);
+  if (!tenantId) return { ok: false as const, error: WRITE_SCOPE_DENIED_MESSAGE };
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sessão expirada.' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false as const, error: 'Profile não encontrado.' };
-
-  return { ok: true as const, supabase, user, tenantId: profile.tenant_id };
+  return { ok: true as const, supabase, user: { id: profile.id }, tenantId };
 }
 
 // =============================================================================
@@ -70,7 +85,7 @@ export async function addDocumentLink(
     };
   }
 
-  const ctx = await resolveProfile();
+  const ctx = await resolveProfile(opportunityId);
   if (!ctx.ok) return ctx;
 
   const nome = parsed.data.nome?.trim() || parsed.data.url;
@@ -124,7 +139,7 @@ export async function uploadDocumentFile(
   const nomeRaw = formData.get('nome');
   const nome = (typeof nomeRaw === 'string' && nomeRaw.trim()) || file.name;
 
-  const ctx = await resolveProfile();
+  const ctx = await resolveProfile(opportunityId);
   if (!ctx.ok) return ctx;
 
   // path escopado por tenant_id — a policy de storage.objects (0018) exige
@@ -193,7 +208,7 @@ export async function deleteDocument(
   const roleCheck = await requireEditorRole();
   if (!roleCheck.ok) return { ok: false, error: roleCheck.error };
 
-  const ctx = await resolveProfile();
+  const ctx = await resolveProfile(opportunityId);
   if (!ctx.ok) return ctx;
 
   const { data: doc } = await ctx.supabase

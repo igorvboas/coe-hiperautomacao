@@ -15,7 +15,12 @@ import {
   updatePublicFormAttempt,
 } from '@/lib/public-form/log';
 import { enrichOpportunity } from '@/lib/ai/enrichment';
-import { requireEditorRole } from '@/lib/security/role';
+import {
+  requireEditorRole,
+  getCurrentProfile,
+  resolveWriteTenantId,
+  WRITE_SCOPE_DENIED_MESSAGE,
+} from '@/lib/security/role';
 
 export type UpdateStatusResult = { ok: true } | { ok: false; error: string };
 
@@ -472,9 +477,14 @@ export async function createOpportunity(
 //   2. `.update({...})` abaixo NÃO inclui tenant_id, created_by, seq_id,
 //      id — campos imutáveis pelo cliente. Enumeração explícita
 //      (sem spread cego).
-//   3. `.eq('id', id).eq('tenant_id', profile.tenant_id)` escopa o
-//      update ao tenant do usuário autenticado — defesa em profundidade
-//      sobre o RLS (USING + WITH CHECK).
+//   3. `.eq('id', id).eq('tenant_id', tenantId)` escopa o update ao tenant
+//      RESOLVIDO NO SERVIDOR para a oportunidade-alvo (Phase 17, D-11,
+//      `resolveWriteTenantId()`) — defesa em profundidade sobre o RLS
+//      (USING + WITH CHECK). Para papéis de cliente é idêntico a
+//      `profile.tenant_id`; para `psw_staff` (multi-tenant por atribuição)
+//      NÃO é o tenant do profile, é o da oportunidade — se a oportunidade não
+//      estiver no escopo, o retorno é `null` e a action recusa ANTES do
+//      update, em vez de um `.eq()` casando zero linhas silenciosamente.
 //   4. RLS bloqueia em DB caso o eq escape (defesa final).
 // =============================================================================
 export type UpdateOpportunityResult =
@@ -501,18 +511,14 @@ export async function updateOpportunity(
   const data = parsed.data;
   const supabase = await createClient();
 
-  // Server-derived tenant scope — defesa em profundidade sobre o RLS.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sessão expirada.' };
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
-  if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+  // Escopo de escrita resolvido no servidor (Phase 17, D-11) — ANTES da
+  // mutação. `null` significa oportunidade inexistente OU fora do escopo do
+  // usuário (nunca revelamos qual das duas).
+  const tenantId = await resolveWriteTenantId(profile, id);
+  if (!tenantId) return { ok: false, error: WRITE_SCOPE_DENIED_MESSAGE };
 
   // A auditoria deixou de ser responsabilidade desta action: a trigger
   // `audit_trigger()` (migration 0038) grava o de→para campo a campo direto no
@@ -567,7 +573,7 @@ export async function updateOpportunity(
         data.source === 'formulario' ? data.formulario_extras ?? null : null,
     })
     .eq('id', id)
-    .eq('tenant_id', profile.tenant_id);
+    .eq('tenant_id', tenantId);
 
   if (error) {
     return { ok: false, error: `Erro ao atualizar: ${error.message}` };
