@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 15
+open_count: 22
 waived_count: 0
 fixed_count: 1
-total_count: 16
-last_updated: 2026-08-07T17:01:21.633Z
+total_count: 23
+last_updated: 2026-08-07T17:56:41.220Z
 ---
 
 # Broken Windows Ledger
@@ -31,6 +31,13 @@ last_updated: 2026-08-07T17:01:21.633Z
 | 14 | 17 | todo | lib/database.types.ts |  | invited_emails.Insert/Row/Update.role (hand-maintained) ainda e 'member'\|'tenant_admin'\|'viewer' — nao reflete o CHECK ampliado pela 0041 (aceita 'psw_staff' desde entao). tests/security/psw-staff-isolation.test.ts usa @ts-expect-error nos dois inserts com role:'psw_staff' para compilar. Corrigir o tipo exige tambem atualizar app/(app)/admin/invites/page.tsx (Record<InviteRow['role'], string> exaustivo) — fora do escopo do Plan 17-05 (files_modified so lista o arquivo de teste). | fixed |  | 2026-08-07T01:55:39.816Z | 2026-08-07T10:08:51.113Z |
 | 15 | 18 | unrun-verify | supabase/migrations/0045_psw_tenant_admins_grant.sql |  | Handoff V10-V13 (nao-regressao member / smokes D-B / EXPLAIN inlining / smoke UPDATE autorizado) nao executadas nesta wave | open |  | 2026-08-07T17:01:12.370Z |  |
 | 16 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | 14 testes em describe.skipIf (sem NEXT_PUBLIC_SUPABASE_URL) — modo de prova revertido para prova-por-sql-no-handoff (colisao de UUID entre fixtures e tenant real de producao impede env-test-populado); prova substituta = handoff 18-02 + observacao direta pelo app | open |  | 2026-08-07T17:01:21.633Z |  |
+| 17 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V2/D2 nao executada pelo PO: as 7 restritivas reemitidas com o 3o disjunto (current_admin_tenant_ids) nao foram confirmadas em producao via pg_policies.qual | open |  | 2026-08-07T17:56:40.931Z |  |
+| 18 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V3/D3 nao executada pelo PO: contagem total de policies por tabela filha (nao-perda das pre-existentes) nao comparada antes/depois do apply | open |  | 2026-08-07T17:56:40.980Z |  |
+| 19 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V5/D6 nao executada pelo PO: propagacao positiva (staff-admin ve as 7 filhas de uma oportunidade de A nao atribuida) sem prova em runtime; verificacao recomendada via app registrada como pendente | open |  | 2026-08-07T17:56:41.028Z |  |
+| 20 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V6/D7 nao executada pelo PO: negativo do tenant de controle nas 7 filhas (deteccao de vazamento cross-tenant) sem prova em runtime | open |  | 2026-08-07T17:56:41.076Z |  |
+| 21 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | V7 nao executada pelo PO: nao-regressao de member/tenant_admin do FGCoop nas 7 filhas (antes/depois do apply) sem prova em runtime | open |  | 2026-08-07T17:56:41.124Z |  |
+| 22 | 18 | unrun-verify | supabase/migrations/0046_psw_admin_child_tables.sql |  | Prova de idempotencia (rodar 0046 duas vezes) nao confirmada explicitamente pelo PO no handoff | open |  | 2026-08-07T17:56:41.172Z |  |
+| 23 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | Suite inteira (31 specs, incl. c4/c8/c9 escritos neste plano) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff | open |  | 2026-08-07T17:56:41.220Z |  |
 
 ````json
 [
@@ -224,6 +231,90 @@ last_updated: 2026-08-07T17:01:21.633Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-07T17:01:21.633Z",
+    "resolved_at": null
+  },
+  {
+    "id": 17,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "V2/D2 nao executada pelo PO: as 7 restritivas reemitidas com o 3o disjunto (current_admin_tenant_ids) nao foram confirmadas em producao via pg_policies.qual",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:40.931Z",
+    "resolved_at": null
+  },
+  {
+    "id": 18,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "V3/D3 nao executada pelo PO: contagem total de policies por tabela filha (nao-perda das pre-existentes) nao comparada antes/depois do apply",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:40.980Z",
+    "resolved_at": null
+  },
+  {
+    "id": 19,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "V5/D6 nao executada pelo PO: propagacao positiva (staff-admin ve as 7 filhas de uma oportunidade de A nao atribuida) sem prova em runtime; verificacao recomendada via app registrada como pendente",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:41.028Z",
+    "resolved_at": null
+  },
+  {
+    "id": 20,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "V6/D7 nao executada pelo PO: negativo do tenant de controle nas 7 filhas (deteccao de vazamento cross-tenant) sem prova em runtime",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:41.076Z",
+    "resolved_at": null
+  },
+  {
+    "id": 21,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "V7 nao executada pelo PO: nao-regressao de member/tenant_admin do FGCoop nas 7 filhas (antes/depois do apply) sem prova em runtime",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:41.124Z",
+    "resolved_at": null
+  },
+  {
+    "id": 22,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0046_psw_admin_child_tables.sql",
+    "line": null,
+    "description": "Prova de idempotencia (rodar 0046 duas vezes) nao confirmada explicitamente pelo PO no handoff",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:41.172Z",
+    "resolved_at": null
+  },
+  {
+    "id": 23,
+    "kind": "skipped-test",
+    "phase": "18",
+    "file": "tests/security/psw-staff-admin-grant.test.ts",
+    "line": null,
+    "description": "Suite inteira (31 specs, incl. c4/c8/c9 escritos neste plano) em skip — .env.test nao existe, modo de prova prova-por-sql-no-handoff",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:56:41.220Z",
     "resolved_at": null
   }
 ]
