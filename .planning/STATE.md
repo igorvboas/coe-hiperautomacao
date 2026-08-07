@@ -4,17 +4,17 @@ milestone: v0.5
 milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
 current_phase: 18
 current_phase_name: staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
-status: executing
-stopped_at: Completed 18-07-PLAN.md
-last_updated: "2026-08-07T19:28:55.067Z"
+status: verifying
+stopped_at: Completed 18-08-PLAN.md — Phase 18 código completo; roteiro visual A-H pendente (checkpoint bloqueante)
+last_updated: "2026-08-07T20:08:36.908Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 23
-  completed_plans: 21
-  percent: 33
+  completed_plans: 22
+  percent: 67
 ---
 
 # Project State
@@ -138,7 +138,7 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 Phase: 18 (staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-07 — Phase 18 execution started
 
 **Phase 17 não está selada:** `17-08` Task 3 (`checkpoint:human-verify`, roteiros A–G) segue pendente.
@@ -149,7 +149,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [█████████░] 91%
+Progress: [██████████] 96%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -219,6 +219,7 @@ Progress: [█████████░] 91%
 | Phase 18 P05 | checkpoint-gated | 4 tasks | 4 files |
 | Phase 18 P06 | ~55min | 3 tasks | 7 files |
 | Phase 18 P07 | ~50min | 3 tasks | 7 files |
+| Phase 18 P08 | ~45min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -288,6 +289,8 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - [Phase ?]: /team ficou sem acesso para platform_admin (diferente de configuracoes/logs) — resolve ambiguidade entre o <action> da Task 2 e a prohibitions list do plano a favor de zero-regressão; PO deve confirmar
 - [Phase ?]: Nenhum helper novo em lib/security/role.ts ou lib/tenants/queries.ts — contagem/lista de concessões psw_tenant_admins ficou inline em cada página, para respeitar o files_modified exato do plano 18-07
 - [Phase ?]: <fieldset disabled> em vez de prop disabled em TeamInviteForm/BrandingForm — cascata nativa do HTML desabilita os Client Components filhos sem editar seus arquivos
+- [Phase ?]: Identidade visual do shell (Phase 18): permanece a do tenant de lotação da pessoa, nunca a da empresa selecionada no seletor — a empresa de atuação é comunicada só pelo ScopeBadge nas telas de admin. Decisão revisável.
+- [Phase ?]: Gate de atribuição em oportunidade (lib/opportunities/assignee-actions.ts) alinhado com a RLS de 0047: platform_admin OU isTenantAdminOf(profile, tenant-da-oportunidade), substituindo o antigo gate por papel isolado — interface e banco concordam.
 
 ### Pending Todos
 
@@ -314,10 +317,11 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - 17-01: .env.test continua ausente (so .env.test.example) — specs de RLS decisivos dos planos 17-02/17-03/17-05 rodarao em describe.skipIf ate isso ser resolvido (pendencia desde Phase 7.5)
 - Fase 17 (Plan 17-08, Task 3): checkpoint:human-verify BLOCKING pendente — roteiros visuais A-G (listagem unificada, abas populadas, download, escrita pós-reload, responsavel de tarefa, isolamento do cliente, convite/atribuicao psw_staff) nao executados nesta sessao, sem acesso a browser. Conta de QA ja provisionada: qa.pswstaff@pswdigital.com.br.
 - 18-03: 6 das 8 verificacoes do handoff da 0046 (V2/V3/V5/V6/V7 + idempotencia) nao foram executadas pelo PO — propagacao positiva e negativo cross-tenant sem prova de runtime; recomendado rodar antes/durante 18-05
+- Phase 18 completa funcionalmente e auditada estruturalmente, mas o roteiro visual A–H (Task 3, checkpoint bloqueante) não foi executado — sem acesso a browser nesta sessão. Registrado em WINDOWS.md id 37. Fase 17 também permanece não-selada pelo mesmo motivo (17-08 Task 3).
 
 ## Session Continuity
 
-Last session: 2026-08-07T19:28:55.058Z
+Last session: 2026-08-07T20:08:36.899Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -400,5 +404,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: Completed 18-07-PLAN.md
+Stopped at: Completed 18-08-PLAN.md — Phase 18 código completo; roteiro visual A-H pendente (checkpoint bloqueante)
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.
