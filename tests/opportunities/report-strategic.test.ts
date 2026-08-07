@@ -17,7 +17,10 @@ import {
 import type { Opportunity, OpportunityPhase, OpportunityRisk } from '@/lib/opportunities/types';
 
 // Fábrica mínima de Opportunity — só os campos consumidos pelas agregações.
-function opp(over: Partial<Opportunity> = {}): Opportunity {
+// `over` admite `null` em qualquer campo: a view devolve null nas colunas
+// computadas quando os insumos faltam (report.ts:266 já defende `score` não
+// numérico) e os specs exercitam exatamente esse caso.
+function opp(over: Partial<{ [K in keyof Opportunity]: Opportunity[K] | null }> = {}): Opportunity {
   return {
     id: over.id ?? Math.random().toString(36).slice(2),
     seq_id: 1,
