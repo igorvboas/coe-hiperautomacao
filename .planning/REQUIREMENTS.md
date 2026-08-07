@@ -107,9 +107,9 @@ Adicionado em 2026-08-07 a pedido do PO. Problema estrutural: `profiles` tem **u
 - [ ] **GRANT-04**: Dentro de um tenant onde tem concessão, o `psw_staff` exerce os **mesmos poderes de um `tenant_admin`** daquele tenant — convites/allowlist, equipe, configurações/branding e logs
 - [ ] **GRANT-05**: As Server Actions de admin operam sobre um **tenant-alvo explícito**, validado contra a concessão, em vez de derivá-lo de `profile.tenant_id` — nenhuma escrita grava no tenant errado nem responde sucesso tendo afetado zero linhas
 - [x] **GRANT-06**: Apenas o `platform_admin` concede e revoga a condição de admin de tenant; um `psw_staff` com concessão **não** promove outra pessoa, no seu tenant nem em nenhum outro
-- [ ] **GRANT-07**: Existe uma tela `/admin/staff`, restrita ao `platform_admin`, onde ele concede e revoga a concessão e vê, por pessoa, as **duas origens de acesso separadas** — empresas onde é admin e atribuições individuais (indicando quantas são redundantes por já estarem em empresa administrada)
-- [ ] **GRANT-08**: Revogar uma concessão exige confirmação explícita que informa **quantas oportunidades** a pessoa deixará de enxergar; a atribuição individual sobrevive à revogação
-- [ ] **GRANT-09**: A atribuição de oportunidade continua sendo editada **somente** na própria oportunidade (`AssigneesPanel`) — a tela de admin exibe atribuições em leitura, com link, e nunca escreve nelas
+- [x] **GRANT-07**: Existe uma tela `/admin/staff`, restrita ao `platform_admin`, onde ele concede e revoga a concessão e vê, por pessoa, as **duas origens de acesso separadas** — empresas onde é admin e atribuições individuais (indicando quantas são redundantes por já estarem em empresa administrada)
+- [x] **GRANT-08**: Revogar uma concessão exige confirmação explícita que informa **quantas oportunidades** a pessoa deixará de enxergar; a atribuição individual sobrevive à revogação
+- [x] **GRANT-09**: A atribuição de oportunidade continua sendo editada **somente** na própria oportunidade (`AssigneesPanel`) — a tela de admin exibe atribuições em leitura, com link, e nunca escreve nelas
 - [x] **GRANT-10**: Nenhum papel existente muda de comportamento — `member`, `viewer`, `tenant_admin` e `platform_admin` mantêm visibilidade e poderes byte-idênticos, provado por teste de não-regressão
 
 ## Future Requirements (deferred)
