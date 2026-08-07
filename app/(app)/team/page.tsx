@@ -1,18 +1,44 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentProfile, isTenantAdmin } from '@/lib/security/role';
+import {
+  getCurrentProfile,
+  isTenantAdminOf,
+  isPswStaff,
+  resolveAdminTenantId,
+} from '@/lib/security/role';
+import { resolveEmpresaSlug } from '@/lib/tenants/scope';
+import { fetchTenantIdBySlug, fetchTenantsByIds } from '@/lib/tenants/queries';
 import type { TenantRole } from '@/lib/opportunities/types';
 import { cargoLabel } from '@/lib/security/cargo';
+import { ScopeBadge } from '@/components/admin/ScopeBadge';
+import { NoScopeBanner } from '@/components/admin/NoScopeBanner';
 import { TeamInviteForm } from './TeamInviteForm';
 import { revokeTeamInvite } from './actions';
 
 // =============================================================================
-// /team — gestão de acesso da PRÓPRIA empresa (v0.4)
+// /team — gestão de acesso da empresa ADMINISTRADA (v0.4 → Phase 18, D-K/D-R)
 // -----------------------------------------------------------------------------
-// Só `tenant_admin` entra. O platform_admin da PSW não usa esta tela: ele tem
-// /admin/invites, com alcance global e criação de empresas.
+// Entram: `tenant_admin` (dono da própria empresa — comportamento inalterado,
+// D-J) e `psw_staff` com concessão de admin em ao menos uma empresa
+// (`psw_tenant_admins`, migration 0045). O `platform_admin` da PSW NÃO usa
+// esta tela — ele tem `/admin/invites`, com alcance global; comportamento
+// preservado (SC-12), nenhuma mudança aqui.
+//
+// O tenant-alvo NUNCA vem do tenant de LOTAÇÃO da pessoa logada (era o bug
+// D-K) — vem do seletor de empresa da Sidebar (`?empresa=`, com queda para o
+// cookie `coe_empresa`), resolvido e validado no servidor, mesma composição
+// já usada em `opportunities/page.tsx:62-70` e nas Server Actions do plano
+// 18-06 (`resolveEmpresaSlug` → `fetchTenantIdBySlug` → `resolveAdminTenantId`).
+//
+// Um `psw_staff` com concessão em ALGUMA empresa mas SEM empresa selecionada
+// agora (ou com uma selecionada que ele não administra) continua entrando na
+// tela — só que sem tenant-alvo: nenhuma lista é buscada, e os controles de
+// escrita ficam desabilitados com o `NoScopeBanner` (D-R). Só quem não
+// administra NENHUMA empresa é redirecionado, exatamente como hoje.
 // =============================================================================
+
+type SearchParams = Promise<Record<string, string | undefined>>;
 
 // O dropdown de convite não oferece mais "Membro" genérico: quem tem acesso de
 // membro aparece pelo cargo. Perfis antigos (sem cargo) caem no rótulo do role.
@@ -46,26 +72,77 @@ type MemberRow = {
   cargo: string | null;
 };
 
-export default async function TeamPage() {
+export default async function TeamPage({ searchParams }: { searchParams: SearchParams }) {
   const profile = await getCurrentProfile();
-  if (!isTenantAdmin(profile)) redirect('/opportunities');
+  if (!profile) redirect('/opportunities');
 
   const supabase = await createClient();
 
-  // Filtro explícito por tenant_id além do RLS (CLAUDE.md — nunca confiar só
-  // na policy, mesmo ela sendo o bloqueio real).
-  const [invitesRes, membersRes] = await Promise.all([
-    supabase
-      .from('invited_emails')
-      .select('id, email, role, cargo, used_at, created_at')
-      .eq('tenant_id', profile!.tenantId)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('profiles')
-      .select('id, email, full_name, role, cargo')
-      .eq('tenant_id', profile!.tenantId)
-      .order('email'),
-  ]);
+  const raw = await searchParams;
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === 'string') sp.set(k, v);
+  }
+
+  // Composição do tenant-alvo — mesmo padrão de `opportunities/page.tsx` e das
+  // Server Actions do plano 18-06, aplicado aqui à LEITURA. Para
+  // `tenant_admin` resolve para o próprio tenant sem ida ao banco extra
+  // (`resolveAdminTenantId` ignora `requestedTenantId` nesse ramo — D-J, zero
+  // regressão). Para `psw_staff`, resolve — e VALIDA contra a concessão — o
+  // slug do seletor; sem slug ou sem concessão naquele tenant, devolve `null`.
+  const empresaSlug = await resolveEmpresaSlug(sp);
+  const requestedTenantId = empresaSlug ? await fetchTenantIdBySlug(empresaSlug) : null;
+  const tenantAlvo = await resolveAdminTenantId(profile, requestedTenantId ?? undefined);
+
+  // Só um `psw_staff` pode ter concessão em N empresas ao mesmo tempo — é essa
+  // contagem que decide (a) se uma pessoa SEM seleção corrente ainda assim
+  // administra alguma empresa (não deve ser redirecionada) e (b) se o
+  // `ScopeBadge` faz sentido (ambiguidade real só existe com 2+ concessões).
+  // Para `tenant_admin`/`platform_admin` a pergunta não se aplica — só existe
+  // UMA empresa possível, sempre.
+  let grantCount = 0;
+  if (isPswStaff(profile)) {
+    const { count } = await supabase
+      .from('psw_tenant_admins')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', profile.id);
+    grantCount = count ?? 0;
+  }
+
+  const authorized = tenantAlvo
+    ? await isTenantAdminOf(profile, tenantAlvo)
+    : isPswStaff(profile) && grantCount > 0;
+  if (!authorized) redirect('/opportunities');
+
+  const multipleCompanies = isPswStaff(profile) && grantCount > 1;
+
+  // Nome da empresa-alvo para o cabeçalho e o `ScopeBadge` — para papéis de
+  // cliente é sempre o próprio tenant (já carregado no profile, sem consulta);
+  // para `psw_staff` administrando OUTRA empresa, `profile.tenantName` seria o
+  // nome da PSW (tenant de lotação), errado aqui — precisa da empresa-alvo.
+  let tenantAlvoName: string | null = null;
+  if (tenantAlvo) {
+    tenantAlvoName = isPswStaff(profile)
+      ? ((await fetchTenantsByIds([tenantAlvo]))[0]?.name ?? null)
+      : profile.tenantName;
+  }
+
+  // Sem tenant-alvo: nenhuma lista é buscada — nunca cair no tenant de
+  // lotação como padrão silencioso (T-18-61).
+  const [invitesRes, membersRes] = tenantAlvo
+    ? await Promise.all([
+        supabase
+          .from('invited_emails')
+          .select('id, email, role, cargo, used_at, created_at')
+          .eq('tenant_id', tenantAlvo)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('id, email, full_name, role, cargo')
+          .eq('tenant_id', tenantAlvo)
+          .order('email'),
+      ])
+    : [{ data: [] as InviteRow[] }, { data: [] as MemberRow[] }];
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
   const members = (membersRes.data ?? []) as MemberRow[];
@@ -80,16 +157,26 @@ export default async function TeamPage() {
           <h1 className="text-lg font-bold text-txt">Equipe</h1>
           <p className="text-xs text-mut">
             Convide pessoas para acessar as oportunidades
-            {profile!.tenantName ? ` de ${profile!.tenantName}` : ''} e defina o
-            que cada uma pode fazer.
+            {tenantAlvoName ? ` de ${tenantAlvoName}` : ''} e defina o que cada
+            uma pode fazer.
           </p>
         </div>
-        <Link href="/opportunities" className="text-xs font-semibold text-pri hover:underline">
-          ← Voltar
-        </Link>
+        <div className="flex items-center gap-3">
+          <ScopeBadge tenantName={tenantAlvoName} multiple={multipleCompanies} />
+          <Link href="/opportunities" className="text-xs font-semibold text-pri hover:underline">
+            ← Voltar
+          </Link>
+        </div>
       </div>
 
-      <TeamInviteForm tenantName={profile!.tenantName} />
+      {!tenantAlvo && <NoScopeBanner />}
+
+      {/* `fieldset disabled` cascata nativamente para todos os controles de
+          formulário dentro de `TeamInviteForm` (Client Component) sem precisar
+          tocar o arquivo dele — o mesmo aviso acima já explica o motivo. */}
+      <fieldset disabled={!tenantAlvo} className="contents">
+        <TeamInviteForm tenantName={tenantAlvoName} />
+      </fieldset>
 
       {/* Convites pendentes -------------------------------------------------- */}
       <div className="flex flex-col gap-2">
@@ -107,7 +194,7 @@ export default async function TeamPage() {
               {pending.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-4 py-8 text-center text-mut">
-                    Nenhum convite pendente.
+                    {tenantAlvo ? 'Nenhum convite pendente.' : 'Selecione uma empresa para ver os convites.'}
                   </td>
                 </tr>
               ) : (
@@ -120,7 +207,8 @@ export default async function TeamPage() {
                         <input type="hidden" name="id" value={inv.id} />
                         <button
                           type="submit"
-                          className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline"
+                          disabled={!tenantAlvo}
+                          className="text-[11px] font-semibold text-red-600 dark:text-red-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                         >
                           Revogar
                         </button>
@@ -147,13 +235,21 @@ export default async function TeamPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
-                <tr key={m.id} className="border-t border-slate-100 dark:border-slate-800">
-                  <td className="px-4 py-2.5">{m.full_name ?? '—'}</td>
-                  <td className="px-4 py-2.5">{m.email}</td>
-                  <td className="px-4 py-2.5">{papelLabel(m.role, m.cargo)}</td>
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-mut">
+                    {tenantAlvo ? 'Ninguém com acesso ainda.' : 'Selecione uma empresa para ver a equipe.'}
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                members.map((m) => (
+                  <tr key={m.id} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="px-4 py-2.5">{m.full_name ?? '—'}</td>
+                    <td className="px-4 py-2.5">{m.email}</td>
+                    <td className="px-4 py-2.5">{papelLabel(m.role, m.cargo)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
