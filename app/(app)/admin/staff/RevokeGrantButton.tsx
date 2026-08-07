@@ -105,9 +105,11 @@ export function RevokeGrantButton({ grantId, tenantName, personName }: Props) {
 
             <div className="px-5 py-4">
               <p className="text-[12px] text-txt mb-3">
-                {impact === null
-                  ? 'Calculando impacto…'
-                  : formatRevokeImpact(personName, tenantName, impact)}
+                {error
+                  ? 'Impacto não pôde ser calculado.'
+                  : impact === null
+                    ? 'Calculando impacto…'
+                    : formatRevokeImpact(personName, tenantName, impact)}
               </p>
 
               {error && (
