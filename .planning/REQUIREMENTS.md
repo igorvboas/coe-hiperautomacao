@@ -103,10 +103,10 @@ Adicionado em 2026-08-07 a pedido do PO. Problema estrutural: `profiles` tem **u
 
 - [x] **GRANT-01**: Existe uma concessão N:N (pessoa × empresa) que registra de quais tenants um `psw_staff` é admin — um mesmo staff é admin de N empresas simultaneamente, sem duplicar `profiles` nem alterar `profiles.tenant_id`
 - [x] **GRANT-02**: Um `psw_staff` **sem** nenhuma concessão continua enxergando **somente** as oportunidades atribuídas a ele — o comportamento entregue pela `0044` não muda em nada
-- [ ] **GRANT-03**: Um `psw_staff` **com** concessão no tenant A enxerga todas as oportunidades de A **mais** as atribuídas a ele em qualquer outra empresa, numa mesma listagem unificada
+- [x] **GRANT-03**: Um `psw_staff` **com** concessão no tenant A enxerga todas as oportunidades de A **mais** as atribuídas a ele em qualquer outra empresa, numa mesma listagem unificada
 - [ ] **GRANT-04**: Dentro de um tenant onde tem concessão, o `psw_staff` exerce os **mesmos poderes de um `tenant_admin`** daquele tenant — convites/allowlist, equipe, configurações/branding e logs
 - [ ] **GRANT-05**: As Server Actions de admin operam sobre um **tenant-alvo explícito**, validado contra a concessão, em vez de derivá-lo de `profile.tenant_id` — nenhuma escrita grava no tenant errado nem responde sucesso tendo afetado zero linhas
-- [ ] **GRANT-06**: Apenas o `platform_admin` concede e revoga a condição de admin de tenant; um `psw_staff` com concessão **não** promove outra pessoa, no seu tenant nem em nenhum outro
+- [x] **GRANT-06**: Apenas o `platform_admin` concede e revoga a condição de admin de tenant; um `psw_staff` com concessão **não** promove outra pessoa, no seu tenant nem em nenhum outro
 - [ ] **GRANT-07**: Existe uma tela `/admin/staff`, restrita ao `platform_admin`, onde ele concede e revoga a concessão e vê, por pessoa, as **duas origens de acesso separadas** — empresas onde é admin e atribuições individuais (indicando quantas são redundantes por já estarem em empresa administrada)
 - [ ] **GRANT-08**: Revogar uma concessão exige confirmação explícita que informa **quantas oportunidades** a pessoa deixará de enxergar; a atribuição individual sobrevive à revogação
 - [ ] **GRANT-09**: A atribuição de oportunidade continua sendo editada **somente** na própria oportunidade (`AssigneesPanel`) — a tela de admin exibe atribuições em leitura, com link, e nunca escreve nelas

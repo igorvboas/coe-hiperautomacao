@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 13
+open_count: 15
 waived_count: 0
 fixed_count: 1
-total_count: 14
-last_updated: 2026-08-07T10:08:51.113Z
+total_count: 16
+last_updated: 2026-08-07T17:01:21.633Z
 ---
 
 # Broken Windows Ledger
@@ -29,6 +29,8 @@ last_updated: 2026-08-07T10:08:51.113Z
 | 12 | 17 | todo | supabase/migrations/0043_tenant_coherence_notes_risks_documents.sql |  | Defeito PRE-EXISTENTE (0011/0018, nao introduzido pela Phase 17) descoberto na verificacao pos-apply da 0041: opportunity_notes, opportunity_risks e opportunity_documents nao tem guarda de coerencia de tenant (equivalente a check_assignee_tenant/check_task_tenant_coherence) — qualquer usuario nao-viewer pode pendurar nota/risco/documento em oportunidade de OUTRO tenant, carimbando o proprio tenant_id. 7 linhas de producao afetadas (5 notas + 2 riscos, tenant_id=PSW penduradas em oportunidades da Unidasul) — integridade/poluicao de dados, nao vazamento de confidencialidade. PO decidiu: migration 0043 (fora do escopo do Plan 17-04) vai adicionar a guarda e corrigir as 7 linhas. | open |  | 2026-08-07T01:04:46.894Z |  |
 | 13 | 17 | unrun-verify | tests/security/psw-staff-isolation.test.ts |  | Todos os specs de propagacao/escrita/triggers do Plan 17-05 (tabelas filhas, profiles, check_assignee_tenant, assignee de tarefa, escrita escopada, gate de viewer D-13, invited_emails) foram escritos mas NAO executados nesta sessao — .env.test continua ausente, mesma pendencia carregada desde 17-01. describe.skipIf pula os 38 specs; nenhuma prova empirica contra banco real. | open |  | 2026-08-07T01:55:27.440Z |  |
 | 14 | 17 | todo | lib/database.types.ts |  | invited_emails.Insert/Row/Update.role (hand-maintained) ainda e 'member'\|'tenant_admin'\|'viewer' — nao reflete o CHECK ampliado pela 0041 (aceita 'psw_staff' desde entao). tests/security/psw-staff-isolation.test.ts usa @ts-expect-error nos dois inserts com role:'psw_staff' para compilar. Corrigir o tipo exige tambem atualizar app/(app)/admin/invites/page.tsx (Record<InviteRow['role'], string> exaustivo) — fora do escopo do Plan 17-05 (files_modified so lista o arquivo de teste). | fixed |  | 2026-08-07T01:55:39.816Z | 2026-08-07T10:08:51.113Z |
+| 15 | 18 | unrun-verify | supabase/migrations/0045_psw_tenant_admins_grant.sql |  | Handoff V10-V13 (nao-regressao member / smokes D-B / EXPLAIN inlining / smoke UPDATE autorizado) nao executadas nesta wave | open |  | 2026-08-07T17:01:12.370Z |  |
+| 16 | 18 | skipped-test | tests/security/psw-staff-admin-grant.test.ts |  | 14 testes em describe.skipIf (sem NEXT_PUBLIC_SUPABASE_URL) — modo de prova revertido para prova-por-sql-no-handoff (colisao de UUID entre fixtures e tenant real de producao impede env-test-populado); prova substituta = handoff 18-02 + observacao direta pelo app | open |  | 2026-08-07T17:01:21.633Z |  |
 
 ````json
 [
@@ -199,6 +201,30 @@ last_updated: 2026-08-07T10:08:51.113Z
     "reason": "",
     "recorded_at": "2026-08-07T01:55:39.816Z",
     "resolved_at": "2026-08-07T10:08:51.113Z"
+  },
+  {
+    "id": 15,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "supabase/migrations/0045_psw_tenant_admins_grant.sql",
+    "line": null,
+    "description": "Handoff V10-V13 (nao-regressao member / smokes D-B / EXPLAIN inlining / smoke UPDATE autorizado) nao executadas nesta wave",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:01:12.370Z",
+    "resolved_at": null
+  },
+  {
+    "id": 16,
+    "kind": "skipped-test",
+    "phase": "18",
+    "file": "tests/security/psw-staff-admin-grant.test.ts",
+    "line": null,
+    "description": "14 testes em describe.skipIf (sem NEXT_PUBLIC_SUPABASE_URL) — modo de prova revertido para prova-por-sql-no-handoff (colisao de UUID entre fixtures e tenant real de producao impede env-test-populado); prova substituta = handoff 18-02 + observacao direta pelo app",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T17:01:21.633Z",
+    "resolved_at": null
   }
 ]
 ````

@@ -5,15 +5,15 @@ milestone_name: "Execução: Tarefas e Subtarefas por Oportunidade"
 current_phase: 18
 current_phase_name: staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa
 status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-08-07T15:17:37.113Z"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-08-07T17:02:17.007Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 23
-  completed_plans: 15
+  completed_plans: 16
   percent: 33
 ---
 
@@ -137,7 +137,7 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 18 (staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-08-07 — Phase 18 execution started
 
@@ -149,7 +149,7 @@ Previous activity: 2026-05-26 — `/gsd-insert-phase 7.6` (Enriquecimento por IA
 
 Previous activity: 2026-05-22 — `/gsd-execute-phase 7.5` executou Plan 06 em **write-only mode** (Supabase Cloud, sem .env.test): 8 commits (f4f17f9 install botid+@marsidev/react-turnstile, 4f9974a migration 0007 public_form_submissions+RPC hardened, 909e016 handoff doc, be85e0b lib/security/* helpers, 02b6e6a createPublicOpportunity refatorado com BotID+Turnstile+log+pt-BR genérico, a779acb withBotId+initBotId, 55b6689 PublicForm widget invisible + token, b98bf6d 13 specs turnstile unit + public-form integration). 1 deviation Rule 3 (server-only não resolve em Vitest — alias para stub em vitest.config.ts; padrão Next.js, zero impacto em prod). typecheck clean. `npm run test:security` exit 0 (24 passed = 6 turnstile + 18 mass-assignment + 22 skipped = 3 atomicity + 7 public-form + 12 tenant-isolation). audit:secrets clean (TURNSTILE_SECRET_KEY só em server-only). Total ~17min.
 
-Progress: [███████░░░] 65%
+Progress: [███████░░░] 70%
 <!-- Phase 7.5: 6/6 plans completos. Próximo phase: 8 (Polish & Deploy) -->
 
 ## Milestone v0.1 — Roadmap (Reordenado em 2026-05-20)
@@ -213,6 +213,7 @@ Progress: [███████░░░] 65%
 | Phase 17 P05 | ~50min | 2 tasks | 1 files |
 | Phase 17 P07 | ~7min | 3 tasks | 6 files |
 | Phase 18 P01 | 25min | 3 tasks | 4 files |
+| Phase 18 P02 | multi-sessão | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -267,6 +268,10 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 - [Phase ?]: 17-08: sinalizacao de empresa no cabecalho exigiu tocar Header.tsx/OpportunityDetail.tsx (fora dos files_modified do plano) porque page.tsx delega todo o markup do cabecalho a esses componentes
 - [Phase ?]: 18-01: PO escolheu env-test-populado (Task 1) — .env.test antes do apply da 0045; suíte pulada passa a contar como falha, não como verde
 - [Phase ?]: 18-01: psw_tenant_admins escrito à mão em lib/database.types.ts, casando com o DDL da 0045 (RESEARCH); typecheck limpo
+- [Phase ?]: Task 2 (checkpoint:decision): PO escolheu aplicar-como-escrito — concessão órfã inerte, leitura de psw_tenant_admins restrita a platform_admin + a própria pessoa
+- [Phase ?]: Cardinalidade (D-D/add-alongside): profiles.tenant_id permanece singular/NOT NULL; pluralidade admin-de-N-empresas vive só em psw_tenant_admins
+- [Phase ?]: Desvio autorizado: acréscimo de opportunities_update_psw_admin — nenhum plano futuro da fase concederia UPDATE ao staff-admin sem ele
+- [Phase ?]: Modo de prova da fase revertido: env-test-populado -> prova-por-sql-no-handoff (colisão de UUID entre fixture de teste e tenant real de produção)
 
 ### Pending Todos
 
@@ -295,7 +300,7 @@ Decisões registradas em `.planning/PROJECT.md` → tabela "Key Decisions". Resu
 
 ## Session Continuity
 
-Last session: 2026-08-07T15:17:37.104Z
+Last session: 2026-08-07T17:02:16.998Z
 
 Previous session: 2026-07-16 (parte 3) — **Bug pós-apply do pacote v0.3 encontrado e corrigido.** Depois do PO corrigir um desvio de relógio do sistema (não relacionado, causava `JWT issued at future` no Supabase Auth), `/opportunities` continuou quebrado: `column opportunities_with_score.criticidade does not exist`. Causa raiz: a migration 0017 adicionou 9 colunas em `opportunities`, mas não recriou a VIEW `opportunities_with_score` (definida em 0011 com `select o.*`) — no Postgres, a lista de colunas de uma view com `select o.*` fica congelada no momento da criação; colunas novas na tabela base via `ALTER TABLE` não aparecem sozinhas na view. Criada e aplicada `supabase/migrations/0019_fix_view_v03_columns.sql` (mesma definição de view de 0011, só recriada — agora captura o shape pós-0017). Verificado via `information_schema.columns` (9 colunas v0.3 + score/priority_level presentes) e confirmado end-to-end no browser (`/opportunities` carrega 65 registros, coluna Criticidade visível). **Lição registrada em memória:** toda migration futura que adicionar coluna em `opportunities` precisa também recriar essa view no mesmo pacote.
 
@@ -378,5 +383,5 @@ Status: **ready_to_execute**.
 ---
 
 Previous session: 2026-05-22
-Stopped at: Completed 18-01-PLAN.md
+Stopped at: Completed 18-02-PLAN.md
 Resume file: `/gsd-verify-work 7.5` ou `/gsd-plan-phase 8` quando setup do Vercel/Cloud estiver pronto.

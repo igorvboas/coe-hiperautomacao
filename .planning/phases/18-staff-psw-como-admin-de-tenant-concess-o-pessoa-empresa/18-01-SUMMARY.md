@@ -184,5 +184,21 @@ Nenhum bloqueio técnico. O único ponto de atenção: como `.env.test` ainda n�
 - FOUND: commit `058a40b` (Task 3)
 
 ---
+
+## SUPERSESSÃO (2026-08-07, registrada durante o Plan 18-02)
+
+**A decisão `env-test-populado` acima foi REVERTIDA pelo PO. O modo de prova vigente da Phase 18 passa a ser `prova-por-sql-no-handoff`.**
+
+**Motivo:** ao tentar popular `.env.test` (a ação pendente que este SUMMARY registrava em "User Setup Required"), a única URL de Supabase disponível era a de **produção**, que `tests/setup/global-setup.ts:23-32` rejeita por design — confirmando que a defesa funcionou como projetada. Além disso, o orquestrador do Plan 18-02 constatou uma colisão de UUID: `FGCOOP_TEST_ID` (`11111111-1111-1111-1111-111111111111`) em `tests/setup/seed-test-tenants.ts` é o UUID de um tenant **real** de produção ("FGCoop", 32 oportunidades), e `seed-test-tenants.ts:98` executa `delete().in('tenant_id', [FGCOOP_TEST_ID, ACME_TEST_ID, PSW_TEST_ID])` via service-role — ou seja, apontar a suíte para produção teria **apagado dados reais de cliente**. Nenhum teste foi executado contra produção; o problema foi identificado antes de qualquer run. Detalhado em `deferred-items.md` (item "Colisão de UUID entre fixtures de teste e tenants reais de produção").
+
+**Consequência vinculante, a partir do Plan 18-02 em diante:**
+- `.env.test` NÃO deve ser criado enquanto esta colisão não for resolvida (provisionar projeto Supabase de teste dedicado, ou trocar os UUIDs de fixture).
+- `tests/security/*` continua em `describe.skipIf` — e isso não é mais tratado como uma lacuna temporária a fechar no próximo plano, mas como o estado estável da fase até a dívida de infraestrutura de teste ser paga.
+- A prova de RLS passa a ser feita por **verificação estrutural via SQL no handoff de cada migration** (queries a `pg_policies`/`pg_proc`/`pg_trigger`, e a medição decisiva antes/concede/depois/revoga rodada manualmente pelo PO — via SQL Editor ou, quando possível, observação direta ponta-a-ponta pelo próprio app) — não por suíte automatizada.
+- Nenhum SUMMARY desta fase, a partir de agora, pode afirmar "testes verdes" para specs que continuam em skip. Onde um plano listava specs como critério de sucesso, a evidência substituta é a verificação numerada do handoff correspondente (ou a observação direta pelo app, quando executada pelo PO).
+
+Este bloco não reescreve o histórico acima — a decisão `env-test-populado` foi a escolha correta com a informação disponível em 2026-08-07 (antes da tentativa real de popular o ambiente). A reversão é resultado de uma descoberta posterior, não de um erro de julgamento original.
+
+---
 *Phase: 18-staff-psw-como-admin-de-tenant-concess-o-pessoa-empresa*
 *Completed: 2026-08-07*
