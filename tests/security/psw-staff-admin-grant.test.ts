@@ -78,6 +78,13 @@ const PLATFORM_ADMIN_TEST_EMAIL = 'platform-admin@test.local';
 // controle).
 const CONTROL_PROFILE_TEST_EMAIL = 'controle-grant-child-test@test.local';
 
+// Ids do grupo (d) — Plan 18-05, migration 0047 (as 11 policies vivas de
+// tenant_admin pela fonte única `is_tenant_admin_of()`). Mesmo prefixo
+// `bbbb0000-…` desta suíte, faixa própria para não colidir com nada acima.
+const INVITE_PENDING_A = 'bbbb0000-0000-0000-0000-000000000010'; // FGCoop, pendente
+const INVITE_USED_A = 'bbbb0000-0000-0000-0000-000000000011'; // FGCoop, já usado
+const INVITE_PENDING_CONTROL = 'bbbb0000-0000-0000-0000-000000000012'; // tenant de controle, pendente
+
 // As 7 tabelas filhas cobertas pela propagação desta migration (0046) — usado
 // tanto pela fixture quanto pelos specs `c4-*`, para não deixar o nome de
 // nenhuma tabela hardcoded em dois lugares divergentes.
@@ -600,6 +607,275 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
       expect(notesReadErr).toBeNull();
       expect(notesStill?.texto).toBe('nota fixture c4 — A');
     });
+
+    // -------------------------------------------------------------------
+    // Grupo (d) — Plan 18-05 / migration 0047: as 11 policies vivas de
+    // `tenant_admin` pela fonte única `is_tenant_admin_of()`. Poderes em A
+    // (GRANT-04), negação em B (a mesma bateria, nas duas formas de negação:
+    // erro explícito para INSERT, zero linhas silenciosas para
+    // SELECT/UPDATE/DELETE — usando `using`), e não-regressão do
+    // `tenant_admin` de cliente depois do swap (GRANT-10/SC-12).
+    // -------------------------------------------------------------------
+    describe('grupo (d) — convites/branding/log herdados de tenant_admin pelo staff-admin (0047)', () => {
+      const inviteIdsToCleanup: string[] = [];
+      let originalBranding: { brand_color: string | null; logo_path: string | null } | null = null;
+
+      beforeAll(async () => {
+        const { data: brandingData, error: brandingErr } = await sb
+          .from('tenants')
+          .select('brand_color, logo_path')
+          .eq('id', FGCOOP_TEST_ID)
+          .single();
+        if (brandingErr) throw new Error(`setup falhou (branding original de A): ${brandingErr.message}`);
+        originalBranding = brandingData;
+
+        const { error: pendingErr } = await sb.from('invited_emails').insert({
+          id: INVITE_PENDING_A,
+          email: 'convite-pendente-grupo-d@test.local',
+          tenant_id: FGCOOP_TEST_ID,
+          role: 'member',
+        });
+        if (pendingErr) throw new Error(`setup falhou (convite pendente A, grupo d): ${pendingErr.message}`);
+
+        const { error: usedErr } = await sb.from('invited_emails').insert({
+          id: INVITE_USED_A,
+          email: 'convite-usado-grupo-d@test.local',
+          tenant_id: FGCOOP_TEST_ID,
+          role: 'member',
+          used_at: new Date().toISOString(),
+        });
+        if (usedErr) throw new Error(`setup falhou (convite já usado A, grupo d): ${usedErr.message}`);
+
+        const { error: controlInviteErr } = await sb.from('invited_emails').insert({
+          id: INVITE_PENDING_CONTROL,
+          email: 'convite-pendente-grupo-d-controle@test.local',
+          tenant_id: CONTROL_TENANT_ID,
+          role: 'member',
+        });
+        if (controlInviteErr) {
+          throw new Error(`setup falhou (convite pendente do tenant de controle, grupo d): ${controlInviteErr.message}`);
+        }
+      });
+
+      afterAll(async () => {
+        if (!sb) return;
+        await sb
+          .from('invited_emails')
+          .delete()
+          .in('id', [INVITE_PENDING_A, INVITE_USED_A, INVITE_PENDING_CONTROL, ...inviteIdsToCleanup]);
+        if (originalBranding) {
+          await sb
+            .from('tenants')
+            .update({ brand_color: originalBranding.brand_color, logo_path: originalBranding.logo_path })
+            .eq('id', FGCOOP_TEST_ID);
+        }
+      });
+
+      it('d1) staff-admin lê a allowlist de convites de A', async () => {
+        const { client } = await asPswStaff();
+        const { data, error } = await client.from('invited_emails').select('id').eq('tenant_id', FGCOOP_TEST_ID);
+        expect(error).toBeNull();
+        const ids = (data ?? []).map((r) => r.id);
+        expect(ids).toContain(INVITE_PENDING_A);
+        expect(ids).toContain(INVITE_USED_A);
+      });
+
+      it('d2) staff-admin insere convite legítimo em A, com releitura por service-role', async () => {
+        const { client } = await asPswStaff();
+        const email = `convite-legitimo-staffadmin-grupo-d-${Date.now()}@test.local`;
+        const { data, error } = await client
+          .from('invited_emails')
+          .insert({ email, tenant_id: FGCOOP_TEST_ID, role: 'member', invited_by: pswStaffUserId })
+          .select('id')
+          .single();
+        expect(error).toBeNull();
+        expect(data?.id).toBeTruthy();
+        if (data?.id) inviteIdsToCleanup.push(data.id);
+
+        const { data: reread, error: readErr } = await sb
+          .from('invited_emails')
+          .select('email')
+          .eq('id', data?.id ?? '')
+          .single();
+        expect(readErr).toBeNull();
+        expect(reread?.email).toBe(email); // ← a releitura obrigatória, nunca `error === null` sozinho
+      });
+
+      it('d3) staff-admin recebe erro ao tentar convidar alguém com papel não convidável (psw_staff) em A — não cunha um staff PSW', async () => {
+        const { client } = await asPswStaff();
+        const { error } = await client.from('invited_emails').insert({
+          email: `tentativa-psw-staff-grupo-d-${Date.now()}@test.local`,
+          tenant_id: FGCOOP_TEST_ID,
+          role: 'psw_staff',
+          invited_by: pswStaffUserId,
+        });
+        expect(error).not.toBeNull();
+      });
+
+      it('d4) staff-admin remove convite PENDENTE de A, e NÃO remove convite já USADO (zero linhas, não erro)', async () => {
+        const { client } = await asPswStaff();
+
+        const { data: deletedPending, error: deletePendingErr } = await client
+          .from('invited_emails')
+          .delete()
+          .eq('id', INVITE_PENDING_A)
+          .select('id');
+        expect(deletePendingErr).toBeNull();
+        expect(deletedPending).toHaveLength(1);
+
+        const { data: rereadPending } = await sb.from('invited_emails').select('id').eq('id', INVITE_PENDING_A);
+        expect(rereadPending ?? []).toEqual([]); // releitura confirma a remoção
+
+        const { data: deletedUsed, error: deleteUsedErr } = await client
+          .from('invited_emails')
+          .delete()
+          .eq('id', INVITE_USED_A)
+          .select('id');
+        expect(deleteUsedErr).toBeNull(); // nega pelo `using` (used_at is null), não por erro explícito
+        expect(deletedUsed ?? []).toEqual([]);
+
+        const { data: rereadUsed } = await sb.from('invited_emails').select('id').eq('id', INVITE_USED_A);
+        expect(rereadUsed).toHaveLength(1); // a linha continua lá — o delete não afetou nada
+      });
+
+      it('d5) staff-admin atualiza o branding (tenants) de A, com releitura por service-role', async () => {
+        const { client } = await asPswStaff();
+        const novaCor = `#${Date.now().toString(16).padStart(6, '0').slice(-6)}`;
+        const { error } = await client.from('tenants').update({ brand_color: novaCor }).eq('id', FGCOOP_TEST_ID);
+        expect(error).toBeNull();
+
+        const { data, error: readErr } = await sb
+          .from('tenants')
+          .select('brand_color')
+          .eq('id', FGCOOP_TEST_ID)
+          .single();
+        expect(readErr).toBeNull();
+        expect(data?.brand_color).toBe(novaCor); // ← a releitura obrigatória, nunca `error === null` sozinho
+      });
+
+      it('d6) staff-admin lê o log de auditoria de A e obtém linhas', async () => {
+        const { client } = await asPswStaff();
+        const { data, error } = await client.from('audit_log').select('id').eq('tenant_id', FGCOOP_TEST_ID).limit(1);
+        expect(error).toBeNull();
+        expect((data ?? []).length).toBeGreaterThan(0);
+      });
+
+      describe('d7) NEGATIVO — as mesmas operações no tenant de controle, onde não há concessão', () => {
+        it('d7a) SELECT invited_emails do tenant de controle — zero linhas (nega pelo `using`, não por erro)', async () => {
+          const { client } = await asPswStaff();
+          const { data, error } = await client.from('invited_emails').select('id').eq('tenant_id', CONTROL_TENANT_ID);
+          expect(error).toBeNull();
+          expect(data).toEqual([]);
+        });
+
+        it('d7b) INSERT convite legítimo no tenant de controle — erro explícito (`with check` falha)', async () => {
+          const { client } = await asPswStaff();
+          const { error } = await client.from('invited_emails').insert({
+            email: `tentativa-insert-controle-grupo-d-${Date.now()}@test.local`,
+            tenant_id: CONTROL_TENANT_ID,
+            role: 'member',
+          });
+          expect(error).not.toBeNull();
+        });
+
+        it('d7c) INSERT convite com papel não convidável no tenant de controle — erro explícito', async () => {
+          const { client } = await asPswStaff();
+          const { error } = await client.from('invited_emails').insert({
+            email: `tentativa-insert-controle-psw-staff-grupo-d-${Date.now()}@test.local`,
+            tenant_id: CONTROL_TENANT_ID,
+            role: 'psw_staff',
+          });
+          expect(error).not.toBeNull();
+        });
+
+        it('d7d) DELETE convite pendente do tenant de controle — zero linhas (nega pelo `using`, não por erro)', async () => {
+          const { client } = await asPswStaff();
+          const { data, error } = await client
+            .from('invited_emails')
+            .delete()
+            .eq('id', INVITE_PENDING_CONTROL)
+            .select('id');
+          expect(error).toBeNull();
+          expect(data ?? []).toEqual([]);
+
+          const { data: stillThere } = await sb.from('invited_emails').select('id').eq('id', INVITE_PENDING_CONTROL);
+          expect(stillThere).toHaveLength(1); // a linha continua lá
+        });
+
+        it('d7e) UPDATE do tenant de controle (branding) — zero linhas (nega pelo `using`, não por erro)', async () => {
+          const { client } = await asPswStaff();
+          const { data, error } = await client
+            .from('tenants')
+            .update({ brand_color: '#abcdef' })
+            .eq('id', CONTROL_TENANT_ID)
+            .select('id');
+          expect(error).toBeNull();
+          expect(data ?? []).toEqual([]);
+        });
+
+        it('d7f) SELECT audit_log do tenant de controle — zero linhas (nega pelo `using`, não por erro)', async () => {
+          const { client } = await asPswStaff();
+          const { data, error } = await client.from('audit_log').select('id').eq('tenant_id', CONTROL_TENANT_ID);
+          expect(error).toBeNull();
+          expect(data).toEqual([]);
+        });
+      });
+
+      describe('d8) NÃO-REGRESSÃO — tenant_admin de cliente continua exatamente como estava, depois do swap da 0047', () => {
+        it('d8a) baseline b1/b2 reconfirmado — member do FGCoop ainda vê exatamente `memberBaseline` oportunidades', async () => {
+          const { client } = await asFgcoop();
+          const { count } = await client.from('opportunities').select('id', { count: 'exact', head: true });
+          expect(count).toBe(memberBaseline);
+        });
+
+        describe('tenant_admin do FGCoop repromovido, para reafirmar b3/b4/b5 depois do swap', () => {
+          const reconfirmedInviteIds: string[] = [];
+
+          beforeAll(async () => {
+            const { error } = await sb.from('profiles').update({ role: 'tenant_admin' }).eq('id', fgcoopUserId);
+            if (error) throw new Error(`não foi possível repromover FGCoop a tenant_admin (d8): ${error.message}`);
+          });
+
+          afterAll(async () => {
+            if (sb && fgcoopUserId) {
+              await sb.from('profiles').update({ role: 'member' }).eq('id', fgcoopUserId);
+            }
+            if (sb && reconfirmedInviteIds.length > 0) {
+              await sb.from('invited_emails').delete().in('id', reconfirmedInviteIds);
+            }
+          });
+
+          it('d8b) reafirma b3 — tenant_admin do FGCoop CONTINUA sem conseguir convidar psw_staff', async () => {
+            const { client } = await asFgcoop();
+            const { error } = await client.from('invited_emails').insert({
+              email: `reconfirma-b3-grupo-d-${Date.now()}@test.local`,
+              tenant_id: FGCOOP_TEST_ID,
+              role: 'psw_staff',
+            });
+            expect(error).not.toBeNull();
+          });
+
+          it('d8c) reafirma b4 — tenant_admin do FGCoop CONTINUA convidando papéis legítimos do próprio tenant', async () => {
+            const { client } = await asFgcoop();
+            const { data, error } = await client
+              .from('invited_emails')
+              .insert({ email: `reconfirma-b4-grupo-d-${Date.now()}@test.local`, tenant_id: FGCOOP_TEST_ID, role: 'member' })
+              .select('id')
+              .single();
+            expect(error).toBeNull();
+            expect(data?.id).toBeTruthy();
+            if (data?.id) reconfirmedInviteIds.push(data.id);
+          });
+
+          it('d8d) reafirma b5 — tenant_admin do FGCoop CONTINUA sem ver invited_emails do Acme', async () => {
+            const { client } = await asFgcoop();
+            const { data, error } = await client.from('invited_emails').select('id').eq('tenant_id', ACME_TEST_ID);
+            expect(error).toBeNull();
+            expect(data).toEqual([]);
+          });
+        });
+      });
+    });
   });
 
   it('a2) após revogar (afterAll do describe de concessão), o conjunto visível volta EXATAMENTE ao baseline', async () => {
@@ -623,8 +899,18 @@ describe.skipIf(!HAS_DB)('psw_tenant_admins — concessão de admin cross-tenant
 // c4 (Plan 18-03, migration 0046): especificado — `c4-positivo`/`c4-negativo`
 // (parametrizados sobre CHILD_TABLES), `c4-baseline`, `c8` (escrita com
 // releitura) e `c9` (paridade de verbos em history/notes) substituíram o spec
-// pendente original. Toda a suíte permanece em SKIP neste ambiente
-// (`.env.test` não existe — ver o cabeçalho do arquivo); a prova de runtime
-// desta wave é a verificação numerada de `18-03-MIGRATION-HANDOFF.md`, não
-// esta suíte.
+// pendente original.
+//
+// d1-d8 (Plan 18-05, migration 0047): as 11 policies vivas de `tenant_admin`
+// pela fonte única `is_tenant_admin_of()`. Poderes do staff-admin em A
+// (convites/branding/log — GRANT-04), negação em B nas DUAS formas corretas
+// (erro explícito no INSERT, zero linhas silenciosas no SELECT/UPDATE/DELETE
+// via `using`), e a não-regressão do `tenant_admin` de cliente reconferida
+// DEPOIS do swap (b1/b2/b3/b4/b5 reafirmados em d8 — é aqui que a regressão
+// da policy morta da 0029 apareceria, se tivesse acontecido).
+//
+// Toda a suíte permanece em SKIP neste ambiente (`.env.test` não existe — ver
+// o cabeçalho do arquivo); a prova de runtime da 0047 é a verificação
+// numerada de `18-05-MIGRATION-HANDOFF.md` (parcialmente executada — ver
+// `18-05-SUMMARY.md`), não esta suíte.
 // =============================================================================
