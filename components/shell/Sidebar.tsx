@@ -56,6 +56,14 @@ const ADMIN_NAV: NavItem[] = [
     icon: Icon.Invites,
     isActive: (p) => p.startsWith('/admin/invites'),
   },
+  // Tela de concessão pessoa × empresa (Phase 18, Plan 04) — só o super-admin
+  // concede/revoga admin de tenant a um `psw_staff` (GRANT-09/SC-9).
+  {
+    label: 'Staff PSW',
+    href: '/admin/staff',
+    icon: Icon.Building,
+    isActive: (p) => p.startsWith('/admin/staff'),
+  },
   // Mesma rota do tenant_admin — o que muda é o alcance, resolvido pela RLS:
   // aqui o super-admin vê todas as empresas e ganha o seletor de empresa.
   {
@@ -75,7 +83,11 @@ const ADMIN_NAV: NavItem[] = [
 ];
 
 // Admin da PRÓPRIA empresa (v0.4) — não confundir com ADMIN_NAV, que é do
-// super-admin de plataforma (PSW) e cruza tenants.
+// super-admin de plataforma (PSW) e cruza tenants. A partir da Phase 18
+// (Plan 08) este bloco também é oferecido a um `psw_staff` que administra ao
+// menos uma empresa (concessão em `psw_tenant_admins`) — o gate é o
+// sinalizador `canAdminister`, calculado no servidor (ver componente abaixo),
+// nunca um teste de papel isolado feito aqui no client.
 const TENANT_ADMIN_NAV: NavItem[] = [
   {
     label: 'Equipe',
@@ -115,11 +127,20 @@ const roleLabel: Record<TenantRole, string> = {
 export function Sidebar({
   profile,
   tenants,
+  canAdminister,
   logoUrl,
   selectedEmpresa = '',
 }: {
   profile: SidebarProfile;
   tenants: Tenant[];
+  /**
+   * "Administra ao menos uma empresa" — calculado no servidor, uma camada
+   * acima (app/(app)/layout.tsx): `tenant_admin` de cliente (sempre a própria
+   * empresa) OU `psw_staff` com concessão em `psw_tenant_admins`. A Sidebar
+   * (client component) não consulta concessão por conta própria — só recebe
+   * o resultado já resolvido. Gateia Equipe, Configurações e Logs.
+   */
+  canAdminister: boolean;
   /** Empresa lembrada no cookie — vale quando a URL não traz `?empresa=`. */
   selectedEmpresa?: string;
   /** Logo da empresa (/configuracoes). null → identidade PSW padrão. */
@@ -130,7 +151,6 @@ export function Sidebar({
   const view = searchParams.get('view');
   const empresa = searchParams.get('empresa') ?? selectedEmpresa;
   const isAdmin = profile.role === 'platform_admin';
-  const isTenantAdmin = profile.role === 'tenant_admin';
   const [expanded, setExpanded] = useState(false);
 
   const label = (text: string) => (
@@ -237,7 +257,7 @@ export function Sidebar({
                 {ADMIN_NAV.map(renderItem)}
               </>
             )}
-            {isTenantAdmin && (
+            {canAdminister && (
               <>
                 <div className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-nav-muted">
                   {label('Administração')}
@@ -247,8 +267,10 @@ export function Sidebar({
             )}
           </nav>
 
-          {/* Seletor de empresa (só admin, só quando expandida) */}
-          {isAdmin && expanded && tenants.length > 0 && (
+          {/* Seletor de empresa — super-admin (carteira inteira) ou
+              staff-admin que administra ao menos uma empresa (lista
+              recortada, resolvida uma camada acima); só quando expandida. */}
+          {(isAdmin || canAdminister) && expanded && tenants.length > 0 && (
             <div className="border-t border-white/10">
               <CompanySelector tenants={tenants} selected={selectedEmpresa} />
             </div>

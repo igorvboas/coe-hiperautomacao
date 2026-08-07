@@ -1,9 +1,15 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentProfile, isPlatformAdmin } from '@/lib/security/role';
+import {
+  getCurrentProfile,
+  isPlatformAdmin,
+  isTenantAdmin,
+  isPswStaff,
+} from '@/lib/security/role';
 import { fetchTenantBranding } from '@/lib/branding/queries';
 import { brandingCss } from '@/lib/branding/theme';
+import { fetchTenantsByIds } from '@/lib/tenants/queries';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { EMPRESA_COOKIE } from '@/lib/tenants/scope';
 import { cookies } from 'next/headers';
@@ -22,19 +28,65 @@ export default async function AppLayout({
   }
 
   const isAdmin = isPlatformAdmin(profile);
+  const staffAdmin = isPswStaff(profile);
 
-  // Identidade visual da empresa (/configuracoes). `brandingCss` devolve '' se
-  // a empresa não escolheu cor — aí globals.css fica no comando, sem override.
+  // Identidade visual do shell (Phase 18, Plan 08 — decisão registrada no
+  // SUMMARY, revisável se o PO pedir o contrário): SEMPRE a do tenant de
+  // LOTAÇÃO da pessoa, nunca a da empresa selecionada no seletor. Um
+  // staff-admin atuando na empresa A continua vendo o tema da PSW — trocar o
+  // tema do app inteiro em função do seletor seria mudança visível para um
+  // papel existente (`platform_admin` já usa este mesmo layout) e não foi
+  // pedida; a empresa de atuação já é comunicada pelo `ScopeBadge` no
+  // cabeçalho das telas de admin, que é onde a ambiguidade de fato importa.
+  // Ponto de mudança, se a decisão for revista: trocar `profile.tenantId`
+  // abaixo pela origem do tenant-alvo (`resolveAdminTenantIdFromSelector`).
   const branding = await fetchTenantBranding(profile.tenantId);
   const themeCss = brandingCss(branding.brandColor);
 
-  // Admin precisa da lista de empresas para o seletor (RLS cross-tenant).
+  // Empresas ADMINISTRADAS por um staff-admin (nunca a carteira completa de
+  // clientes, T-18-70) — consultada só para `psw_staff`, e reusada tanto para
+  // o gate dos itens de menu (Equipe/Configurações/Logs) quanto para compor a
+  // lista do seletor abaixo.
+  let staffAdministeredIds: string[] = [];
+  if (staffAdmin) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('psw_tenant_admins')
+      .select('tenant_id')
+      .eq('profile_id', profile.id);
+    staffAdministeredIds = (data ?? []).map((r) => r.tenant_id);
+  }
+  // "Administra ao menos uma empresa" — o único sinalizador que a Sidebar
+  // (client component) recebe para gatear Equipe/Configurações/Logs; ela não
+  // consulta concessão por conta própria, o cálculo já é feito aqui, uma
+  // camada acima. `tenant_admin` de cliente sempre administra a própria
+  // empresa (sem ida ao banco); `psw_staff` só quando tem ao menos 1 concessão.
+  const canAdminister = isTenantAdmin(profile) || staffAdministeredIds.length > 0;
+
+  // Lista do seletor de empresa. `platform_admin` continua vendo TODAS as
+  // empresas (é o dono da carteira, comportamento inalterado). Um staff-admin
+  // NUNCA vê a carteira inteira: a lista é a união das empresas que ele
+  // administra com as que ele já alcança por atribuição — a mesma união que a
+  // listagem de oportunidades já usa para a coluna/filtro "Empresa" (D-03,
+  // Phase 17) — montada por ids via `fetchTenantsByIds`, nunca por varredura.
   // Usa SLUG (não id) — é o que vai pra URL (?empresa=<slug>), sem expor UUID.
   let tenants: { slug: string; name: string }[] = [];
   if (isAdmin) {
     const supabase = await createClient();
     const { data } = await supabase.from('tenants').select('slug, name').order('name');
     tenants = data ?? [];
+  } else if (staffAdmin && staffAdministeredIds.length > 0) {
+    const supabase = await createClient();
+    const { data: assignedRows } = await supabase
+      .from('opportunity_assignees')
+      .select('tenant_id')
+      .eq('profile_id', profile.id);
+    const assignedIds = (assignedRows ?? []).map((r) => r.tenant_id);
+    const unionIds = Array.from(new Set([...staffAdministeredIds, ...assignedIds]));
+    tenants = (await fetchTenantsByIds(unionIds)).map((t) => ({
+      slug: t.slug,
+      name: t.name,
+    }));
   }
 
   // Empresa lembrada: o `?empresa=` da URL some em qualquer navegação que não
@@ -57,6 +109,7 @@ export default async function AppLayout({
             tenantName: profile.tenantName,
           }}
           tenants={tenants}
+          canAdminister={canAdminister}
           selectedEmpresa={selectedEmpresa}
           logoUrl={branding.logoUrl}
         />
