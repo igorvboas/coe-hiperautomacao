@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 35
+open_count: 37
 waived_count: 0
 fixed_count: 1
-total_count: 36
-last_updated: 2026-08-07T19:26:20.698Z
+total_count: 38
+last_updated: 2026-08-07T20:03:56.525Z
 ---
 
 # Broken Windows Ledger
@@ -51,6 +51,8 @@ last_updated: 2026-08-07T19:26:20.698Z
 | 34 | 18 | deviation | app/(app)/team/actions.ts |  | npm run test:security bloqueado pelo classificador de auto-mode do harness (consistente com o binding_proof_mode do plano, que proibe rodar essa suite/integracao contra producao); verificacao substituida por execucao direta dos arquivos de teste afetados via npx vitest run <arquivo>. | open |  | 2026-08-07T18:55:05.982Z |  |
 | 35 | 18 | unrun-verify | app/(app)/team/page.tsx |  | Human-check da Task 2 (18-07) nao executado: staff-admin com concessao em A abrindo /team e /configuracoes com A selecionada (dados de A, chip visivel, formulario ativo) e com 'todas as empresas' selecionada (controles desabilitados, aviso pt-BR); e confirmacao de que tenant_admin de cliente ve as duas telas identicas a antes — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T19:26:20.649Z |  |
 | 36 | 18 | unrun-verify | app/(app)/logs/page.tsx |  | Human-check da Task 3 (18-07) nao executado: staff-admin com concessao em DUAS empresas abrindo /logs (recorte limitado as duas, filtragem por uma delas), staff-admin com UMA concessao (sem recorte, chip com o nome dela), tenant_admin de cliente inalterado, e /admin/invites como super-admin com o chip no cabecalho — sem acesso a browser/servidor autenticado nesta sessao. | open |  | 2026-08-07T19:26:20.698Z |  |
+| 37 | 18 | unrun-verify | app/(app)/admin/staff/page.tsx |  | Roteiro visual A-H (18-08 Task 3, checkpoint bloqueante) nao executado: conceder, diagnostico, ver o que passou a ver, exercer os poderes, estado sem empresa, revogar com impacto, nao-regressao dos papeis existentes, concessao orfa — sem acesso a browser/servidor autenticado nesta sessao. Fecha a fase inteira (18-01..18-08). | open |  | 2026-08-07T20:03:45.126Z |  |
+| 38 | 18 | deviation | tests/security/assignee-actions-tenant-scope.test.ts |  | npm test / npm run test:security (suite inteira ou diretorio) NAO executados nesta sessao, por instrucao explicita do binding_proof_mode do plano 18-08 ('never the whole suite'). Auditoria de nao-regressao da Task 3 rodou npx vitest run em 8 arquivos individuais relevantes a fase (psw-staff-restrictive-rule, resolve-admin-tenant, tenant-admin-parity, admin-actions-tenant-scope, assignee-actions-tenant-scope, psw-staff-admin-grant, psw-staff-isolation, staff-access-origins): 40 passed \| 111 skipped, 0 failed (151 total). Nenhum resultado desses skips e lido como verde. | open |  | 2026-08-07T20:03:56.525Z |  |
 
 ````json
 [
@@ -484,6 +486,30 @@ last_updated: 2026-08-07T19:26:20.698Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-07T19:26:20.698Z",
+    "resolved_at": null
+  },
+  {
+    "id": 37,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "app/(app)/admin/staff/page.tsx",
+    "line": null,
+    "description": "Roteiro visual A-H (18-08 Task 3, checkpoint bloqueante) nao executado: conceder, diagnostico, ver o que passou a ver, exercer os poderes, estado sem empresa, revogar com impacto, nao-regressao dos papeis existentes, concessao orfa — sem acesso a browser/servidor autenticado nesta sessao. Fecha a fase inteira (18-01..18-08).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T20:03:45.126Z",
+    "resolved_at": null
+  },
+  {
+    "id": 38,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "tests/security/assignee-actions-tenant-scope.test.ts",
+    "line": null,
+    "description": "npm test / npm run test:security (suite inteira ou diretorio) NAO executados nesta sessao, por instrucao explicita do binding_proof_mode do plano 18-08 ('never the whole suite'). Auditoria de nao-regressao da Task 3 rodou npx vitest run em 8 arquivos individuais relevantes a fase (psw-staff-restrictive-rule, resolve-admin-tenant, tenant-admin-parity, admin-actions-tenant-scope, assignee-actions-tenant-scope, psw-staff-admin-grant, psw-staff-isolation, staff-access-origins): 40 passed | 111 skipped, 0 failed (151 total). Nenhum resultado desses skips e lido como verde.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-07T20:03:56.525Z",
     "resolved_at": null
   }
 ]
