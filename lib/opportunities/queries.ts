@@ -450,6 +450,34 @@ export async function fetchTasksForOpportunity(
 }
 
 /**
+ * Versão em lote de `fetchTasksForOpportunity` — tarefas de VÁRIAS
+ * oportunidades numa única query (Gantt do portfólio, que precisa expandir as
+ * tarefas/subtarefas de cada linha sem N+1). MESMA ordenação da versão
+ * single-id, para que a numeração T001/T001.1 seja idêntica à da Lista/Gantt
+ * de uma oportunidade. RLS protege por tenant.
+ */
+export async function fetchTasksForOpportunities(
+  ids: string[]
+): Promise<OpportunityTask[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('opportunity_tasks')
+    .select(TASK_COLUMNS)
+    .in('opportunity_id', ids)
+    .order('priority_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+    .returns<OpportunityTask[]>();
+
+  if (error) {
+    throw new Error(`Erro ao buscar tarefas: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
  * Busca uma tarefa por id (usado pelas rotas fullscreen de subtarefa/edição dos
  * planos seguintes). RLS filtra implicitamente — `null` no not-found E no
  * cross-tenant (IDOR, T-16-07): a rota converte em `notFound()`, nunca em erro

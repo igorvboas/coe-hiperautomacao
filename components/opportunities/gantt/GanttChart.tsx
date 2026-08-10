@@ -1,9 +1,20 @@
-import type { Opportunity, OpportunityPhase } from '@/lib/opportunities/types';
+'use client';
+
+import { Fragment, useState } from 'react';
+import type {
+  Opportunity,
+  OpportunityPhase,
+  OpportunityTask,
+} from '@/lib/opportunities/types';
 import { STATUS_META } from '@/lib/opportunities/status';
+import { TASK_STATUS_META } from '@/lib/opportunities/task-labels';
+import { computeTaskRollup, groupTasksByParent } from '@/lib/opportunities/task-rollup';
 
 type Props = {
   opportunities: Opportunity[];
   phases: OpportunityPhase[];
+  /** Tarefas (raízes + subtarefas) de TODAS as oportunidades da lista. */
+  tasks?: OpportunityTask[];
 };
 
 // Fases exibidas na legenda / barras (mesmas do pipeline datado). backlog entra
@@ -20,6 +31,13 @@ const LEGEND_KEYS = [
 
 const DAY = 86_400_000;
 
+/** Piso de largura da barra, em % — intervalo degenerado ainda fica visível. */
+const MIN_BAR_WIDTH_PCT = 0.8;
+
+/** Fundo da barra agregada da tarefa-pai (mesma cor de border-bdr). */
+const ROLLUP_BASE_COLOR = '#e2e8f0';
+const ROLLUP_PROGRESS_COLOR = TASK_STATUS_META.finalizado.color;
+
 function metaFor(phaseKey: string) {
   return (STATUS_META as Record<string, (typeof STATUS_META)[keyof typeof STATUS_META]>)[
     phaseKey
@@ -34,6 +52,18 @@ function fmtDate(ts: number): string {
   return `${dd}/${mm}/${yy}`;
 }
 
+// Data ISO (YYYY-MM-DD) → dd/mm/aa sem `new Date()`/locale — mesma técnica de
+// `tasks/gantt/TaskGanttChart.tsx`, evita divergência SSR/hidratação.
+function fmtDateIso(iso: string | null): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return y && m && d ? `${d}/${m}/${y.slice(2)}` : '—';
+}
+
+function pad3(n: number): string {
+  return String(n).padStart(3, '0');
+}
+
 type Bar = {
   key: string;
   label: string;
@@ -44,7 +74,12 @@ type Bar = {
   title: string;
 };
 
-export function GanttChart({ opportunities, phases }: Props) {
+export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
+  // Expansão em 2 níveis, estado local (nenhuma mutação aqui — Gantt é leitura):
+  // oportunidade → tarefas raiz; tarefa raiz → subtarefas.
+  const [expandedOpps, setExpandedOpps] = useState<Set<string>>(new Set());
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
   const now = Date.now();
 
   // Fases por oportunidade, só as que têm início datado.
@@ -54,6 +89,14 @@ export function GanttChart({ opportunities, phases }: Props) {
     const arr = byOpp.get(p.opportunity_id) ?? [];
     arr.push(p);
     byOpp.set(p.opportunity_id, arr);
+  }
+
+  // Tarefas por oportunidade, preservando a ordem vinda do banco.
+  const tasksByOpp = new Map<string, OpportunityTask[]>();
+  for (const t of tasks) {
+    const arr = tasksByOpp.get(t.opportunity_id) ?? [];
+    arr.push(t);
+    tasksByOpp.set(t.opportunity_id, arr);
   }
 
   // Só oportunidades com ≥1 fase datada, preservando a ordenação da lista.
@@ -72,12 +115,21 @@ export function GanttChart({ opportunities, phases }: Props) {
   }
 
   // Domínio temporal: menor início → maior fim (fase em andamento estende p/ hoje).
+  // Inclui as datas de TODAS as tarefas — inclusive as que estão comprimidas —
+  // para que expandir uma linha nunca desloque as barras das outras.
   let t0 = Infinity;
   let t1 = -Infinity;
   for (const o of rows) {
     for (const p of byOpp.get(o.id)!) {
       const s = Date.parse(p.started_at!);
       const e = p.finished_at ? Date.parse(p.finished_at) : now;
+      if (s < t0) t0 = s;
+      if (e > t1) t1 = e;
+    }
+    for (const t of tasksByOpp.get(o.id) ?? []) {
+      if (!t.start_date || !t.due_date) continue;
+      const s = Date.parse(t.start_date);
+      const e = Date.parse(t.due_date);
       if (s < t0) t0 = s;
       if (e > t1) t1 = e;
     }
@@ -89,11 +141,27 @@ export function GanttChart({ opportunities, phases }: Props) {
   const span = t1 - t0;
   const xPct = (t: number) => ((t - t0) / span) * 100;
 
+  /** Posição de uma barra a partir de um par de datas ISO (tarefas). */
+  function barPositionIso(startIso: string, dueIso: string) {
+    const leftPct = xPct(Date.parse(startIso));
+    const widthPct = Math.max(xPct(Date.parse(dueIso)) - leftPct, MIN_BAR_WIDTH_PCT);
+    return { leftPct, widthPct };
+  }
+
   const ticks = Array.from({ length: 6 }, (_, i) => {
     const t = t0 + (span * i) / 5;
     return { leftPct: (i / 5) * 100, label: fmtDate(t) };
   });
   const todayPct = now >= t0 && now <= t1 ? xPct(now) : null;
+
+  function toggle(setter: typeof setExpandedOpps, id: string) {
+    setter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const rowData = rows.map((o) => {
     const bars: Bar[] = byOpp
@@ -103,7 +171,7 @@ export function GanttChart({ opportunities, phases }: Props) {
         const e = p.finished_at ? Date.parse(p.finished_at) : now;
         const meta = metaFor(p.phase_key);
         const left = xPct(s);
-        const width = Math.max(xPct(e) - left, 0.8);
+        const width = Math.max(xPct(e) - left, MIN_BAR_WIDTH_PCT);
         const label = meta?.label ?? p.phase_key;
         return {
           key: p.id,
@@ -120,6 +188,16 @@ export function GanttChart({ opportunities, phases }: Props) {
       .sort((a, b) => a.leftPct - b.leftPct);
     return { o, bars };
   });
+
+  /** Linha de "hoje" — repetida em cada trilho, como já era. */
+  const todayLine =
+    todayPct !== null ? (
+      <div
+        className="absolute top-0 bottom-0 w-px bg-red-400/70 z-10"
+        style={{ left: `${todayPct}%` }}
+        title="Hoje"
+      />
+    ) : null;
 
   return (
     <div className="bg-wh border border-bdr rounded-xl shadow-sm overflow-hidden">
@@ -143,6 +221,7 @@ export function GanttChart({ opportunities, phases }: Props) {
         <div className="min-w-[760px]">
           {/* Eixo de datas */}
           <div className="flex border-b border-bdr bg-bg">
+            <div className="w-8 shrink-0" aria-hidden="true" />
             <div className="w-[240px] shrink-0 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
               Oportunidade
             </div>
@@ -160,59 +239,233 @@ export function GanttChart({ opportunities, phases }: Props) {
           </div>
 
           {/* Linhas */}
-          {rowData.map(({ o, bars }) => (
-            <div
-              key={o.id}
-              className="flex border-b border-bdr last:border-b-0 hover:bg-blue-50/40 dark:hover:bg-blue-950/30"
-            >
-              <div className="w-[240px] shrink-0 px-4 py-2.5 min-w-0">
-                <div className="text-[12px] font-semibold text-txt truncate" title={o.processo}>
-                  #{String(o.seq_id).padStart(4, '0')} · {o.processo}
-                </div>
-                <div className="text-[10px] text-mut truncate">{o.solicitante}</div>
-              </div>
-              <div className="relative flex-1 my-2 mr-3">
-                {/* linha de "hoje" */}
-                {todayPct !== null && (
-                  <div
-                    className="absolute top-0 bottom-0 w-px bg-red-400/70 z-10"
-                    style={{ left: `${todayPct}%` }}
-                    title="Hoje"
-                  />
-                )}
-                {/* trilho */}
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-6">
-                  {bars.map((b) => (
+          {rowData.map(({ o, bars }) => {
+            const oppTasks = tasksByOpp.get(o.id) ?? [];
+            const { roots, childrenByParent } = groupTasksByParent(oppTasks);
+            const hasTasks = roots.length > 0;
+            const oppExpanded = expandedOpps.has(o.id);
+
+            return (
+              <Fragment key={o.id}>
+                <div className="flex border-b border-bdr hover:bg-blue-50/40 dark:hover:bg-blue-950/30">
+                  <div className="w-8 shrink-0 flex items-start justify-center pt-2.5">
+                    {hasTasks ? (
+                      <button
+                        type="button"
+                        onClick={() => toggle(setExpandedOpps, o.id)}
+                        aria-expanded={oppExpanded}
+                        aria-label={
+                          oppExpanded
+                            ? `Ocultar tarefas de ${o.processo}`
+                            : `Mostrar tarefas de ${o.processo}`
+                        }
+                        title={`${roots.length} tarefa${roots.length > 1 ? 's' : ''}`}
+                        className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-mut hover:bg-bdr/60 hover:text-txt"
+                      >
+                        {oppExpanded ? '▼' : '▶'}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="w-[240px] shrink-0 px-4 py-2.5 min-w-0">
                     <div
-                      key={b.key}
-                      title={b.title}
-                      className={
-                        'absolute top-0 h-6 rounded-md flex items-center px-1.5 overflow-hidden ' +
-                        (b.ongoing ? 'ring-1 ring-inset ring-white/50' : '')
-                      }
-                      style={{
-                        left: `${b.leftPct}%`,
-                        width: `${b.widthPct}%`,
-                        background: b.ongoing
-                          ? `repeating-linear-gradient(45deg, ${b.color}, ${b.color} 6px, ${b.color}cc 6px, ${b.color}cc 12px)`
-                          : b.color,
-                      }}
+                      className="text-[12px] font-semibold text-txt truncate"
+                      title={o.processo}
                     >
-                      <span className="text-[10px] font-semibold text-white truncate">
-                        {b.label}
-                      </span>
+                      #{String(o.seq_id).padStart(4, '0')} · {o.processo}
                     </div>
-                  ))}
+                    <div className="text-[10px] text-mut truncate">
+                      {o.solicitante}
+                      {hasTasks ? ` · ${roots.length} tarefa${roots.length > 1 ? 's' : ''}` : ''}
+                    </div>
+                  </div>
+                  <div className="relative flex-1 my-2 mr-3">
+                    {todayLine}
+                    {/* trilho */}
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-6">
+                      {bars.map((b) => (
+                        <div
+                          key={b.key}
+                          title={b.title}
+                          className={
+                            'absolute top-0 h-6 rounded-md flex items-center px-1.5 overflow-hidden ' +
+                            (b.ongoing ? 'ring-1 ring-inset ring-white/50' : '')
+                          }
+                          style={{
+                            left: `${b.leftPct}%`,
+                            width: `${b.widthPct}%`,
+                            background: b.ongoing
+                              ? `repeating-linear-gradient(45deg, ${b.color}, ${b.color} 6px, ${b.color}cc 6px, ${b.color}cc 12px)`
+                              : b.color,
+                          }}
+                        >
+                          <span className="text-[10px] font-semibold text-white truncate">
+                            {b.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+
+                {oppExpanded &&
+                  roots.map((root, i) => {
+                    const rootTid = `T${pad3(i + 1)}`;
+                    const children = childrenByParent.get(root.id) ?? [];
+                    const hasChildren = children.length > 0;
+                    const rollup = hasChildren ? computeTaskRollup(children) : null;
+                    const taskExpanded = expandedTasks.has(root.id);
+                    const meta = TASK_STATUS_META[root.status];
+
+                    // Pai COM subtarefas usa o span agregado do rollup; pai sem
+                    // subtarefas usa as próprias datas (mesma regra do Gantt de tarefas).
+                    const barStart = hasChildren ? rollup!.spanStart : root.start_date;
+                    const barDue = hasChildren ? rollup!.spanDue : root.due_date;
+                    const pos =
+                      barStart && barDue ? barPositionIso(barStart, barDue) : null;
+
+                    return (
+                      <Fragment key={root.id}>
+                        <div className="flex border-b border-bdr/60 bg-bg/40">
+                          <div className="w-8 shrink-0 flex items-start justify-end pt-2.5 pr-0.5">
+                            {hasChildren ? (
+                              <button
+                                type="button"
+                                onClick={() => toggle(setExpandedTasks, root.id)}
+                                aria-expanded={taskExpanded}
+                                aria-label={
+                                  taskExpanded
+                                    ? `Ocultar subtarefas de ${root.title}`
+                                    : `Mostrar subtarefas de ${root.title}`
+                                }
+                                className="w-4 h-4 rounded flex items-center justify-center text-[9px] text-mut hover:bg-bdr/60 hover:text-txt"
+                              >
+                                {taskExpanded ? '▼' : '▶'}
+                              </button>
+                            ) : null}
+                          </div>
+                          <div className="w-[240px] shrink-0 px-4 py-2.5 pl-6 min-w-0">
+                            <div className="text-[11px] font-semibold text-pri">
+                              {rootTid}
+                            </div>
+                            <div
+                              className="text-[12px] font-medium text-txt truncate"
+                              title={root.title}
+                            >
+                              {root.title}
+                            </div>
+                            <div className="text-[10px] whitespace-nowrap" style={{ color: meta.color }}>
+                              {meta.icon} {meta.label}
+                              {hasChildren
+                                ? ` · ${rollup!.completedChildren}/${rollup!.totalChildren}`
+                                : ''}
+                            </div>
+                          </div>
+                          <div className="relative flex-1 my-2 mr-3">
+                            {todayLine}
+                            {pos ? (
+                              hasChildren ? (
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 h-5 rounded-md overflow-hidden"
+                                  style={{
+                                    left: `${pos.leftPct}%`,
+                                    width: `${pos.widthPct}%`,
+                                    background: ROLLUP_BASE_COLOR,
+                                  }}
+                                  title={`${fmtDateIso(barStart)} → ${fmtDateIso(barDue)} · ${rollup!.percentComplete}% (${rollup!.completedChildren}/${rollup!.totalChildren})`}
+                                >
+                                  <div
+                                    className="h-full"
+                                    style={{
+                                      width: `${rollup!.percentComplete}%`,
+                                      background: ROLLUP_PROGRESS_COLOR,
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 h-5 rounded-md"
+                                  style={{
+                                    left: `${pos.leftPct}%`,
+                                    width: `${pos.widthPct}%`,
+                                    background: meta.color,
+                                  }}
+                                  title={`${fmtDateIso(barStart)} → ${fmtDateIso(barDue)}`}
+                                />
+                              )
+                            ) : (
+                              <div className="absolute inset-y-0 left-0 flex items-center text-[11px] text-mut italic whitespace-nowrap">
+                                Sem data definida
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {taskExpanded &&
+                          children.map((child, j) => {
+                            const childMeta = TASK_STATUS_META[child.status];
+                            const childPos =
+                              child.start_date && child.due_date
+                                ? barPositionIso(child.start_date, child.due_date)
+                                : null;
+
+                            return (
+                              <div
+                                key={child.id}
+                                className="flex border-b border-bdr/60 bg-bg/60"
+                              >
+                                <div className="w-8 shrink-0" aria-hidden="true" />
+                                <div className="w-[240px] shrink-0 px-4 py-2 pl-11 min-w-0">
+                                  <div className="text-[11px] font-semibold text-pri">
+                                    {`${rootTid}.${j + 1}`}
+                                  </div>
+                                  <div
+                                    className="text-[12px] text-txt truncate"
+                                    title={child.title}
+                                  >
+                                    {child.title}
+                                  </div>
+                                  <div
+                                    className="text-[10px] whitespace-nowrap"
+                                    style={{ color: childMeta.color }}
+                                  >
+                                    {childMeta.icon} {childMeta.label}
+                                  </div>
+                                </div>
+                                <div className="relative flex-1 my-2 mr-3">
+                                  {todayLine}
+                                  {childPos ? (
+                                    <div
+                                      className="absolute top-1/2 -translate-y-1/2 h-4 rounded-md"
+                                      style={{
+                                        left: `${childPos.leftPct}%`,
+                                        width: `${childPos.widthPct}%`,
+                                        background: childMeta.color,
+                                      }}
+                                      title={`${fmtDateIso(child.start_date)} → ${fmtDateIso(child.due_date)}`}
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-y-0 left-0 flex items-center text-[11px] text-mut italic whitespace-nowrap">
+                                      Sem data definida
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </Fragment>
+                    );
+                  })}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
 
       <div className="text-[11px] text-mut px-4 py-2.5 border-t border-bdr">
-        💡 Barras hachuradas = fase em andamento (sem data de fim). Linha vermelha
-        = hoje. Passe o mouse para ver as datas.
+        💡 Use ▶ para abrir as tarefas de uma oportunidade e as subtarefas de cada
+        tarefa. Barras hachuradas = fase em andamento (sem data de fim). Barra clara
+        com preenchimento verde = progresso agregado das subtarefas. Linha vermelha =
+        hoje. Passe o mouse para ver as datas.
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import {
   computeKpis,
   fetchPhasesForOpportunities,
   fetchRisksForOpportunities,
+  fetchTasksForOpportunities,
 } from '@/lib/opportunities/queries';
 import { parseFilters } from '@/lib/opportunities/filters';
 import {
@@ -138,11 +139,14 @@ export default async function OpportunitiesPage({
     .filter((m) => !tenantMemberIds.has(m.id))
     .sort((a, b) => assigneeName(a).localeCompare(assigneeName(b), 'pt-BR'));
 
-  // Gantt: fases das oportunidades da lista filtrada (mesmo recorte de table/kanban).
-  const ganttPhases =
-    view === 'gantt' && !empresaNotFound
-      ? await fetchPhasesForOpportunities(opportunities.map((o) => o.id))
-      : [];
+  // Gantt: fases + tarefas das oportunidades da lista filtrada (mesmo recorte de
+  // table/kanban). As tarefas alimentam o expandir/comprimir de cada linha.
+  const ganttIds =
+    view === 'gantt' && !empresaNotFound ? opportunities.map((o) => o.id) : [];
+  const [ganttPhases, ganttTasks] = await Promise.all([
+    fetchPhasesForOpportunities(ganttIds),
+    fetchTasksForOpportunities(ganttIds),
+  ]);
 
   // Relatório estratégico: fases (cycle time) + riscos (painel de riscos) do
   // PORTFÓLIO INTEIRO (mesmo recorte de `fullPortfolio` — D-01a). Só busca
@@ -203,7 +207,11 @@ export default async function OpportunitiesPage({
         ) : view === 'kanban' ? (
           <KanbanBoard opportunities={opportunities} readOnly={readOnly} />
         ) : view === 'gantt' ? (
-          <GanttChart opportunities={opportunities} phases={ganttPhases} />
+          <GanttChart
+            opportunities={opportunities}
+            phases={ganttPhases}
+            tasks={ganttTasks}
+          />
         ) : (
           <OpportunityTable
             opportunities={opportunities}
