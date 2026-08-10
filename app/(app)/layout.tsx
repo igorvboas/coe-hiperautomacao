@@ -110,6 +110,11 @@ export default async function AppLayout({
           }}
           tenants={tenants}
           canAdminister={canAdminister}
+          // Registrar em nome de um cliente é privilégio de quem é da PSW
+          // (0051). Papel basta como gate de MENU; o conjunto de empresas — e
+          // a autorização de escrita de fato — é resolvido pela própria tela e
+          // pela RPC, contra `staff_writable_tenant_ids()`.
+          canRegisterForTenant={isAdmin || staffAdmin}
           selectedEmpresa={selectedEmpresa}
           logoUrl={branding.logoUrl}
         />

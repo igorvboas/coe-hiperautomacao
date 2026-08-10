@@ -23,6 +23,16 @@ export const Icon = {
       <rect x="14" y="14" width="7" height="7" rx="1.5" />
     </svg>
   ),
+  // Registro de nova oportunidade em nome de um cliente (0051) — prancheta
+  // com "+", para não colidir visualmente com Opportunities (grade).
+  NewOpportunity: ({ className }: P) => (
+    <svg {...base(className)}>
+      <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z" />
+      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+      <path d="M12 11v6" />
+      <path d="M9 14h6" />
+    </svg>
+  ),
   Reports: ({ className }: P) => (
     <svg {...base(className)}>
       <path d="M3 3v18h18" />

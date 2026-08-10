@@ -329,6 +329,60 @@ export async function fetchAllAssignableProfiles(): Promise<AssignableProfile[]>
 }
 
 /**
+ * Pessoas que ESTÃO de fato atribuídas a alguma oportunidade do escopo —
+ * inclusive quem NÃO pertence ao tenant (tipicamente `psw_staff` atribuído
+ * cross-tenant, ACCESS-09/D-05). Alimenta o filtro "Membro" da listagem junto
+ * com `fetchAssignableProfiles`: sem isto, um staff PSW aparece na coluna de
+ * atribuídos mas não existe como opção de filtro.
+ *
+ * `tenantId` recorta pelo `tenant_id` DA OPORTUNIDADE (coluna denormalizada em
+ * `opportunity_assignees`), não pelo tenant da pessoa — é justamente isso que
+ * deixa o de fora entrar. Sem `tenantId` (platform_admin em "Todas as
+ * empresas") a RLS já limita o que é visível.
+ */
+export async function fetchAssignedProfiles(
+  tenantId?: string
+): Promise<AssignableProfile[]> {
+  const supabase = await createClient();
+
+  const run = async (select: string) => {
+    let q = supabase.from('opportunity_assignees').select(select);
+    if (tenantId) q = q.eq('tenant_id', tenantId);
+    return q;
+  };
+
+  let { data, error } = await run(JOIN_WITH_CARGO);
+
+  if (error) {
+    if (error.code !== '42703') {
+      console.error('[assignees] falha ao listar pessoas atribuídas:', error.message);
+      return [];
+    }
+    warnMissingCargo();
+    ({ data, error } = await run(JOIN_WITHOUT_CARGO));
+    if (error) {
+      console.error('[assignees] falha ao listar pessoas atribuídas:', error.message);
+      return [];
+    }
+  }
+
+  const byId = new Map<string, AssignableProfile>();
+  for (const row of (data ?? []) as unknown as JoinedRow[]) {
+    const a = flatten(row);
+    if (!a || byId.has(a.profileId)) continue;
+    byId.set(a.profileId, {
+      id: a.profileId,
+      email: a.email,
+      fullName: a.fullName,
+      cargo: a.cargo,
+      role: a.role,
+    });
+  }
+
+  return Array.from(byId.values()).sort(byProfileName);
+}
+
+/**
  * Ids das oportunidades que têm PELO MENOS UMA pessoa daquele cargo atribuída
  * — alimenta o filtro "Cargo" da listagem. `!inner` no join faz o Postgrest
  * descartar as linhas cujo profile não bate, em vez de trazer com null.

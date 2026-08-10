@@ -1005,6 +1005,21 @@ export type Database = {
         };
         Returns: string;
       };
+      // 0051 — registro de oportunidade EM NOME de uma empresa cliente
+      // (staff PSW / super-admin). `staff_writable_tenant_ids` é a fonte única
+      // do "onde posso registrar": alimenta o seletor de empresa da tela E a
+      // autorização dentro de `create_staff_opportunity`.
+      staff_writable_tenant_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
+      create_staff_opportunity: {
+        // Payload jsonb (e não N params posicionais) — ver cabeçalho da 0051:
+        // o chamador é sempre nosso código autenticado, já validado por zod,
+        // então o schema evolui sem migration de assinatura.
+        Args: { p_tenant_id: string; p_payload: Json };
+        Returns: string;
+      };
       // 0038 — trilha de auditoria de UMA oportunidade (ela + filhos), com
       // gate de tenant explícito dentro da função. É por aqui que a aba
       // "Histórico" lê, já que o select direto em `audit_log` é admin-only.

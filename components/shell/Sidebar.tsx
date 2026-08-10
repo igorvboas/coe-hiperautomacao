@@ -33,7 +33,12 @@ const NAV: NavItem[] = [
     label: 'Oportunidades',
     href: '/opportunities',
     icon: Icon.Opportunities,
-    isActive: (p, view) => p.startsWith('/opportunities') && view !== 'relatorio',
+    // `/opportunities/register` tem item PRÓPRIO (abaixo) — sem esta exclusão
+    // os dois acenderiam ao mesmo tempo.
+    isActive: (p, view) =>
+      p.startsWith('/opportunities') &&
+      !p.startsWith('/opportunities/register') &&
+      view !== 'relatorio',
   },
   {
     label: 'Relatórios',
@@ -42,6 +47,17 @@ const NAV: NavItem[] = [
     isActive: (p, view) => p.startsWith('/opportunities') && view === 'relatorio',
   },
 ];
+
+// Registro em nome de uma empresa cliente (0051) — só para quem é da PSW
+// (`platform_admin` ou `psw_staff`), gateado pelo sinalizador
+// `canRegisterForTenant`, calculado no servidor. Fica junto do bloco principal
+// (e não em Administração): é trabalho de pipeline, não de configuração.
+const REGISTER_NAV: NavItem = {
+  label: 'Registrar Oportunidade',
+  href: '/opportunities/register',
+  icon: Icon.NewOpportunity,
+  isActive: (p) => p.startsWith('/opportunities/register'),
+};
 
 const ADMIN_NAV: NavItem[] = [
   {
@@ -128,11 +144,18 @@ export function Sidebar({
   profile,
   tenants,
   canAdminister,
+  canRegisterForTenant = false,
   logoUrl,
   selectedEmpresa = '',
 }: {
   profile: SidebarProfile;
   tenants: Tenant[];
+  /**
+   * "É da PSW e pode registrar oportunidade em nome de um cliente" —
+   * `platform_admin` ou `psw_staff` (0051). Como `canAdminister`, é resolvido
+   * no servidor; a Sidebar só desenha. Gateia o item Registrar Oportunidade.
+   */
+  canRegisterForTenant?: boolean;
   /**
    * "Administra ao menos uma empresa" — calculado no servidor, uma camada
    * acima (app/(app)/layout.tsx): `tenant_admin` de cliente (sempre a própria
@@ -249,6 +272,7 @@ export function Sidebar({
           {/* Nav */}
           <nav className="flex-1 px-3 py-2 flex flex-col gap-1 overflow-y-auto">
             {NAV.map(renderItem)}
+            {canRegisterForTenant && renderItem(REGISTER_NAV)}
             {isAdmin && (
               <>
                 <div className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-nav-muted">

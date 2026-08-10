@@ -147,6 +147,34 @@ export async function fetchTenantsByIds(ids: string[]): Promise<TenantSummary[]>
 }
 
 /**
+ * Empresas em que o usuário corrente pode REGISTRAR uma oportunidade em nome
+ * do cliente (tela `/opportunities/register`, 0051).
+ *
+ * FONTE ÚNICA: a função SQL `staff_writable_tenant_ids()` — a MESMA que a RPC
+ * `create_staff_opportunity` consulta para autorizar a escrita. Montar a lista
+ * do seletor por outro caminho (ex.: repetir aqui a união
+ * `psw_tenant_admins` ∪ `opportunity_assignees`) abriria a porta clássica de
+ * a UI oferecer uma empresa que o banco depois recusa — ou, pior, esconder
+ * uma que ele aceitaria. Aqui a UI só pode oferecer o que o banco aceita,
+ * por construção.
+ *
+ * Devolve lista vazia para papéis de cliente (`member`/`tenant_admin`/
+ * `viewer`) — é o que faz a tela sumir para eles, mesmo por URL direta.
+ * Degrada para vazio em erro, mesmo padrão de `fetchTenantsByIds`.
+ */
+export async function fetchStaffWritableTenants(): Promise<TenantSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('staff_writable_tenant_ids');
+  if (error) {
+    console.error('[tenants/queries] staff_writable_tenant_ids:', error.message);
+    return [];
+  }
+  // A RPC devolve `setof uuid` → array de strings cru.
+  const ids = (data ?? []) as unknown as string[];
+  return fetchTenantsByIds(ids);
+}
+
+/**
  * Retorna o tenant + slug do usuário autenticado corrente.
  * Usado em páginas autenticadas que precisam do slug pra montar URLs públicas.
  */

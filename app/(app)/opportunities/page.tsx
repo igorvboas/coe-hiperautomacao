@@ -10,7 +10,9 @@ import {
   fetchAssigneesForOpportunities,
   fetchAssignableProfiles,
   fetchAllAssignableProfiles,
+  fetchAssignedProfiles,
 } from '@/lib/opportunities/assignees';
+import { assigneeName, type AssignableProfile } from '@/lib/opportunities/assignee-types';
 import { resolveEmpresaSlug } from '@/lib/tenants/scope';
 import {
   getCurrentTenant,
@@ -92,7 +94,13 @@ export default async function OpportunitiesPage({
   // oportunidades JÁ retornadas pela RLS — não é um `select` aberto em
   // `tenants` — então a lista de opções do filtro nunca revela empresas fora
   // do escopo atribuído.
-  const showCompany = isStaff;
+  //
+  // A COLUNA vale também para o platform_admin (sua listagem em "Todas as
+  // empresas" é igualmente cross-tenant); o FILTRO da toolbar continua só do
+  // psw_staff, porque o admin já escolhe a empresa pelo seletor global e dois
+  // controles concorrentes para o mesmo recorte confundem.
+  const showCompany = isStaff || isAdmin;
+  const showCompanyFilter = isStaff;
   const companies = showCompany
     ? await fetchTenantsByIds(
         Array.from(new Set(opportunities.map((o) => o.tenant_id)))
@@ -106,15 +114,29 @@ export default async function OpportunitiesPage({
   // `members` alimenta o filtro "Membro" da toolbar. O recorte de pessoas é o
   // tenant selecionado; o platform_admin em "Todas as empresas" vê todo mundo
   // (a RLS de 0021 permite) para o filtro não sumir da toolbar.
+  //
+  // Além das pessoas DO tenant, o filtro precisa oferecer quem está atribuído
+  // às oportunidades sem pertencer a ele (staff PSW, ACCESS-09/D-05): a coluna
+  // de atribuídos já mostra essa gente, então não poder filtrar por ela era um
+  // buraco. Vêm em lista separada (`externalMembers`) só para a toolbar
+  // agrupá-las sob outro rótulo — o valor do filtro é o mesmo `profiles.id`.
   const membersTenantId = scopedTenantId ?? (isAdmin ? undefined : profile?.tenantId);
-  const [assigneesByOpportunity, members] = await Promise.all([
+  const [assigneesByOpportunity, tenantMembers, assignedMembers] = await Promise.all([
     empresaNotFound
       ? Promise.resolve({})
       : fetchAssigneesForOpportunities(opportunities.map((o) => o.id)),
     membersTenantId
       ? fetchAssignableProfiles(membersTenantId)
       : fetchAllAssignableProfiles(),
+    empresaNotFound
+      ? Promise.resolve([] as AssignableProfile[])
+      : fetchAssignedProfiles(membersTenantId),
   ]);
+  const members = tenantMembers;
+  const tenantMemberIds = new Set(tenantMembers.map((m) => m.id));
+  const externalMembers = assignedMembers
+    .filter((m) => !tenantMemberIds.has(m.id))
+    .sort((a, b) => assigneeName(a).localeCompare(assigneeName(b), 'pt-BR'));
 
   // Gantt: fases das oportunidades da lista filtrada (mesmo recorte de table/kanban).
   const ganttPhases =
@@ -149,10 +171,11 @@ export default async function OpportunitiesPage({
         }}
         areas={areas}
         members={members}
+        externalMembers={externalMembers}
         tenantSlug={tenant?.slug ?? null}
         readOnly={readOnly}
         companies={companies}
-        showCompanyFilter={showCompany}
+        showCompanyFilter={showCompanyFilter}
       />
 
       {!isReport && !empresaNotFound && <KpiBar kpis={kpis} />}

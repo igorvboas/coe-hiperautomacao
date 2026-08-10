@@ -25,6 +25,10 @@ type Props = {
   /** Pessoas do tenant, para o filtro "Membro" (0032). Vazio = filtro escondido
    *  (ex: seletor de empresa sem nenhuma selecionada). */
   members: AssignableProfile[];
+  /** Pessoas atribuídas às oportunidades que NÃO são do tenant (staff PSW).
+   *  Entram no mesmo dropdown, num grupo separado — o filtro é o mesmo
+   *  `?assignee=<profile.id>`. */
+  externalMembers?: AssignableProfile[];
   tenantSlug: string | null;
   /** Mantido por compatibilidade com os callers; sem uso desde a remoção do
    *  botão "Nova Oportunidade" (a criação agora é só pelo formulário público). */
@@ -58,6 +62,7 @@ export function Toolbar({
   counts,
   areas,
   members,
+  externalMembers = [],
   tenantSlug,
   companies = [],
   showCompanyFilter = false,
@@ -324,7 +329,7 @@ export function Toolbar({
             </option>
           ))}
         </select>
-        {members.length > 0 && (
+        {(members.length > 0 || externalMembers.length > 0) && (
           <select
             value={filters.assignee ?? ''}
             onChange={(e) => applyChange({ assignee: e.target.value || undefined })}
@@ -332,11 +337,28 @@ export function Toolbar({
             aria-label="Filtrar por membro atribuído"
           >
             <option value="">Todos os Membros</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {assigneeName(m)}
-              </option>
-            ))}
+            {externalMembers.length === 0
+              ? members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {assigneeName(m)}
+                  </option>
+                ))
+              : [
+                  <optgroup key="equipe" label="Equipe">
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {assigneeName(m)}
+                      </option>
+                    ))}
+                  </optgroup>,
+                  <optgroup key="externos" label="Atribuídos (PSW / externos)">
+                    {externalMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {assigneeName(m)}
+                      </option>
+                    ))}
+                  </optgroup>,
+                ]}
           </select>
         )}
         <select

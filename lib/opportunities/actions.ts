@@ -16,6 +16,10 @@ import {
 } from '@/lib/public-form/log';
 import { enrichOpportunity } from '@/lib/ai/enrichment';
 import {
+  fetchPublicOpportunities,
+  type PublicOpportunityOption,
+} from '@/lib/tenants/queries';
+import {
   requireEditorRole,
   getCurrentProfile,
   resolveWriteTenantId,
@@ -306,6 +310,138 @@ export async function createPublicOpportunity(
     );
   }
 
+  return { ok: true, id: oppId };
+}
+
+// =============================================================================
+// createStaffOpportunity — registro EM NOME de uma empresa cliente (0051)
+// -----------------------------------------------------------------------------
+// O terceiro caminho de criação, ao lado de `createOpportunity` (grava sempre
+// no tenant do PROFILE) e `createPublicOpportunity` (grava no tenant do SLUG,
+// anônimo). Aqui quem escreve é alguém da PSW — staff ou super-admin — e o
+// tenant-alvo é ESCOLHIDO na tela, entre as empresas que a pessoa já alcança.
+//
+// A AUTORIZAÇÃO É DO BANCO, não daqui: a RPC `create_staff_opportunity`
+// valida `p_tenant_id` contra `staff_writable_tenant_ids()` antes de escrever
+// e levanta exceção se estiver fora. Esta action não repete a checagem por um
+// motivo específico — repetir criaria uma SEGUNDA definição do escopo, que
+// poderia divergir da do banco numa evolução futura (o clássico "a UI deixou,
+// o banco recusou", ou o bem pior "a UI barrou algo que era permitido"). O
+// que ela faz é o que só o app pode fazer: validar o formato do payload
+// (zod), traduzir a exceção para pt-BR e revalidar a rota.
+//
+// POR QUE NÃO PASSA PELO `.insert()` DIRETO como `createOpportunity`: para um
+// `psw_staff` a policy RESTRICTIVE de 0045 barra o INSERT em tenant onde ele
+// só tem ATRIBUIÇÃO (a linha nova ainda não tem assignee, então o disjunto
+// nominal nunca casa) — o insert casaria zero linhas e devolveria sucesso
+// silencioso. Ver o cabeçalho da migration 0051 para o raciocínio completo.
+// =============================================================================
+export type StaffSubmitInput = Omit<PublicSubmitInput, 'email'> & {
+  /** Opcional aqui (obrigatório no público): quem registra é o próprio CoE. */
+  email?: string;
+};
+
+/**
+ * Automações da empresa ESCOLHIDA, para o seletor de "projeto associado"
+ * (Melhoria / Incidente) da tela de registro. Só pode ser buscada DEPOIS que
+ * o staff escolhe a empresa — daí ser uma action e não um fetch de página.
+ * Reusa a mesma RPC do formulário público (recorte mínimo definido em
+ * 0035/0036), então não abre nenhum dado novo.
+ */
+export async function listTenantProjects(
+  slug: string,
+): Promise<PublicOpportunityOption[]> {
+  if (!slug) return [];
+  return fetchPublicOpportunities(slug);
+}
+
+export type CreateStaffResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string };
+
+export async function createStaffOpportunity(
+  tenantId: string,
+  input: StaffSubmitInput,
+): Promise<CreateStaffResult> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { ok: false, error: 'Sessão expirada.' };
+
+  if (!tenantId) {
+    return { ok: false, error: 'Selecione a empresa antes de registrar.' };
+  }
+
+  // Validações mínimas de UX (as autoritativas são da RPC, que roda mesmo se
+  // alguém chamar a action fora da tela).
+  if (!input.solicitante || input.solicitante.trim().length < 2) {
+    return { ok: false, error: 'Informe o nome do solicitante.' };
+  }
+  if (!input.area || input.area.trim().length < 2) {
+    return { ok: false, error: 'Informe a área.' };
+  }
+  if (!input.processo || input.processo.trim().length < 3) {
+    return { ok: false, error: 'Descreva o processo.' };
+  }
+
+  const payload = {
+    solicitante: input.solicitante.trim(),
+    email: input.email?.trim() || null,
+    area: input.area.trim(),
+    subarea: input.subarea?.trim() || null,
+    processo: input.processo.trim(),
+    frequencia: input.frequencia?.trim() || null,
+    volume_medio: input.volume_medio?.trim() || null,
+    tempo_execucao: input.tempo_execucao?.trim() || null,
+    num_pessoas: input.num_pessoas?.trim() || null,
+    ferramenta: input.ferramenta ?? null,
+    esforco: input.esforco ?? 'medio',
+    complexidade: input.complexidade ?? 'medio',
+    tempo: input.tempo ?? null,
+    objetivo: input.objetivo,
+    request_type: input.request_type ?? 'nova_oportunidade',
+    parent_opportunity_id: input.parent_opportunity_id ?? null,
+    criterios: input.criterios ?? null,
+    beneficios: input.beneficios ?? null,
+    fte_horas: input.fte_horas ?? null,
+    fte: input.fte ?? null,
+    responsavel: input.responsavel?.trim() || null,
+    criticidade: input.criticidade ?? null,
+    execucoes_mes: input.execucoes_mes ?? null,
+    observacao: input.observacao?.trim() || null,
+    formulario_extras: input.formulario_extras ?? {},
+  };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('create_staff_opportunity', {
+    p_tenant_id: tenantId,
+    p_payload: payload as never,
+  });
+
+  if (error || !data) {
+    // As exceções desta RPC são todas mensagens pt-BR escritas por nós (escopo
+    // negado, campo obrigatório, limite de tamanho) — repassá-las é útil, não
+    // vazamento. Só o caso sem mensagem cai no genérico.
+    return {
+      ok: false,
+      error: error?.message ?? 'Não foi possível registrar a oportunidade.',
+    };
+  }
+
+  const oppId = data as unknown as string;
+
+  // Enriquecimento por IA — mesmo contrato dos outros dois caminhos de
+  // criação (fire-and-forget, erro nunca propaga; a row já existe).
+  after(async () => {
+    try {
+      await enrichOpportunity(oppId, tenantId);
+    } catch (e) {
+      console.error(
+        '[actions/createStaffOpportunity] enrichment after() inesperado:',
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  revalidatePath('/opportunities');
   return { ok: true, id: oppId };
 }
 
