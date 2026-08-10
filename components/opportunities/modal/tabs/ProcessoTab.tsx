@@ -1,33 +1,16 @@
 import type { Opportunity } from '@/lib/opportunities/types';
 import { StatusBadge, CriticidadeBadge } from '@/components/opportunities/cells';
 import { tempoAbertoCoe } from '@/lib/opportunities/coe';
+// Discovery v2 — rótulos compartilhados com o "Resumo da Oportunidade" da
+// coluna lateral do detalhe (fonte única, ver `discovery-labels.ts`).
+import {
+  GATILHO_LABELS,
+  FORMATO_ENTRADA_LABELS,
+  DADOS_SENSIVEIS_LABELS,
+  labelOf,
+} from '@/lib/opportunities/discovery-labels';
 
 type Props = { opportunity: Opportunity };
-
-// Discovery v2 — rótulos legíveis dos códigos guardados em formulario_extras.
-const GATILHO_LABELS: Record<string, string> = {
-  email: 'Chega um e-mail / mensagem',
-  horario: 'Horário / agenda',
-  solicitacao: 'Alguém solicita / abre chamado',
-  evento_sistema: 'Evento em um sistema',
-  planilha: 'Atualização de planilha / arquivo',
-  outro: 'Outro',
-};
-const FORMATO_ENTRADA_LABELS: Record<string, string> = {
-  estruturado: 'Estruturado (planilha, sistema, formulário)',
-  nao_estruturado: 'Não estruturado (PDF, e-mail, imagem, papel)',
-  misto: 'Misto',
-};
-const DADOS_SENSIVEIS_LABELS: Record<string, string> = {
-  sim: 'Sim — dados pessoais/sensíveis',
-  nao: 'Não',
-  nao_sei: 'Não sei',
-};
-
-function labelOf(map: Record<string, string>, code?: string | null): string | null {
-  if (!code) return null;
-  return map[code] ?? code;
-}
 
 // Grid de cards (bg-bg, label uppercase + valor 14px) que preenche a largura —
 // 1 col (mobile) / 2 (tablet) / 3 (desktop). Campos longos ocupam a linha inteira.

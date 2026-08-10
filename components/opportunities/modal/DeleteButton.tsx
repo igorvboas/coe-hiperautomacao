@@ -8,9 +8,18 @@ type Props = {
   opportunityId: string;
   /** Texto curto que descreve a oportunidade (ex: "#0010 · Maria Silva") — exibido no aviso */
   label: string;
+  /**
+   * Classes do BOTÃO disparador (o diálogo de confirmação nunca muda). Existe
+   * porque o header v0.5 mostra "Excluir" como item de um menu "⋮" branco, e
+   * não mais como pílula translúcida sobre o gradiente azul.
+   */
+  triggerClassName?: string;
 };
 
-export function DeleteButton({ opportunityId, label }: Props) {
+const DEFAULT_TRIGGER =
+  'px-2.5 py-1 rounded-full bg-red-500/30 hover:bg-red-500/50 text-white text-[11px] font-bold border border-red-300/40 inline-flex items-center gap-1';
+
+export function DeleteButton({ opportunityId, label, triggerClassName }: Props) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +58,7 @@ export function DeleteButton({ opportunityId, label }: Props) {
         type="button"
         onClick={open}
         title="Excluir oportunidade"
-        className="px-2.5 py-1 rounded-full bg-red-500/30 hover:bg-red-500/50 text-white text-[11px] font-bold border border-red-300/40 inline-flex items-center gap-1"
+        className={triggerClassName ?? DEFAULT_TRIGGER}
       >
         🗑️ Excluir
       </button>

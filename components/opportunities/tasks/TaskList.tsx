@@ -126,9 +126,54 @@ export function TaskList({
   );
 
   const grouped = groupTasksByParent(rows);
-  const roots = sortSiblings(grouped.roots, orderMode);
+  const allRoots = sortSiblings(grouped.roots, orderMode);
   const childrenByParent = grouped.childrenByParent;
   const nameById = new Map(assignableProfiles.map((p) => [p.id, assigneeName(p)]));
+
+  // ===========================================================================
+  // Busca e paginação (v0.5) — recorte de LEITURA, estado local
+  // ===========================================================================
+  // Mesma decisão do modo de ordenação acima: a página já trouxe TODAS as
+  // tarefas desta oportunidade, então filtrar e paginar em memória evita uma
+  // ida ao servidor por tecla digitada. Nada disso vai para a URL — é o
+  // recorte de quem está olhando, não um filtro compartilhável.
+  //
+  // A busca casa título OU responsável, e é hierárquica: uma tarefa-pai fica
+  // visível quando ela mesma OU qualquer subtarefa sua casa — esconder a pai
+  // faria a subtarefa encontrada sumir junto (ela só é renderizada dentro da
+  // pai). A numeração T001/T001.1, porém, continua vindo da lista COMPLETA:
+  // se "T005" virasse "T001" ao filtrar, o identificador deixaria de servir
+  // para conversar sobre a tarefa.
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+
+  const needle = query.trim().toLowerCase();
+  function matches(t: OpportunityTask): boolean {
+    if (!needle) return true;
+    const who = t.assignee_id ? (nameById.get(t.assignee_id) ?? '') : '';
+    return (
+      t.title.toLowerCase().includes(needle) || who.toLowerCase().includes(needle)
+    );
+  }
+
+  const rootIndexById = new Map(allRoots.map((t, i) => [t.id, i]));
+  const filteredRoots = !needle
+    ? allRoots
+    : allRoots.filter(
+        (r) => matches(r) || (childrenByParent.get(r.id) ?? []).some(matches)
+      );
+
+  // O filtro pode encurtar a lista abaixo da página corrente — clampa em vez
+  // de mostrar uma página vazia.
+  const totalPages = Math.max(1, Math.ceil(filteredRoots.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const roots = filteredRoots.slice(pageStart, pageStart + pageSize);
+
+  // Arrastar só faz sentido sobre a lista inteira: com busca ativa a ordem
+  // exibida não é a ordem real, e soltar gravaria uma sequência inventada.
+  const dragEnabled = canReorder && !needle;
 
   /**
    * Rearranja UM grupo de irmãos e persiste só esse grupo. Uma tarefa nunca
@@ -199,7 +244,7 @@ export function TaskList({
     });
   }
 
-  if (roots.length === 0) {
+  if (allRoots.length === 0) {
     return (
       <div className="bg-wh border border-bdr rounded-xl p-12 text-center">
         <h2 className="text-[14px] font-bold text-txt mb-2">
@@ -226,6 +271,26 @@ export function TaskList({
       {/* Controle de ordenação (0049) — "Ordem manual" é o único modo em que
           o handle de arrasto aparece; "Prioridade" é leitura, derivada da tag. */}
       <div className="flex flex-wrap items-center gap-2">
+        <label className="relative">
+          <span className="sr-only">Buscar tarefa ou responsável</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Buscar tarefa ou responsável..."
+            className="w-64 max-w-full pl-8 pr-3 py-1.5 rounded-lg border border-bdr bg-wh text-txt text-[12px] placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pri"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px] text-mut"
+          >
+            🔍
+          </span>
+        </label>
+
         <span className="text-[10px] font-bold uppercase tracking-wider text-mut">
           Ordenar por
         </span>
@@ -252,10 +317,15 @@ export function TaskList({
             </button>
           ))}
         </div>
-        {canReorder && (
+        {dragEnabled && (
           <span className="text-[11px] text-mut">
             Arraste pelo <span aria-hidden="true">⠿</span> — tarefas entre
             tarefas, subtarefas dentro da sua tarefa.
+          </span>
+        )}
+        {canReorder && needle && (
+          <span className="text-[11px] text-mut">
+            Limpe a busca para reordenar arrastando.
           </span>
         )}
       </div>
@@ -311,8 +381,9 @@ export function TaskList({
               items={roots.map((t) => t.id)}
               strategy={verticalListSortingStrategy}
             >
-            {roots.map((root, i) => {
-              const rootTid = `T${pad3(i + 1)}`;
+            {roots.map((root) => {
+              // Numeração da lista COMPLETA — estável sob busca/paginação.
+              const rootTid = `T${pad3((rootIndexById.get(root.id) ?? 0) + 1)}`;
               const children = sortSiblings(
                 childrenByParent.get(root.id) ?? [],
                 orderMode
@@ -328,7 +399,7 @@ export function TaskList({
                 <Fragment key={root.id}>
                   <SortableTaskRow
                     id={root.id}
-                    draggable={canReorder}
+                    draggable={dragEnabled}
                     label={`tarefa ${rootTid}`}
                     className="border-b border-bdr/60 align-top"
                   >
@@ -445,7 +516,7 @@ export function TaskList({
                         <SortableTaskRow
                           key={child.id}
                           id={child.id}
-                          draggable={canReorder}
+                          draggable={dragEnabled}
                           label={`subtarefa ${childTid}`}
                           className="border-b border-bdr/60 align-top bg-bg/40"
                         >
@@ -509,8 +580,105 @@ export function TaskList({
         </table>
         </DndContext>
       </div>
+
+      {filteredRoots.length === 0 && (
+        <div className="px-4 py-8 text-center">
+          <p className="text-[12px] text-mut">
+            Nenhuma tarefa encontrada para <strong>“{query.trim()}”</strong>.
+          </p>
+        </div>
+      )}
+
+      {/* Rodapé de paginação — some quando tudo cabe na primeira página. */}
+      {filteredRoots.length > 0 && (
+        <div className="border-t border-bdr px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-[11px] text-mut">
+            Mostrando {pageStart + 1} a {pageStart + roots.length} de{' '}
+            {filteredRoots.length} {filteredRoots.length === 1 ? 'tarefa' : 'tarefas'}
+          </span>
+
+          {totalPages > 1 && (
+            <nav aria-label="Paginação de tarefas" className="flex items-center gap-1">
+              <PageButton
+                disabled={currentPage === 1}
+                onClick={() => setPage(currentPage - 1)}
+                label="Página anterior"
+              >
+                ‹
+              </PageButton>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <PageButton
+                  key={n}
+                  active={n === currentPage}
+                  onClick={() => setPage(n)}
+                  label={`Página ${n}`}
+                >
+                  {n}
+                </PageButton>
+              ))}
+              <PageButton
+                disabled={currentPage === totalPages}
+                onClick={() => setPage(currentPage + 1)}
+                label="Próxima página"
+              >
+                ›
+              </PageButton>
+            </nav>
+          )}
+
+          <label className="text-[11px] text-mut inline-flex items-center gap-1.5">
+            <span className="sr-only">Tarefas por página</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="px-2 py-1 rounded-lg border border-bdr bg-wh text-txt text-[11px] focus:outline-none focus:ring-2 focus:ring-pri"
+            >
+              {[12, 25, 50].map((n) => (
+                <option key={n} value={n}>
+                  {n} por página
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       </div>
     </div>
+  );
+}
+
+function PageButton({
+  children,
+  onClick,
+  active,
+  disabled,
+  label,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      className={
+        'min-w-[28px] h-7 px-2 rounded-lg text-[11px] font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ' +
+        (active
+          ? 'bg-pri text-white'
+          : 'border border-bdr bg-wh text-txt hover:bg-bg')
+      }
+    >
+      {children}
+    </button>
   );
 }
 

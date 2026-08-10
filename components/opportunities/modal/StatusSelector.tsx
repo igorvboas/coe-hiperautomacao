@@ -4,15 +4,27 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateOpportunityStatus } from '@/lib/opportunities/actions';
 import type { OpportunityStatus } from '@/lib/opportunities/types';
-import { STATUS_OPTIONS } from '@/lib/opportunities/status';
+import { STATUS_OPTIONS, STATUS_META } from '@/lib/opportunities/status';
 
 type Props = {
   opportunityId: string;
   currentStatus: OpportunityStatus;
   readOnly?: boolean;
+  /**
+   * `dark` = sobre o header em gradiente azul (branco translúcido, contraste
+   * pela cor do fundo). `light` = sobre card branco (detalhe v0.5): pinta com
+   * as cores do próprio status (STATUS_META), como os badges da lista — sem
+   * `bg-white/20`, que sumiria no branco.
+   */
+  variant?: 'dark' | 'light';
 };
 
-export function StatusSelector({ opportunityId, currentStatus, readOnly = false }: Props) {
+export function StatusSelector({
+  opportunityId,
+  currentStatus,
+  readOnly = false,
+  variant = 'dark',
+}: Props) {
   const router = useRouter();
   const [optimisticStatus, setOptimisticStatus] =
     useState<OpportunityStatus>(currentStatus);
@@ -39,10 +51,22 @@ export function StatusSelector({ opportunityId, currentStatus, readOnly = false 
     });
   }
 
+  const meta = STATUS_META[optimisticStatus];
+  const light = variant === 'light';
+  const lightStyle = light
+    ? { background: meta.bg, color: meta.color, borderColor: `${meta.color}55` }
+    : undefined;
+
   if (readOnly) {
     const s = STATUS_OPTIONS.find((o) => o.value === optimisticStatus);
     return (
-      <span className="px-2.5 py-1 rounded-full bg-white/20 border-2 border-white/40 text-white text-[11px] font-bold">
+      <span
+        className={
+          'px-2.5 py-1 rounded-full text-[11px] font-bold border-2 ' +
+          (light ? '' : 'bg-white/20 border-white/40 text-white')
+        }
+        style={lightStyle}
+      >
         {s ? `${s.icon} ${s.label}` : optimisticStatus}
       </span>
     );
@@ -54,7 +78,13 @@ export function StatusSelector({ opportunityId, currentStatus, readOnly = false 
         value={optimisticStatus}
         onChange={onChange}
         disabled={pending}
-        className="px-2.5 py-1 rounded-full bg-white/20 border-2 border-white/40 text-white text-[11px] font-bold disabled:opacity-60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/60"
+        style={lightStyle}
+        className={
+          'px-2.5 py-1 rounded-full text-[11px] font-bold border-2 disabled:opacity-60 cursor-pointer focus:outline-none focus:ring-2 ' +
+          (light
+            ? 'focus:ring-pri'
+            : 'bg-white/20 border-white/40 text-white focus:ring-white/60')
+        }
         aria-label="Alterar status"
       >
         {STATUS_OPTIONS.map((s) => (

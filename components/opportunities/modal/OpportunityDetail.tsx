@@ -8,7 +8,12 @@ import type {
   OpportunityRisk,
   OpportunityDocument,
   OpportunityNote,
+  OpportunityTask,
 } from '@/lib/opportunities/types';
+import type {
+  Assignee,
+  AssignableProfile,
+} from '@/lib/opportunities/assignee-types';
 // A aba Histórico passou a ler a timeline unificada (audit_log 0038 + as linhas
 // legadas de opportunity_history), não mais só `opportunity_history`.
 import type { TimelineEntry } from '@/lib/audit/timeline';
@@ -22,7 +27,9 @@ import {
 import { calcPriorityScore, priorityLevel } from '@/lib/opportunities/score';
 import { deriveFteBucket } from '@/lib/opportunities/fte';
 import { deriveRpaScore } from '@/lib/opportunities/rpa';
-import { ModalHeader } from './Header';
+import { DetailHeader } from '@/components/opportunities/detail/DetailHeader';
+import { SummarySidebar } from '@/components/opportunities/detail/SummarySidebar';
+import { TasksPanel } from '@/components/opportunities/detail/TasksPanel';
 import { TabsNav } from './TabsNav';
 import type { TabDef, TabId } from './types';
 import { AutomacaoTab } from './tabs/AutomacaoTab';
@@ -45,7 +52,11 @@ import { DynamicList } from '@/components/opportunities/wizard/steps/DynamicList
 // do mockup (`_giba_wsi-dashboard.html:959-968`). Sem ramificação por `source`.
 // As abas só-persona (Perfil/Desafios/CoE) saem da exibição — os arquivos
 // permanecem no disco e os dados em `persona_extras`, apenas não são mais montados.
+// v0.5: `tarefas` entra em PRIMEIRO e é a aba padrão — o Plano de Atividades
+// é o conteúdo mais consultado do detalhe e custava um clique + uma navegação
+// (o antigo card "Ver tarefas →") para ser alcançado.
 const MODAL_TABS: TabDef[] = [
+  { id: 'tarefas', label: 'Plano de Atividades', icon: '🗂️' },
   { id: 'processo', label: 'Processo', icon: '📋' },
   { id: 'criterios', label: 'Critérios', icon: '✅' },
   { id: 'automacao', label: 'Automação', icon: '🤖' },
@@ -53,7 +64,7 @@ const MODAL_TABS: TabDef[] = [
   { id: 'score', label: 'Score', icon: '📊' },
   { id: 'fases', label: 'Fases', icon: '📅' },
   { id: 'risco', label: 'Risco', icon: '⚠️' },
-  { id: 'observacao', label: 'Observação', icon: '💬' },
+  { id: 'observacao', label: 'Observações', icon: '💬' },
   // v0.3 — abas novas (documentos anexados + auditoria automática)
   { id: 'documentos', label: 'Documentos', icon: '📎' },
   { id: 'historico', label: 'Histórico', icon: '🕘' },
@@ -103,6 +114,17 @@ type Props = {
    * não muda.
    */
   companyName?: string | null;
+  // ── Plano de Atividades embutido (v0.5) ───────────────────────────────────
+  /** Array PLANO de tarefas (raízes + subtarefas) já buscado pela página. */
+  tasks: OpportunityTask[];
+  /** Candidatos a responsável de TAREFA (inclui staff PSW atribuído, ACCESS-11). */
+  taskAssignableProfiles: AssignableProfile[];
+  /** Data de hoje (ISO) vinda do servidor — ver `lib/opportunities/task-summary.ts`. */
+  today: string;
+  // ── Responsáveis pela oportunidade (0032) ─────────────────────────────────
+  assignees: Assignee[];
+  assignableProfiles: AssignableProfile[];
+  canAssign: boolean;
 };
 
 export function OpportunityDetail({
@@ -114,8 +136,14 @@ export function OpportunityDetail({
   history,
   readOnly = false,
   companyName = null,
+  tasks,
+  taskAssignableProfiles,
+  today,
+  assignees,
+  assignableProfiles,
+  canAssign,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<TabId>('processo');
+  const [activeTab, setActiveTab] = useState<TabId>('tarefas');
 
   // ── Estado de edição global (recipe do WizardShell, D-12/D-13/D-15) ───────
   const router = useRouter();
@@ -208,7 +236,10 @@ export function OpportunityDetail({
     (form.criterios ?? null) as Record<string, string> | null
   );
 
-  const tabContent = renderTab({
+  // A aba de tarefas não passa por `renderTab`: ela não é conteúdo do payload
+  // de edição (D-12) e traz o seu próprio wrapper (toolbar + views + diálogo).
+  const tabContent =
+    activeTab === 'tarefas' ? null : renderTab({
     tab: activeTab,
     opp: opportunity,
     phases,
@@ -224,48 +255,62 @@ export function OpportunityDetail({
     readOnly,
   });
 
+  const isTarefas = activeTab === 'tarefas';
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Banner do cabeçalho — ocupa a largura toda */}
-      <div className="rounded-2xl overflow-hidden border border-bdr shadow-sm">
-        <ModalHeader
-          opportunity={opportunity}
-          companyName={companyName}
-          editMode={editMode}
-          pending={pending}
-          submitError={submitError}
-          liveScore={liveScore}
-          livePriority={livePriority}
-          onEdit={onEdit}
-          onSave={onSave}
-          onCancel={onCancel}
-          readOnly={readOnly}
-        />
-      </div>
+      <DetailHeader
+        opportunity={opportunity}
+        companyName={companyName}
+        editMode={editMode}
+        pending={pending}
+        submitError={submitError}
+        liveScore={liveScore}
+        livePriority={livePriority}
+        onEdit={onEdit}
+        onSave={onSave}
+        onCancel={onCancel}
+        readOnly={readOnly}
+        assignees={assignees}
+        assignableProfiles={assignableProfiles}
+        canAssign={canAssign}
+      />
 
-      {/* Corpo: rail lateral (desktop) + conteúdo que preenche */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
-        {/* Abas horizontais — telas menores */}
-        <div className="w-full lg:hidden bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
-          <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
-        </div>
+      {/* Abas horizontais (v0.5) — o rail vertical saiu: com o Plano de
+          Atividades no corpo, a largura vale mais que a lista de abas. */}
+      <nav className="bg-wh border border-bdr rounded-2xl shadow-sm overflow-hidden">
+        <TabsNav tabs={MODAL_TABS} activeTab={activeTab} onChange={setActiveTab} />
+      </nav>
 
-        {/* Rail vertical — desktop, sticky ao rolar */}
-        <aside className="hidden lg:block lg:w-52 lg:shrink-0 lg:sticky lg:top-6">
-          <nav className="bg-wh border border-bdr rounded-xl shadow-sm p-1.5">
-            <TabsNav
-              tabs={MODAL_TABS}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-              orientation="vertical"
+      {/* Corpo: conteúdo + coluna de resumo (só na aba do Plano — nas demais
+          abas o próprio conteúdo já é a ficha da oportunidade, e repetir o
+          resumo ao lado seria ruído). */}
+      <div className="flex flex-col xl:flex-row gap-4 items-start">
+        <div className="flex-1 min-w-0 w-full">
+          {isTarefas ? (
+            <TasksPanel
+              opportunityId={opportunity.id}
+              tasks={tasks}
+              assignableProfiles={taskAssignableProfiles}
+              readOnly={readOnly}
             />
-          </nav>
-        </aside>
-
-        {/* Conteúdo da aba — cresce e ocupa o resto da largura */}
-        <div className="flex-1 min-w-0 w-full bg-wh border border-bdr rounded-xl shadow-sm overflow-hidden min-h-[55vh]">
-          {tabContent}
+          ) : (
+            <div className="bg-wh border border-bdr rounded-xl shadow-sm overflow-hidden min-h-[55vh]">
+              {tabContent}
+            </div>
+          )}
         </div>
+
+        {isTarefas && (
+          <aside className="w-full xl:w-[340px] xl:shrink-0">
+            <SummarySidebar
+              opportunity={opportunity}
+              tasks={tasks}
+              today={today}
+              opportunityId={opportunity.id}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );

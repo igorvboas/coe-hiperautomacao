@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import {
   fetchOpportunityById,
   fetchPhasesForOpportunity,
@@ -22,15 +21,20 @@ import {
   fetchAssigneesForOpportunity,
   fetchAssignableProfiles,
   fetchAssignableProfilesForPlatformAdmin,
+  fetchTaskAssignableProfiles,
 } from '@/lib/opportunities/assignees';
 import { fetchTenantsByIds } from '@/lib/tenants/queries';
-import { AssigneesPanel } from '@/components/opportunities/AssigneesPanel';
-import { TasksEntryCard } from '@/components/opportunities/tasks/TasksEntryCard';
 import { OpportunityDetail } from '@/components/opportunities/modal/OpportunityDetail';
 
 /**
- * Fullscreen fallback: aberto via URL direta ou refresh em /opportunities/[id].
- * O modal sobre a lista é servido pelo intercepting route em @modal/.
+ * Detalhe da oportunidade (v0.5). O layout mudou de "ficha + card de entrada
+ * para as tarefas" para "header + abas, com o Plano de Atividades como aba
+ * padrão e uma coluna de resumo ao lado" — chegar às tarefas não custa mais um
+ * clique e uma navegação.
+ *
+ * `today` é calculado AQUI, no servidor, e desce como prop: os agregados do
+ * resumo (atrasadas) dependem da data de hoje, e lê-la no cliente faria o
+ * markup do SSR divergir do da hidratação.
  */
 export default async function OpportunityDetailPage({
   params,
@@ -84,30 +88,19 @@ export default async function OpportunityDetailPage({
     ? (await fetchTenantsByIds([opportunity.tenant_id]))[0] ?? null
     : null;
 
+  // Candidatos a responsável de TAREFA (ACCESS-11/D-14) — inclui o staff PSW
+  // atribuído a ESTA oportunidade, além das pessoas do tenant. Lista distinta
+  // da de atribuição da oportunidade, que é privilégio de admin.
+  const taskAssignableProfiles = await fetchTaskAssignableProfiles(
+    opportunity.id,
+    opportunity.tenant_id
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="px-6 lg:px-8 py-6">
       <div className="max-w-screen-2xl mx-auto">
-        <div className="mb-4">
-          <Link
-            href="/opportunities"
-            className="text-[12px] font-semibold text-pri hover:text-pril inline-flex items-center gap-1"
-          >
-            ← Voltar para a lista
-          </Link>
-        </div>
-        <div className="mb-4">
-          <AssigneesPanel
-            opportunityId={opportunity.id}
-            assignees={assignees}
-            options={assignableProfiles}
-            canAssign={canAssign}
-          />
-        </div>
-
-        <div className="mb-4">
-          <TasksEntryCard opportunityId={opportunity.id} taskCount={tasks.length} />
-        </div>
-
         <OpportunityDetail
           opportunity={opportunity}
           phases={phases}
@@ -117,6 +110,12 @@ export default async function OpportunityDetailPage({
           history={history}
           readOnly={readOnly}
           companyName={companyTenant?.name ?? null}
+          tasks={tasks}
+          taskAssignableProfiles={taskAssignableProfiles}
+          today={today}
+          assignees={assignees}
+          assignableProfiles={assignableProfiles}
+          canAssign={canAssign}
         />
       </div>
     </div>
