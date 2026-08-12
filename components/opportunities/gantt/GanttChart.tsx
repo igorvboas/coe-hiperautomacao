@@ -52,6 +52,78 @@ function fmtDate(ts: number): string {
   return `${dd}/${mm}/${yy}`;
 }
 
+/** Granularidade do eixo. `pxPerDay` define a largura total da faixa de tempo. */
+const ZOOM_META = {
+  diario: { label: 'Diário', pxPerDay: 44 },
+  semanal: { label: 'Semanal', pxPerDay: 26 },
+  mensal: { label: 'Mensal', pxPerDay: 7 },
+  trimestral: { label: 'Trimestral', pxPerDay: 2.2 },
+  semestral: { label: 'Semestral', pxPerDay: 1.1 },
+} as const;
+
+type Zoom = keyof typeof ZOOM_META;
+const ZOOM_KEYS = Object.keys(ZOOM_META) as Zoom[];
+
+const MONTH_ABBR = [
+  'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+  'jul', 'ago', 'set', 'out', 'nov', 'dez',
+];
+
+/** Largura mínima do trilho — evita faixa degenerada em spans curtos. */
+const MIN_TRACK_PX = 520;
+/** Trava de segurança: nunca renderiza mais que isso de marcadores. */
+const MAX_TICKS = 800;
+/** Acima disso, a grade vertical some das linhas (só o cabeçalho mantém). */
+const MAX_GRID_TICKS = 120;
+
+/**
+ * Marcadores alinhados a fronteiras reais de calendário (segunda-feira, 1º do
+ * mês/trimestre/semestre), em UTC — mesma base de `Date.parse` das datas ISO.
+ */
+function buildTicks(t0: number, t1: number, zoom: Zoom): { ts: number; label: string }[] {
+  const out: { ts: number; label: string }[] = [];
+  const d = new Date(t0);
+  d.setUTCHours(0, 0, 0, 0);
+
+  if (zoom === 'diario' || zoom === 'semanal') {
+    // Semanal recua até a segunda-feira da semana de t0; diário começa em t0.
+    const stepDays = zoom === 'diario' ? 1 : 7;
+    if (zoom === 'semanal') d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    for (
+      let ts = d.getTime();
+      ts <= t1 && out.length < MAX_TICKS;
+      ts += stepDays * DAY
+    ) {
+      const c = new Date(ts);
+      out.push({
+        ts,
+        label: `${String(c.getUTCDate()).padStart(2, '0')}/${String(
+          c.getUTCMonth() + 1,
+        ).padStart(2, '0')}`,
+      });
+    }
+    return out;
+  }
+
+  const step = zoom === 'mensal' ? 1 : zoom === 'trimestral' ? 3 : 6;
+  d.setUTCDate(1);
+  d.setUTCMonth(Math.floor(d.getUTCMonth() / step) * step);
+
+  while (d.getTime() <= t1 && out.length < MAX_TICKS) {
+    const m = d.getUTCMonth();
+    const yy = String(d.getUTCFullYear()).slice(2);
+    const label =
+      zoom === 'mensal'
+        ? `${MONTH_ABBR[m]}/${yy}`
+        : zoom === 'trimestral'
+          ? `T${m / 3 + 1}/${yy}`
+          : `S${m / 6 + 1}/${yy}`;
+    out.push({ ts: d.getTime(), label });
+    d.setUTCMonth(m + step);
+  }
+  return out;
+}
+
 // Data ISO (YYYY-MM-DD) → dd/mm/aa sem `new Date()`/locale — mesma técnica de
 // `tasks/gantt/TaskGanttChart.tsx`, evita divergência SSR/hidratação.
 function fmtDateIso(iso: string | null): string {
@@ -79,8 +151,12 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
   // oportunidade → tarefas raiz; tarefa raiz → subtarefas.
   const [expandedOpps, setExpandedOpps] = useState<Set<string>>(new Set());
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [zoom, setZoom] = useState<Zoom>('semanal');
 
-  const now = Date.now();
+  // Quantizado no início do dia UTC: `now` entra na largura das barras em
+  // andamento e na linha de "hoje" — sem quantizar, servidor e cliente rendem
+  // percentuais diferentes e o React acusa mismatch de hidratação a cada load.
+  const now = Math.floor(Date.now() / DAY) * DAY;
 
   // Fases por oportunidade, só as que têm início datado.
   const byOpp = new Map<string, OpportunityPhase[]>();
@@ -148,11 +224,28 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
     return { leftPct, widthPct };
   }
 
-  const ticks = Array.from({ length: 6 }, (_, i) => {
-    const t = t0 + (span * i) / 5;
-    return { leftPct: (i / 5) * 100, label: fmtDate(t) };
-  });
+  // Largura do trilho derivada do zoom: a faixa cresce e o container rola
+  // horizontalmente, em vez de comprimir tudo na largura da tela.
+  const trackPx = Math.max(
+    Math.round(((span / DAY) * ZOOM_META[zoom].pxPerDay)),
+    MIN_TRACK_PX,
+  );
+
+  const ticks = buildTicks(t0, t1, zoom)
+    .map((t) => ({ ...t, leftPct: xPct(t.ts) }))
+    .filter((t) => t.leftPct >= 0 && t.leftPct <= 100);
   const todayPct = now >= t0 && now <= t1 ? xPct(now) : null;
+
+  // Linhas verticais da grade, repetidas em cada trilho. Acima de ~120 marcadores
+  // (zoom diário em spans longos) a grade sai — seriam milhares de nós por render.
+  const gridLines = (ticks.length > MAX_GRID_TICKS ? [] : ticks).map((t, i) => (
+    <div
+      key={`g${i}`}
+      className="absolute top-0 bottom-0 w-px bg-bdr/50"
+      style={{ left: `${t.leftPct}%` }}
+      aria-hidden="true"
+    />
+  ));
 
   function toggle(setter: typeof setExpandedOpps, id: string) {
     setter((prev) => {
@@ -201,39 +294,62 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
 
   return (
     <div className="bg-wh border border-bdr rounded-xl shadow-sm overflow-hidden">
-      {/* Legenda */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 border-b border-bdr">
-        {LEGEND_KEYS.map((k) => {
-          const m = metaFor(k);
-          return (
-            <div key={k} className="flex items-center gap-1.5 text-[11px] text-mut">
-              <span
-                className="w-3 h-3 rounded-sm"
-                style={{ background: m?.color ?? '#94a3b8' }}
-              />
-              {m?.label ?? k}
-            </div>
-          );
-        })}
+      {/* Legenda + zoom do eixo */}
+      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-bdr">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {LEGEND_KEYS.map((k) => {
+            const m = metaFor(k);
+            return (
+              <div key={k} className="flex items-center gap-1.5 text-[11px] text-mut">
+                <span
+                  className="w-3 h-3 rounded-sm"
+                  style={{ background: m?.color ?? '#94a3b8' }}
+                />
+                {m?.label ?? k}
+              </div>
+            );
+          })}
+        </div>
+        <label className="flex items-center gap-2 shrink-0 text-[11px] text-mut">
+          Intervalo
+          <select
+            value={zoom}
+            onChange={(e) => setZoom(e.target.value as Zoom)}
+            aria-label="Intervalo do eixo de datas"
+            className="border border-bdr rounded-md bg-wh text-txt text-[11px] px-2 py-1"
+          >
+            {ZOOM_KEYS.map((k) => (
+              <option key={k} value={k}>
+                {ZOOM_META[k].label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[760px]">
+        <div style={{ minWidth: 32 + 240 + trackPx + 12 }}>
           {/* Eixo de datas */}
           <div className="flex border-b border-bdr bg-bg">
             <div className="w-8 shrink-0" aria-hidden="true" />
             <div className="w-[240px] shrink-0 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
               Oportunidade
             </div>
-            <div className="relative flex-1 h-8">
+            <div className="relative h-8 shrink-0" style={{ width: trackPx }}>
               {ticks.map((t, i) => (
-                <div
-                  key={i}
-                  className="absolute top-0 bottom-0 flex items-center text-[10px] text-mut -translate-x-1/2 whitespace-nowrap"
-                  style={{ left: `${t.leftPct}%` }}
-                >
-                  {t.label}
-                </div>
+                <Fragment key={i}>
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-bdr/70"
+                    style={{ left: `${t.leftPct}%` }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="absolute top-0 bottom-0 flex items-center pl-1 text-[10px] text-mut whitespace-nowrap"
+                    style={{ left: `${t.leftPct}%` }}
+                  >
+                    {t.label}
+                  </div>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -278,7 +394,7 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
                       {hasTasks ? ` · ${roots.length} tarefa${roots.length > 1 ? 's' : ''}` : ''}
                     </div>
                   </div>
-                  <div className="relative flex-1 my-2 mr-3">
+                  <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
                     {todayLine}
                     {/* trilho */}
                     <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-6">
@@ -360,7 +476,7 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
                                 : ''}
                             </div>
                           </div>
-                          <div className="relative flex-1 my-2 mr-3">
+                          <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
                             {todayLine}
                             {pos ? (
                               hasChildren ? (
@@ -431,7 +547,7 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
                                     {childMeta.icon} {childMeta.label}
                                   </div>
                                 </div>
-                                <div className="relative flex-1 my-2 mr-3">
+                                <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
                                   {todayLine}
                                   {childPos ? (
                                     <div
