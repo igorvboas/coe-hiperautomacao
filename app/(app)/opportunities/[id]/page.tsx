@@ -20,7 +20,7 @@ import {
 import {
   fetchAssigneesForOpportunity,
   fetchAssignableProfiles,
-  fetchAssignableProfilesForPlatformAdmin,
+  fetchAssignableProfilesForPswActor,
   fetchTaskAssignableProfiles,
 } from '@/lib/opportunities/assignees';
 import { fetchTenantsByIds } from '@/lib/tenants/queries';
@@ -57,12 +57,17 @@ export default async function OpportunityDetailPage({
       fetchTasksForOpportunity(id),
     ]);
 
-  // Atribuir é privilégio de admin (0032). O platform_admin atribui em qualquer
-  // empresa — e é o ÚNICO papel que recebe a lista ampliada com o staff PSW
-  // do tenant da PSW como candidato (ACCESS-09/D-05, Phase 17): o tenant_admin
-  // de cliente continua vendo só as pessoas da própria empresa, exatamente
-  // como hoje. Quem de fato autoriza o vínculo cross-tenant continua sendo a
-  // trigger/policy de `opportunity_assignees` — esta lista só monta candidatos.
+  // Atribuir é privilégio de admin (0032). Quem opera pela PSW — platform_admin
+  // (em qualquer empresa) ou psw_staff com concessão de admin naquela empresa
+  // (0045) — recebe a lista ampliada com o staff PSW do tenant da PSW como
+  // candidato (ACCESS-09/D-05, Phase 17); o tenant_admin de cliente continua
+  // vendo só as pessoas da própria empresa, exatamente como hoje. Sem o ramo do
+  // psw_staff, o staff-admin não achava o PRÓPRIO NOME na lista (o tenant do
+  // profile dele é o da PSW, nunca o da oportunidade) e, por tabela, também não
+  // conseguia virar responsável de tarefa — a trigger de 0041 exige vínculo em
+  // `opportunity_assignees`. Quem de fato autoriza o vínculo cross-tenant
+  // continua sendo a trigger/policy de `opportunity_assignees` — esta lista só
+  // monta candidatos.
   //
   // Gate alinhado com a RLS (Phase 18, Plan 08, GRANT-04/GRANT-09): o par
   // pessoa × empresa contra o tenant DESTA oportunidade, mesmo critério do
@@ -73,8 +78,8 @@ export default async function OpportunityDetailPage({
     isPlatformAdmin(profile) || (await isTenantAdminOf(profile, opportunity.tenant_id));
   const assignableProfiles = !canAssign
     ? []
-    : isPlatformAdmin(profile)
-      ? await fetchAssignableProfilesForPlatformAdmin(
+    : isPlatformAdmin(profile) || isPswStaff(profile)
+      ? await fetchAssignableProfilesForPswActor(
           opportunity.tenant_id,
           profile!.tenantId
         )

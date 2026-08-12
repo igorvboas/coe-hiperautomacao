@@ -74,10 +74,14 @@ export async function setOpportunityAssignees(
   }
 
   // Aceita profiles do MESMO tenant da oportunidade — a regra de sempre — OU,
-  // quando quem atribui é `platform_admin`, também profiles `psw_staff` de
-  // QUALQUER tenant (D-05: só o platform_admin vincula gente da PSW a
-  // oportunidades de outra empresa; um tenant_admin de cliente não pode, e a
-  // UI de convite nem oferece essa opção — esta é a segunda camada). A
+  // quando quem atribui opera pela PSW (`platform_admin`, ou `psw_staff` que
+  // já passou no gate de admin DESTA oportunidade acima), também profiles
+  // `psw_staff` de QUALQUER tenant (D-05: cliente nunca vincula gente de fora
+  // — um `tenant_admin` de cliente não pode, e a UI dele nem oferece essa
+  // opção; esta é a segunda camada). O ramo do `psw_staff` é o que permite ao
+  // staff-admin atribuir a si mesmo a oportunidade que administra — e, por
+  // consequência, virar responsável de tarefa (a trigger de 0041 exige o
+  // vínculo em `opportunity_assignees`). A
   // trigger `check_assignee_tenant()` (0040) repete a checagem no banco —
   // esta camada existe para a mensagem legível, não como bloqueio único.
   const unique = Array.from(new Set(profileIds.filter(Boolean)));
@@ -87,12 +91,10 @@ export async function setOpportunityAssignees(
       .from('profiles')
       .select('id, tenant_id, role')
       .in('id', unique);
-    const actingAsPlatformAdmin = isPlatformAdmin(profile);
+    const actingForPsw = isPlatformAdmin(profile) || isPswStaff(profile);
     valid = (profiles ?? [])
       .filter(
-        (p) =>
-          p.tenant_id === opp.tenant_id ||
-          (actingAsPlatformAdmin && isPswStaff(p))
+        (p) => p.tenant_id === opp.tenant_id || (actingForPsw && isPswStaff(p))
       )
       .map((p) => p.id);
     if (valid.length !== unique.length) {

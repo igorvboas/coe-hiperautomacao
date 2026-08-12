@@ -252,24 +252,39 @@ export async function fetchTaskAssignableProfiles(
 
 /**
  * Lista do painel de atribuição de `opportunity_assignees` QUANDO quem opera
- * é `platform_admin` (ACCESS-09/D-05, Phase 17): as pessoas do tenant da
- * oportunidade + os `psw_staff` do tenant da PSW — candidatos a RECEBER uma
- * nova atribuição cross-tenant. Só o `platform_admin` recebe esta lista
- * ampliada; `tenant_admin`/demais papéis continuam chamando
+ * é da PSW — `platform_admin` (ACCESS-09/D-05, Phase 17) ou `psw_staff` com
+ * concessão de admin naquela empresa (`psw_tenant_admins`, 0045): as pessoas
+ * do tenant da oportunidade + os `psw_staff` do tenant da PSW — candidatos a
+ * RECEBER uma nova atribuição cross-tenant.
+ *
+ * O `psw_staff` admin entrou aqui porque, sem isso, ele **não encontrava o
+ * próprio nome** no painel de atribuição de uma empresa que administra: a
+ * lista vinha de `fetchAssignableProfiles(opportunity.tenant_id)`, que só
+ * enxerga profiles cujo `tenant_id` é o da oportunidade — e o dele é o da
+ * PSW, por design (ver `resolveWriteTenantId`). O banco sempre aceitou esse
+ * vínculo (`check_assignee_tenant()` reescrito na 0040 abre exceção para
+ * `psw_staff`), e as policies de escrita da 0047 já autorizam um staff-admin
+ * de A a atribuir dentro de A — a lacuna era só de UI. Isso destrava também o
+ * responsável de TAREFA: `check_task_tenant_coherence()` (0041) exige que o
+ * staff esteja em `opportunity_assignees` desta oportunidade, então sem
+ * conseguir se atribuir à oportunidade ele nunca aparecia em
+ * `fetchTaskAssignableProfiles`.
+ *
+ * `tenant_admin` de cliente e demais papéis continuam chamando
  * `fetchAssignableProfiles(opportunity.tenant_id)` sem composição nenhuma
  * (D-05 — cliente nunca enxerga pessoas de fora do próprio tenant). Quem de
  * fato autoriza o vínculo continua sendo a trigger/policy de
  * `opportunity_assignees` — esta função só monta a lista de candidatos.
  *
  * PREMISSA (documentar sempre junto de quem chama): `pswTenantId` é o
- * `tenantId` do próprio `platform_admin` logado (`getCurrentProfile()`), que
- * por construção é o tenant da PSW — não existe hoje uma marcação explícita
+ * `tenantId` do próprio ator logado (`getCurrentProfile()`), que por
+ * construção é o tenant da PSW — não existe hoje uma marcação explícita
  * separada de "qual é o tenant da PSW". Isso deixaria de valer se um dia
  * existir um `platform_admin` lotado num tenant de cliente; nesse caso o
  * caminho correto é introduzir uma marcação explícita do tenant da PSW, não
  * presumir a partir do ator logado.
  */
-export async function fetchAssignableProfilesForPlatformAdmin(
+export async function fetchAssignableProfilesForPswActor(
   opportunityTenantId: string,
   pswTenantId: string
 ): Promise<AssignableProfile[]> {
