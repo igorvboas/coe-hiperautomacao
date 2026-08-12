@@ -11,6 +11,10 @@ import { resolveEmpresaSlug } from '@/lib/tenants/scope';
 import { fetchTenantIdBySlug, fetchTenantsByIds } from '@/lib/tenants/queries';
 import type { TenantRole } from '@/lib/opportunities/types';
 import { cargoLabel } from '@/lib/security/cargo';
+import {
+  fetchTenantVisibilitySummary,
+  fetchInviteVisibilitySummary,
+} from '@/lib/security/visibility';
 import { ScopeBadge } from '@/components/admin/ScopeBadge';
 import { NoScopeBanner } from '@/components/admin/NoScopeBanner';
 import { TeamInviteForm } from './TeamInviteForm';
@@ -146,7 +150,19 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
   const members = (membersRes.data ?? []) as MemberRow[];
+
+  // Quem está com recorte de visibilidade (0053) e quantas oportunidades vê.
+  // Quem NÃO está no Map vê tudo — que é o caso de todo mundo até alguém
+  // restringir explicitamente.
+  const visibilityCounts = tenantAlvo
+    ? await fetchTenantVisibilitySummary(tenantAlvo)
+    : new Map<string, number>();
+
   const pending = invites.filter((i) => !i.used_at);
+
+  // Mesmo resumo para os convites PENDENTES (0054) — o recorte já pode ser
+  // definido antes de a pessoa criar a conta.
+  const inviteCounts = await fetchInviteVisibilitySummary(pending.map((i) => i.id));
 
   const thCls = 'px-4 py-2.5 font-bold';
 
@@ -187,13 +203,14 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
               <tr className="bg-bg text-left text-[11px] uppercase tracking-wide text-mut">
                 <th className={thCls}>E-mail</th>
                 <th className={thCls}>Papel</th>
+                <th className={thCls}>Vai enxergar</th>
                 <th className={`${thCls} text-right`}>Ação</th>
               </tr>
             </thead>
             <tbody>
               {pending.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-mut">
+                  <td colSpan={4} className="px-4 py-8 text-center text-mut">
                     {tenantAlvo ? 'Nenhum convite pendente.' : 'Selecione uma empresa para ver os convites.'}
                   </td>
                 </tr>
@@ -202,6 +219,24 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
                   <tr key={inv.id} className="border-t border-slate-100 dark:border-slate-800">
                     <td className="px-4 py-2.5">{inv.email}</td>
                     <td className="px-4 py-2.5">{papelLabel(inv.role, inv.cargo)}</td>
+                    {/* Definir o recorte ANTES do primeiro login (0054): quando
+                        a pessoa criar a conta já entra vendo só isto. */}
+                    <td className="px-4 py-2.5">
+                      {inv.role === 'psw_staff' ? (
+                        <span className="text-mut">—</span>
+                      ) : (
+                        <Link
+                          href={`/team/visibilidade/convite/${inv.id}`}
+                          className="text-xs font-semibold text-pri hover:underline"
+                        >
+                          {inviteCounts.has(inv.id)
+                            ? `${inviteCounts.get(inv.id)} oportunidade${
+                                inviteCounts.get(inv.id) === 1 ? '' : 's'
+                              }`
+                            : 'Tudo da empresa'}
+                        </Link>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-right">
                       <form action={revokeTeamInvite} className="inline">
                         <input type="hidden" name="id" value={inv.id} />
@@ -232,12 +267,13 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
                 <th className={thCls}>Nome</th>
                 <th className={thCls}>E-mail</th>
                 <th className={thCls}>Papel</th>
+                <th className={thCls}>Enxerga</th>
               </tr>
             </thead>
             <tbody>
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-mut">
+                  <td colSpan={4} className="px-4 py-8 text-center text-mut">
                     {tenantAlvo ? 'Ninguém com acesso ainda.' : 'Selecione uma empresa para ver a equipe.'}
                   </td>
                 </tr>
@@ -247,6 +283,26 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
                     <td className="px-4 py-2.5">{m.full_name ?? '—'}</td>
                     <td className="px-4 py-2.5">{m.email}</td>
                     <td className="px-4 py-2.5">{papelLabel(m.role, m.cargo)}</td>
+                    {/* `psw_staff` e `platform_admin` não entram no recorte da
+                        0053 (o primeiro já é recortado por atribuição, o
+                        segundo é global de propósito) — para eles a tela não
+                        existiria, então nem o link aparece. */}
+                    <td className="px-4 py-2.5">
+                      {m.role === 'psw_staff' || m.role === 'platform_admin' ? (
+                        <span className="text-mut">—</span>
+                      ) : (
+                        <Link
+                          href={`/team/visibilidade/${m.id}`}
+                          className="text-xs font-semibold text-pri hover:underline"
+                        >
+                          {visibilityCounts.has(m.id)
+                            ? `${visibilityCounts.get(m.id)} oportunidade${
+                                visibilityCounts.get(m.id) === 1 ? '' : 's'
+                              }`
+                            : 'Tudo da empresa'}
+                        </Link>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -255,7 +311,8 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
         </div>
         <p className="text-xs text-mut">
           Para trocar o papel de quem já tem conta, fale com a PSW — por ora só o
-          convite define o papel inicial.
+          convite define o papel inicial. A coluna <strong>Enxerga</strong> controla
+          quais oportunidades a pessoa vê: o padrão é tudo da empresa.
         </p>
       </div>
     </div>

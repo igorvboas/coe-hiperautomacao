@@ -94,6 +94,10 @@ export function TaskList({
   readOnly = false,
 }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Grid de concluídas nasce fechado — ele existe justamente para tirar da
+  // frente o que já foi feito; o cabeçalho com a contagem fica sempre visível
+  // para que nunca pareça que a tarefa sumiu.
+  const [showCompleted, setShowCompleted] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -158,11 +162,33 @@ export function TaskList({
   }
 
   const rootIndexById = new Map(allRoots.map((t, i) => [t.id, i]));
-  const filteredRoots = !needle
-    ? allRoots
-    : allRoots.filter(
-        (r) => matches(r) || (childrenByParent.get(r.id) ?? []).some(matches)
-      );
+
+  // ===========================================================================
+  // Pendentes × concluídas — dois grids (v0.5)
+  // ===========================================================================
+  // Uma tarefa RAIZ finalizada sai do grid principal e desce para o grid de
+  // concluídas: o Plano de Atividades é sobre o que ainda falta fazer, e tarefa
+  // pronta só polui a leitura do que está em jogo. É recorte de EXIBIÇÃO e nada
+  // mais — a numeração continua vindo de `allRoots` (T005 não vira T003 ao ser
+  // concluída, senão o identificador deixaria de servir para conversar sobre a
+  // tarefa) e nada é gravado.
+  //
+  // Só o status da RAIZ move a linha: subtarefa finalizada continua dentro da
+  // sua pai, porque a pai é que representa o trabalho no plano — o quanto dela
+  // já saiu continua legível no badge "x/y concluídas".
+  const activeRoots = allRoots.filter((r) => r.status !== 'finalizado');
+  const completedRoots = allRoots.filter((r) => r.status === 'finalizado');
+
+  function rootMatches(r: OpportunityTask): boolean {
+    return matches(r) || (childrenByParent.get(r.id) ?? []).some(matches);
+  }
+
+  const filteredRoots = !needle ? activeRoots : activeRoots.filter(rootMatches);
+  // A busca varre os dois grids — procurar uma tarefa e não achá-la porque ela
+  // foi concluída seria pior que a poluição que o segundo grid resolve.
+  const filteredCompleted = !needle
+    ? completedRoots
+    : completedRoots.filter(rootMatches);
 
   // O filtro pode encurtar a lista abaixo da página corrente — clampa em vez
   // de mostrar uma página vazia.
@@ -242,6 +268,212 @@ export function TaskList({
       }
       return next;
     });
+  }
+
+  /**
+   * Uma tarefa raiz + suas subtarefas (quando expandida), como linhas de
+   * tabela. Os DOIS grids — pendentes e concluídas — renderizam por aqui: duas
+   * cópias da linha divergiriam no primeiro ajuste de coluna.
+   *
+   * `Row` decide se a linha é arrastável. O grid de concluídas vive FORA do
+   * `DndContext` (reordenar o que já terminou não muda nada no plano), então
+   * usa a linha simples — e por isso o `SortableContext` das subtarefas também
+   * é condicional: fora de um DndContext ele não teria a quem falar.
+   */
+  function renderRootRows(
+    root: OpportunityTask,
+    Row: React.ComponentType<TaskRowProps>,
+    draggable: boolean
+  ) {
+    // Numeração da lista COMPLETA — estável sob busca, paginação e conclusão.
+    const rootTid = `T${pad3((rootIndexById.get(root.id) ?? 0) + 1)}`;
+    const children = sortSiblings(childrenByParent.get(root.id) ?? [], orderMode);
+    const hasChildren = children.length > 0;
+    const rollup = hasChildren ? computeTaskRollup(children) : null;
+    const expanded = expandedIds.has(root.id);
+    const assigneeLabel = root.assignee_id
+      ? (nameById.get(root.assignee_id) ?? '—')
+      : '—';
+
+    const childRows = children.map((child, j) => {
+      const childTid = `${rootTid}.${j + 1}`;
+      const childAssigneeLabel = child.assignee_id
+        ? (nameById.get(child.assignee_id) ?? '—')
+        : '—';
+      return (
+        <Row
+          key={child.id}
+          id={child.id}
+          draggable={draggable}
+          label={`subtarefa ${childTid}`}
+          className="border-b border-bdr/60 align-top bg-bg/40"
+        >
+          <td className="px-2 py-2" aria-hidden="true" />
+          <td className="px-2 py-2 text-[11px] font-semibold text-pri whitespace-nowrap">
+            {childTid}
+          </td>
+          <td className="px-2 py-2 text-[12px] text-txt max-w-[220px]">
+            <span className="block truncate font-medium pl-8" title={child.title}>
+              {child.title}
+            </span>
+          </td>
+          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
+            {childAssigneeLabel}
+          </td>
+          <td className="px-2 py-2 whitespace-nowrap">
+            <StatusBadge status={child.status} />
+          </td>
+          <td className="px-2 py-2 whitespace-nowrap">
+            <PriorityBadge priority={child.priority} />
+          </td>
+          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
+            {fmtDate(child.start_date)} → {fmtDate(child.due_date)}
+          </td>
+          <td className="px-2 py-2 text-[11px] text-mut whitespace-nowrap">—</td>
+          {!readOnly && (
+            <td className="px-2 py-2 whitespace-nowrap">
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={hrefFor({ tarefa: child.id })}
+                  title="Editar subtarefa"
+                  className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
+                >
+                  ✏️
+                </Link>
+                <DeleteTaskButton
+                  taskId={child.id}
+                  opportunityId={opportunityId}
+                  label={childTid}
+                  taskTitle={child.title}
+                  childCount={0}
+                />
+              </div>
+            </td>
+          )}
+        </Row>
+      );
+    });
+
+    return (
+      <Fragment key={root.id}>
+        <Row
+          id={root.id}
+          draggable={draggable}
+          label={`tarefa ${rootTid}`}
+          className="border-b border-bdr/60 align-top"
+        >
+          <td className="px-2 py-2">
+            {hasChildren && (
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-label={
+                  expanded
+                    ? `Comprimir subtarefas de ${root.title}`
+                    : `Expandir subtarefas de ${root.title}`
+                }
+                title={
+                  expanded
+                    ? 'Comprimir subtarefas'
+                    : `Expandir ${children.length} ${children.length === 1 ? 'subtarefa' : 'subtarefas'}`
+                }
+                onClick={() => toggleExpanded(root.id)}
+                className={`inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-lg border text-[11px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-pri ${
+                  expanded
+                    ? 'bg-pri text-white border-pri'
+                    : 'bg-bg text-pri border-bdr hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block transition-transform leading-none ${expanded ? 'rotate-90' : ''}`}
+                >
+                  ▶
+                </span>
+                <span className="leading-none tabular-nums">{children.length}</span>
+              </button>
+            )}
+          </td>
+          <td className="px-2 py-2 text-[11px] font-semibold text-pri whitespace-nowrap">
+            {rootTid}
+          </td>
+          <td className="px-2 py-2 text-[12px] text-txt max-w-[220px]">
+            <span className="block truncate font-bold" title={root.title}>
+              {root.title}
+            </span>
+          </td>
+          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
+            {assigneeLabel}
+          </td>
+          <td className="px-2 py-2 whitespace-nowrap">
+            <StatusBadge status={root.status} />
+          </td>
+          <td className="px-2 py-2 whitespace-nowrap">
+            <PriorityBadge priority={root.priority} />
+          </td>
+          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
+            {hasChildren ? (
+              <span title="Datas agregadas das subtarefas">
+                <span className="text-mut mr-1">Σ</span>
+                {fmtDate(rollup!.spanStart)} → {fmtDate(rollup!.spanDue)}
+              </span>
+            ) : (
+              <>
+                {fmtDate(root.start_date)} → {fmtDate(root.due_date)}
+              </>
+            )}
+          </td>
+          <td className="px-2 py-2 text-[11px] whitespace-nowrap">
+            {hasChildren ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-txt">
+                {rollup!.completedChildren}/{rollup!.totalChildren} concluídas
+              </span>
+            ) : (
+              <span className="text-mut">—</span>
+            )}
+          </td>
+          {!readOnly && (
+            <td className="px-2 py-2 whitespace-nowrap">
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={hrefFor({ tarefa: root.id })}
+                  title="Editar tarefa"
+                  className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
+                >
+                  ✏️
+                </Link>
+                <Link
+                  href={hrefFor({ tarefa: 'new', parent: root.id })}
+                  title="Adicionar subtarefa"
+                  className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded px-2 py-1 text-[10px] whitespace-nowrap"
+                >
+                  + Subtarefa
+                </Link>
+                <DeleteTaskButton
+                  taskId={root.id}
+                  opportunityId={opportunityId}
+                  label={rootTid}
+                  taskTitle={root.title}
+                  childCount={children.length}
+                />
+              </div>
+            </td>
+          )}
+        </Row>
+
+        {expanded &&
+          (draggable ? (
+            <SortableContext
+              items={children.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {childRows}
+            </SortableContext>
+          ) : (
+            childRows
+          ))}
+      </Fragment>
+    );
   }
 
   if (allRoots.length === 0) {
@@ -336,265 +568,56 @@ export function TaskList({
         </div>
       )}
 
+      {/* ---------------------------------------------------------------
+          Grid 1 — o plano de verdade: só o que ainda não terminou.
+          --------------------------------------------------------------- */}
       <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-bdr">
-              <th className="px-2 py-2 w-8" aria-hidden="true" />
-              <th className="px-2 py-2 w-16" aria-hidden="true" />
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                ID
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                Título
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                Responsável
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                Status
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                Prioridade
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                Início → Fim
-              </th>
-              <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                % Concluído
-              </th>
-              {!readOnly && (
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-                  Ações
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            <SortableContext
-              items={roots.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
+        {roots.length > 0 && (
+          <div className="overflow-x-auto">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
             >
-            {roots.map((root) => {
-              // Numeração da lista COMPLETA — estável sob busca/paginação.
-              const rootTid = `T${pad3((rootIndexById.get(root.id) ?? 0) + 1)}`;
-              const children = sortSiblings(
-                childrenByParent.get(root.id) ?? [],
-                orderMode
-              );
-              const hasChildren = children.length > 0;
-              const rollup = hasChildren ? computeTaskRollup(children) : null;
-              const expanded = expandedIds.has(root.id);
-              const assigneeLabel = root.assignee_id
-                ? (nameById.get(root.assignee_id) ?? '—')
-                : '—';
-
-              return (
-                <Fragment key={root.id}>
-                  <SortableTaskRow
-                    id={root.id}
-                    draggable={dragEnabled}
-                    label={`tarefa ${rootTid}`}
-                    className="border-b border-bdr/60 align-top"
-                  >
-                    <td className="px-2 py-2">
-                      {hasChildren && (
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          aria-label={
-                            expanded
-                              ? `Comprimir subtarefas de ${root.title}`
-                              : `Expandir subtarefas de ${root.title}`
-                          }
-                          title={
-                            expanded
-                              ? 'Comprimir subtarefas'
-                              : `Expandir ${children.length} ${children.length === 1 ? 'subtarefa' : 'subtarefas'}`
-                          }
-                          onClick={() => toggleExpanded(root.id)}
-                          className={`inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-lg border text-[11px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-pri ${
-                            expanded
-                              ? 'bg-pri text-white border-pri'
-                              : 'bg-bg text-pri border-bdr hover:bg-slate-200 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`inline-block transition-transform leading-none ${expanded ? 'rotate-90' : ''}`}
-                          >
-                            ▶
-                          </span>
-                          <span className="leading-none tabular-nums">{children.length}</span>
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-[11px] font-semibold text-pri whitespace-nowrap">
-                      {rootTid}
-                    </td>
-                    <td className="px-2 py-2 text-[12px] text-txt max-w-[220px]">
-                      <span className="block truncate font-bold" title={root.title}>
-                        {root.title}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
-                      {assigneeLabel}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap">
-                      <StatusBadge status={root.status} />
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap">
-                      <PriorityBadge priority={root.priority} />
-                    </td>
-                    <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
-                      {hasChildren ? (
-                        <span title="Datas agregadas das subtarefas">
-                          <span className="text-mut mr-1">Σ</span>
-                          {fmtDate(rollup!.spanStart)} → {fmtDate(rollup!.spanDue)}
-                        </span>
-                      ) : (
-                        <>
-                          {fmtDate(root.start_date)} → {fmtDate(root.due_date)}
-                        </>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-[11px] whitespace-nowrap">
-                      {hasChildren ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-txt">
-                          {rollup!.completedChildren}/{rollup!.totalChildren} concluídas
-                        </span>
-                      ) : (
-                        <span className="text-mut">—</span>
-                      )}
-                    </td>
-                    {!readOnly && (
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Link
-                            href={hrefFor({ tarefa: root.id })}
-                            title="Editar tarefa"
-                            className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
-                          >
-                            ✏️
-                          </Link>
-                          <Link
-                            href={hrefFor({ tarefa: 'new', parent: root.id })}
-                            title="Adicionar subtarefa"
-                            className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded px-2 py-1 text-[10px] whitespace-nowrap"
-                          >
-                            + Subtarefa
-                          </Link>
-                          <DeleteTaskButton
-                            taskId={root.id}
-                            opportunityId={opportunityId}
-                            label={rootTid}
-                            taskTitle={root.title}
-                            childCount={children.length}
-                          />
-                        </div>
-                      </td>
-                    )}
-                  </SortableTaskRow>
-
-                  {expanded && (
+              <table className="w-full text-left border-collapse">
+                <TaskTableHead readOnly={readOnly} />
+                <tbody>
                   <SortableContext
-                    items={children.map((c) => c.id)}
+                    items={roots.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                  {children.map((child, j) => {
-                      const childTid = `${rootTid}.${j + 1}`;
-                      const childAssigneeLabel = child.assignee_id
-                        ? (nameById.get(child.assignee_id) ?? '—')
-                        : '—';
-                      return (
-                        <SortableTaskRow
-                          key={child.id}
-                          id={child.id}
-                          draggable={dragEnabled}
-                          label={`subtarefa ${childTid}`}
-                          className="border-b border-bdr/60 align-top bg-bg/40"
-                        >
-                          <td className="px-2 py-2" aria-hidden="true" />
-                          <td className="px-2 py-2 text-[11px] font-semibold text-pri whitespace-nowrap">
-                            {childTid}
-                          </td>
-                          <td className="px-2 py-2 text-[12px] text-txt max-w-[220px]">
-                            <span
-                              className="block truncate font-medium pl-8"
-                              title={child.title}
-                            >
-                              {child.title}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
-                            {childAssigneeLabel}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap">
-                            <StatusBadge status={child.status} />
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap">
-                            <PriorityBadge priority={child.priority} />
-                          </td>
-                          <td className="px-2 py-2 text-[11px] text-txt whitespace-nowrap">
-                            {fmtDate(child.start_date)} → {fmtDate(child.due_date)}
-                          </td>
-                          <td className="px-2 py-2 text-[11px] text-mut whitespace-nowrap">
-                            —
-                          </td>
-                          {!readOnly && (
-                            <td className="px-2 py-2 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <Link
-                                  href={hrefFor({ tarefa: child.id })}
-                                  title="Editar subtarefa"
-                                  className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 rounded px-2 py-1 text-[10px]"
-                                >
-                                  ✏️
-                                </Link>
-                                <DeleteTaskButton
-                                  taskId={child.id}
-                                  opportunityId={opportunityId}
-                                  label={childTid}
-                                  taskTitle={child.title}
-                                  childCount={0}
-                                />
-                              </div>
-                            </td>
-                          )}
-                        </SortableTaskRow>
-                      );
-                    })}
+                    {roots.map((root) =>
+                      renderRootRows(root, SortableTaskRow, dragEnabled)
+                    )}
                   </SortableContext>
-                  )}
-                </Fragment>
-              );
-            })}
-            </SortableContext>
-          </tbody>
-        </table>
-        </DndContext>
-      </div>
+                </tbody>
+              </table>
+            </DndContext>
+          </div>
+        )}
 
-      {filteredRoots.length === 0 && (
-        <div className="px-4 py-8 text-center">
-          <p className="text-[12px] text-mut">
-            Nenhuma tarefa encontrada para <strong>“{query.trim()}”</strong>.
-          </p>
-        </div>
-      )}
+        {filteredRoots.length === 0 && (
+          <div className="px-4 py-8 text-center">
+            <p className="text-[12px] text-mut">
+              {needle ? (
+                <>
+                  Nenhuma tarefa pendente encontrada para{' '}
+                  <strong>“{query.trim()}”</strong>.
+                </>
+              ) : (
+                <>Nenhuma tarefa pendente — tudo o que existe aqui já foi concluído. 🎉</>
+              )}
+            </p>
+          </div>
+        )}
 
       {/* Rodapé de paginação — some quando tudo cabe na primeira página. */}
       {filteredRoots.length > 0 && (
         <div className="border-t border-bdr px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
           <span className="text-[11px] text-mut">
             Mostrando {pageStart + 1} a {pageStart + roots.length} de{' '}
-            {filteredRoots.length} {filteredRoots.length === 1 ? 'tarefa' : 'tarefas'}
+            {filteredRoots.length}{' '}
+            {filteredRoots.length === 1 ? 'tarefa pendente' : 'tarefas pendentes'}
           </span>
 
           {totalPages > 1 && (
@@ -646,6 +669,64 @@ export function TaskList({
         </div>
       )}
       </div>
+
+      {/* ---------------------------------------------------------------
+          Grid 2 — as concluídas, fora do caminho.
+          Mesmas colunas e mesma numeração do grid de cima (é a mesma
+          `renderRootRows`), sem arrasto: reordenar o que já terminou não
+          muda nada no plano. Nasce fechado; o cabeçalho com a contagem
+          fica sempre visível para que nunca pareça que a tarefa sumiu.
+          --------------------------------------------------------------- */}
+      {completedRoots.length > 0 && (
+        <div className="bg-wh border border-bdr rounded-xl overflow-hidden shadow-sm">
+          <button
+            type="button"
+            onClick={() => setShowCompleted((v) => !v)}
+            aria-expanded={showCompleted}
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-bg transition-colors focus:outline-none focus:ring-2 focus:ring-pri"
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-block text-[11px] text-mut transition-transform ${
+                showCompleted ? 'rotate-90' : ''
+              }`}
+            >
+              ▶
+            </span>
+            <span className="text-[13px] font-bold text-txt">
+              <span aria-hidden="true">✅</span> Tarefas concluídas
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold tabular-nums">
+              {completedRoots.length}
+            </span>
+            <span className="ml-auto text-[11px] text-mut">
+              {showCompleted ? 'Ocultar' : 'Mostrar'}
+            </span>
+          </button>
+
+          {showCompleted && (
+            <div className="border-t border-bdr">
+              {filteredCompleted.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <TaskTableHead readOnly={readOnly} />
+                    <tbody>
+                      {filteredCompleted.map((root) =>
+                        renderRootRows(root, PlainTaskRow, false)
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="px-4 py-6 text-center text-[12px] text-mut">
+                  Nenhuma tarefa concluída encontrada para{' '}
+                  <strong>“{query.trim()}”</strong>.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -683,6 +764,72 @@ function PageButton({
 }
 
 /**
+ * Cabeçalho das colunas — um só, compartilhado pelos grids de pendentes e de
+ * concluídas: os dois mostram exatamente as mesmas colunas, e duas cópias
+ * divergiriam no primeiro ajuste.
+ */
+function TaskTableHead({ readOnly }: { readOnly: boolean }) {
+  return (
+    <thead>
+      <tr className="border-b border-bdr">
+        <th className="px-2 py-2 w-8" aria-hidden="true" />
+        <th className="px-2 py-2 w-16" aria-hidden="true" />
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          ID
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          Título
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          Responsável
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          Status
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          Prioridade
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          Início → Fim
+        </th>
+        <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+          % Concluído
+        </th>
+        {!readOnly && (
+          <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+            Ações
+          </th>
+        )}
+      </tr>
+    </thead>
+  );
+}
+
+type TaskRowProps = {
+  id: string;
+  draggable: boolean;
+  /** Nome da linha para o leitor de tela — ex: "tarefa T001". */
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+};
+
+/**
+ * Linha do grid de concluídas — a mesma estrutura de células, sem `useSortable`
+ * e sem handle. Existe como componente separado (em vez de um `draggable=false`
+ * no sortable) porque este grid vive FORA do `DndContext`: chamar o hook ali
+ * seria pedir contexto a quem não tem.
+ */
+function PlainTaskRow({ className, children }: TaskRowProps) {
+  return (
+    <tr className={className}>
+      <td className="px-2 py-2 align-middle" aria-hidden="true" />
+      {children}
+    </tr>
+  );
+}
+
+/**
  * Linha de tarefa/subtarefa arrastável (0049). A primeira célula é o handle —
  * o único ponto de arrasto, para não competir com os links de editar/excluir
  * que vivem na mesma linha.
@@ -696,14 +843,7 @@ function SortableTaskRow({
   label,
   className,
   children,
-}: {
-  id: string;
-  draggable: boolean;
-  /** Nome da linha para o leitor de tela — ex: "tarefa T001". */
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
+}: TaskRowProps) {
   const {
     attributes,
     listeners,

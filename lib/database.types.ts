@@ -424,6 +424,133 @@ export type Database = {
         ];
       };
 
+      // 0053 — recorte de visibilidade por pessoa. `profile_visibility` é o
+      // INTERRUPTOR ('all' | 'restricted'; ausência de linha ≡ 'all') e
+      // `profile_opportunity_access` é a LISTA, só consultada quando o
+      // interruptor está em 'restricted'. `tenant_id` é derivado por trigger —
+      // o valor enviado no insert é ignorado, então mandá-lo é só cortesia.
+      profile_visibility: {
+        Row: {
+          profile_id: string;
+          tenant_id: string;
+          scope: 'all' | 'restricted';
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          profile_id: string;
+          tenant_id: string;
+          scope?: 'all' | 'restricted';
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<{
+          scope: 'all' | 'restricted';
+          updated_by: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'profile_visibility_profile_id_fkey';
+            columns: ['profile_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profile_visibility_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      // 0054 — o mesmo recorte, pendurado no CONVITE, para valer já no primeiro
+      // login. Uma tabela só (com `uuid[]`) e não duas como acima porque esta
+      // lista não é lida pela RLS: é escrita por um admin e lida UMA vez, por
+      // `handle_new_user()`, no signup. `tenant_id` e `updated_at` são
+      // derivados por trigger.
+      invite_visibility: {
+        Row: {
+          invited_email_id: string;
+          tenant_id: string;
+          scope: 'all' | 'restricted';
+          opportunity_ids: string[];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          invited_email_id: string;
+          tenant_id: string;
+          scope?: 'all' | 'restricted';
+          opportunity_ids?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<{
+          scope: 'all' | 'restricted';
+          opportunity_ids: string[];
+          updated_by: string | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'invite_visibility_invited_email_id_fkey';
+            columns: ['invited_email_id'];
+            referencedRelation: 'invited_emails';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invite_visibility_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
+      profile_opportunity_access: {
+        Row: {
+          id: string;
+          profile_id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          opportunity_id: string;
+          tenant_id: string;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          profile_id: string;
+          opportunity_id: string;
+          tenant_id: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'profile_opportunity_access_profile_id_fkey';
+            columns: ['profile_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profile_opportunity_access_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            referencedRelation: 'opportunities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profile_opportunity_access_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       opportunities: {
         Row: {
           id: string;
