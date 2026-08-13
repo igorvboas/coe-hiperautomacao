@@ -23,6 +23,7 @@ import {
   requireEditorRole,
   getCurrentProfile,
   resolveWriteTenantId,
+  writesCrossTenant,
   WRITE_SCOPE_DENIED_MESSAGE,
 } from '@/lib/security/role';
 
@@ -512,10 +513,27 @@ export async function createOpportunity(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('tenant_id')
+    .select('tenant_id, role')
     .eq('id', user.id)
     .single();
   if (!profile) return { ok: false, error: 'Profile não encontrado.' };
+
+  // Este wizard grava SEMPRE no tenant de lotação de quem preenche — o que só
+  // é verdade para papel de cliente. Para os papéis da PSW (`psw_staff`,
+  // `platform_admin`) o tenant de lotação é o da PSW, então seguir daqui
+  // criaria a oportunidade DENTRO da PSW: invisível para a empresa que ela
+  // descreve e sem nenhum erro na tela. O caminho correto deles é
+  // `/opportunities/register`, que começa escolhendo a empresa e grava por
+  // `createStaffOpportunity()` (tenant-alvo autorizado na RPC). Mesma raiz do
+  // bug de `resolveWriteTenantId` corrigido em 2026-08-13 — ver
+  // `writesCrossTenant()`.
+  if (writesCrossTenant({ role: profile.role })) {
+    return {
+      ok: false,
+      error:
+        'Use "Registrar oportunidade" (/opportunities/register) para escolher a empresa antes de registrar.',
+    };
+  }
 
   const { data: inserted, error } = await supabase
     .from('opportunities')

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getCurrentProfile, isPlatformAdmin, isPswStaff } from '@/lib/security/role';
+import { getCurrentProfile, writesCrossTenant } from '@/lib/security/role';
 import { fetchStaffWritableTenants } from '@/lib/tenants/queries';
 import { StaffRegisterForm } from './StaffRegisterForm';
 
@@ -22,7 +22,12 @@ export const metadata = {
 export default async function RegisterOpportunityPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
-  if (!isPlatformAdmin(profile) && !isPswStaff(profile)) {
+  // `writesCrossTenant()` = `platform_admin` ∪ `psw_staff` — o mesmo predicado
+  // que manda esses papéis para cá em `/opportunities/new`. Fonte única de
+  // propósito: as duas telas são o verso e o anverso da mesma decisão, e foi
+  // exatamente a divergência desse predicado (o `platform_admin` de fora) que
+  // produziu o bug de tenant de 2026-08-13.
+  if (!writesCrossTenant(profile)) {
     redirect('/opportunities');
   }
 

@@ -136,16 +136,41 @@ export function isPswStaff(profile: Pick<CurrentProfile, 'role'> | null): boolea
   return profile?.role === 'psw_staff';
 }
 
+/**
+ * Papéis da PSW cujo tenant DE LOTAÇÃO nunca é o tenant do dado que eles
+ * escrevem: `psw_staff` (multi-tenant por atribuição, 0040/0041) e
+ * `platform_admin` (cross-tenant por RLS aditiva — SELECT na 0021,
+ * INSERT/UPDATE/DELETE na 0025). Para os dois, o tenant-alvo de uma escrita
+ * tem que sair do DADO-ALVO, nunca de `profile.tenantId`.
+ *
+ * POR QUE O `platform_admin` ENTROU AQUI (bug de 2026-08-13): ele ficava no
+ * ramo "papel de cliente" de `resolveWriteTenantId()`, herdado de quando a
+ * 0021 só lhe dava leitura cross-tenant. Quando a 0025 abriu a escrita, o
+ * resolver não acompanhou — então um super-admin da PSW anotando numa
+ * oportunidade de empresa cliente carimbava o tenant da PSW na linha filha e
+ * levava o erro cru de `check_child_tenant_coherence()` (0043); e em
+ * `updateOpportunity`, onde o mesmo valor vira `.eq('tenant_id', …)`, casava
+ * ZERO LINHAS com `error: null` — "salvo com sucesso" sem ter salvo nada.
+ *
+ * Papéis de cliente (`member`/`viewer`/`tenant_admin`) continuam de fora: o
+ * tenant deles É o tenant do dado, e o ramo sem ida ao banco é o que garante
+ * zero regressão de latência (D-J).
+ */
+export function writesCrossTenant(profile: Pick<CurrentProfile, 'role'> | null): boolean {
+  return isPswStaff(profile) || isPlatformAdmin(profile);
+}
+
 // =============================================================================
 // resolveWriteTenantId — ponto único do escopo de escrita (Phase 17, D-11)
 // -----------------------------------------------------------------------------
 // POR QUE ESTA FUNÇÃO EXISTE: o padrão histórico de defesa em profundidade nas
 // Server Actions de escrita era `.eq('tenant_id', profile.tenant_id)` — que
 // pressupõe que o tenant DO PROFILE é o tenant DA LINHA sendo escrita. Isso é
-// verdade para todo papel de cliente (`member`/`viewer`/`tenant_admin`/
-// `platform_admin`) e **falso por design** para `psw_staff` (Phase 17): o
-// tenant do profile dele é o tenant da PSW, nunca o da oportunidade que lhe
-// foi atribuída.
+// verdade para todo papel de cliente (`member`/`viewer`/`tenant_admin`) e
+// **falso por design** para os papéis da PSW (`writesCrossTenant()`): o tenant
+// do profile deles é o tenant da PSW, nunca o da oportunidade atribuída
+// (`psw_staff`, Phase 17) nem o da empresa administrada (`platform_admin`,
+// que ficou de fora daqui até 2026-08-13 — ver `writesCrossTenant()`).
 //
 // O SINTOMA que isso produz, se não corrigido: um `psw_staff` edita uma
 // oportunidade legitimamente atribuída a ele; a RLS aditiva (0040/0041)
@@ -158,9 +183,10 @@ export function isPswStaff(profile: Pick<CurrentProfile, 'role'> | null): boolea
 // A defesa em profundidade CONTINUA EXISTINDO — esta função não é uma forma
 // de "remover o `.eq()` e confiar só na RLS". O que muda é a FONTE do valor:
 // para papéis de cliente, é `profile.tenantId` (sem ida ao banco, idêntico ao
-// que o `.eq()` cru já fazia); para `psw_staff`, é o `tenant_id` lido da
+// que o `.eq()` cru já fazia); para os papéis da PSW, é o `tenant_id` lido da
 // OPORTUNIDADE-ALVO, através do client autenticado — a RLS já limita essa
-// leitura ao que lhe foi atribuído (`current_assigned_opportunity_ids()`),
+// leitura ao que cada um enxerga (`current_assigned_opportunity_ids()` para o
+// staff, `is_platform_admin()` para o super-admin),
 // então "oportunidade inexistente" e "oportunidade fora do escopo" colapsam
 // no mesmo `null`, que é exatamente a semântica desejada (nunca revelar qual
 // dos dois casos ocorreu).
@@ -181,12 +207,13 @@ export const WRITE_SCOPE_DENIED_MESSAGE =
  * insert de tabela filha) — chamar DEPOIS do guard de papel
  * (`requireEditorRole()`) e ANTES de qualquer mutação.
  *
- * - Para `member`/`viewer`/`tenant_admin`/`platform_admin`: retorna
- *   `profile.tenantId` sem nenhuma consulta ao banco — comportamento
- *   idêntico ao `.eq('tenant_id', profile.tenant_id)` de hoje, zero
- *   regressão (SC-6).
- * - Para `psw_staff`: lê `opportunities.tenant_id` pelo id informado, via o
- *   client autenticado (RLS já filtra ao que foi atribuído). Devolve `null`
+ * - Para `member`/`viewer`/`tenant_admin`: retorna `profile.tenantId` sem
+ *   nenhuma consulta ao banco — comportamento idêntico ao
+ *   `.eq('tenant_id', profile.tenant_id)` de hoje, zero regressão (SC-6).
+ * - Para os papéis da PSW (`writesCrossTenant()` — `psw_staff` e
+ *   `platform_admin`): lê `opportunities.tenant_id` pelo id informado, via o
+ *   client autenticado (a RLS já filtra ao que cada um enxerga — o assignado,
+ *   no caso do staff; tudo, no caso do super-admin). Devolve `null`
  *   quando a oportunidade não existe ou não está no escopo — o chamador DEVE
  *   tratar `null` como erro e retornar `{ ok: false, error:
  *   WRITE_SCOPE_DENIED_MESSAGE }` ANTES de tentar a mutação. É este early
@@ -196,7 +223,7 @@ export async function resolveWriteTenantId(
   profile: CurrentProfile,
   opportunityId: string
 ): Promise<string | null> {
-  if (!isPswStaff(profile)) {
+  if (!writesCrossTenant(profile)) {
     return profile.tenantId;
   }
 
