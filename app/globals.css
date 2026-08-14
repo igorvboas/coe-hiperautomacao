@@ -61,6 +61,38 @@
   --color-mut: #94a3b8;
 }
 
+/* Sem isso, o popup nativo do <select> (lista de opções) é sempre
+   desenhado pelo navegador com o chrome "claro" do SO — fundo branco fixo —
+   mesmo com .dark trocando --color-txt para quase-branco, resultando em
+   texto claro sobre fundo claro em todo dropdown/lista nativa (select,
+   scrollbar, checkbox). Declarar color-scheme avisa o navegador para
+   desenhar esses controles nativos no esquema certo por tema. */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* color-scheme sozinho não é suficiente: no Windows o Chrome/Edge às vezes
+   desenha o popup do <select> com o chrome nativo do SO (fundo claro fixo),
+   ignorando o esquema da página — sobretudo quando o <select> nem declara
+   bg/text próprios (ex. TaskForm.tsx `inputCls`), caindo 100% no default do
+   navegador. Fixamos aqui pra todo select/option herdar o tema mesmo sem
+   classe própria; quem já define bg e text (StatusSelector, toolbar
+   `selectClass`) tem maior especificidade (seletor de classe > elemento) e
+   continua ganhando. */
+select {
+  background-color: var(--color-wh);
+  color: var(--color-txt);
+}
+
+select option {
+  background-color: var(--color-wh);
+  color: var(--color-txt);
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-txt);
