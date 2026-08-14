@@ -228,7 +228,7 @@ export function WizardShell({ mode, opportunityId, initialData }: Props) {
         )}
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {renderStep(currentStep?.id, data, patch, errors, mode)}
+          {renderStep(currentStep?.id, data, patch, errors, mode, opportunityId)}
         </div>
 
         {submitError && (
@@ -291,7 +291,8 @@ function renderStep(
   data: WizardFormData,
   patch: (p: Partial<WizardFormData>) => void,
   errors: Record<string, string>,
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit',
+  opportunityId?: string
 ) {
   if (!id) return null;
   // Nos fluxos de CRIAÇÃO, campos AI-owned (Ferramenta/Esforço/Complexidade) e o
@@ -308,7 +309,13 @@ function renderStep(
     case 'processo':
       return <ProcessoStep data={data} onChange={patch} hideEnriched={hideEnriched} />;
     case 'automacao':
-      return <AutomacaoStep data={data} onChange={patch} />;
+      return (
+        <AutomacaoStep
+          data={data}
+          onChange={patch}
+          opportunityId={opportunityId}
+        />
+      );
     case 'priorizacao':
       return (
         <PriorizacaoStep

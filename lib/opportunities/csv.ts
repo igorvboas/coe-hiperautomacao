@@ -16,6 +16,7 @@
 
 import type { Opportunity } from '@/lib/opportunities/types';
 import { assigneeName, type Assignee } from '@/lib/opportunities/assignee-types';
+import { toolLabel } from '@/lib/opportunities/tools';
 
 type Column = {
   /** Cabeçalho pt-BR exibido na primeira linha do CSV. */
@@ -43,7 +44,10 @@ const COLUMNS: Column[] = [
   { header: 'Número de execuções', value: (o) => o.volume_medio },
   { header: 'Tempo de execução', value: (o) => o.tempo_execucao },
   { header: 'Nº de pessoas', value: (o) => o.num_pessoas },
-  { header: 'Ferramenta', value: (o) => o.ferramenta },
+  // 0055 — sai o enum legado, entra a seleção real. Sem o catálogo em mãos
+  // (este módulo é puro), `toolLabel` resolve o seed e prettifica o resto; o
+  // array cai no join ' | ' padrão das demais colunas de lista.
+  { header: 'Ferramentas', value: (o) => (o.ferramentas ?? []).map((s) => toolLabel(s)) },
   { header: 'Escopo da automação', value: (o) => o.escopo_automacao },
   { header: 'Benefícios esperados', value: (o) => o.beneficios_esperados },
   { header: 'Esforço', value: (o) => o.esforco },

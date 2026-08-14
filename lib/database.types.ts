@@ -551,6 +551,63 @@ export type Database = {
         ];
       };
 
+      /**
+       * 0055 — catálogo de ferramentas de automação do seletor "Ferramenta
+       * Sugerida". `tenant_id` NULL = catálogo global da plataforma (seed:
+       * rpa, n8n, databricks, sap, uipath); não-nulo = registrada por um
+       * usuário e visível SÓ para aquele tenant. É a única tabela de domínio
+       * com `tenant_id` nullable — ver o header da migration.
+       */
+      automation_tools: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          slug: string;
+          nome: string;
+          icone: string | null;
+          ordem: number;
+          ativo: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          // A app NUNCA insere global (a policy de INSERT exige não-nulo) —
+          // o catálogo global só cresce por migration.
+          tenant_id: string;
+          slug: string;
+          nome: string;
+          icone?: string | null;
+          ordem?: number;
+          ativo?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          nome: string;
+          icone: string | null;
+          ordem: number;
+          ativo: boolean;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: 'automation_tools_tenant_id_fkey';
+            columns: ['tenant_id'];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'automation_tools_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       opportunities: {
         Row: {
           id: string;
@@ -569,7 +626,16 @@ export type Database = {
           volume_medio: string | null;
           tempo_execucao: string | null;
           num_pessoas: string | null;
+          /** 0055 — DERIVADA de `ferramentas` pelo trigger
+           *  `sync_opportunity_ferramentas()`. Mantida só para os consumidores
+           *  antigos (mix do relatório) e para os caminhos de escrita que ainda
+           *  gravam um valor único (RPCs pública/staff, enriquecimento por IA).
+           *  Para ler/escrever a seleção do usuário use `ferramentas`. */
           ferramenta: AutomationTool | null;
+          /** 0055 — slugs de `automation_tools`, FONTE DA VERDADE da seleção
+           *  (multi-escolha). Normalizado pelo trigger: minúsculo, sem repetido,
+           *  ordenado. not null default '{}'. */
+          ferramentas: string[];
           escopo_automacao: string[];
           beneficios_esperados: string[];
           esforco: EffortLevel | null;
@@ -637,7 +703,8 @@ export type Database = {
           volume_medio?: string | null;
           tempo_execucao?: string | null;
           num_pessoas?: string | null;
-          ferramenta?: AutomationTool | null;
+          ferramenta?: AutomationTool | null; // 0055 — derivada, ver nota no Row
+          ferramentas?: string[]; // 0055 — ver nota no Row
           escopo_automacao?: string[];
           beneficios_esperados?: string[];
           esforco?: EffortLevel | null;

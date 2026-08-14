@@ -213,15 +213,33 @@ describe('buildRiskSummary — agregação de riscos', () => {
   });
 });
 
+// 0055: o mix passou a ler `ferramentas` (array) em vez do enum legado
+// `ferramenta` — o par {rpa,n8n} é que significa "ambos", e ferramenta fora do
+// par (SAP, UiPath, registrada pelo tenant) conta em `outras` em vez de ser
+// confundida com "ninguém definiu".
 describe('buildToolMix — split por ferramenta', () => {
-  it('conta rpa/n8n/ambos e sem ferramenta (null)', () => {
+  it('conta rpa/n8n/ambos, outras e sem ferramenta (array vazio)', () => {
     const mix = buildToolMix([
-      opp({ ferramenta: 'rpa' }),
-      opp({ ferramenta: 'rpa' }),
-      opp({ ferramenta: 'n8n' }),
-      opp({ ferramenta: 'ambos' }),
-      opp({ ferramenta: null }),
+      opp({ ferramentas: ['rpa'] }),
+      opp({ ferramentas: ['rpa'] }),
+      opp({ ferramentas: ['n8n'] }),
+      opp({ ferramentas: ['n8n', 'rpa'] }),
+      opp({ ferramentas: ['sap'] }),
+      opp({ ferramentas: [] }),
     ]);
-    expect(mix).toEqual({ rpa: 2, n8n: 1, ambos: 1, semFerramenta: 1 });
+    expect(mix).toEqual({ rpa: 2, n8n: 1, ambos: 1, outras: 1, semFerramenta: 1 });
+  });
+
+  it('cada oportunidade conta uma vez só — as fatias somam o total', () => {
+    const opps = [
+      opp({ ferramentas: ['rpa', 'sap'] }),
+      opp({ ferramentas: ['n8n', 'uipath', 'databricks'] }),
+      opp({ ferramentas: ['n8n', 'rpa', 'sap'] }),
+    ];
+    const mix = buildToolMix(opps);
+    const soma =
+      mix.rpa + mix.n8n + mix.ambos + mix.outras + mix.semFerramenta;
+    expect(soma).toBe(opps.length);
+    expect(mix).toEqual({ rpa: 1, n8n: 1, ambos: 1, outras: 0, semFerramenta: 0 });
   });
 });

@@ -480,15 +480,29 @@ export type ToolMix = {
   rpa: number;
   n8n: number;
   ambos: number;
+  /** 0055 — só ferramentas de fora do par RPA/n8n (SAP, UiPath, registradas
+   *  pelo tenant…). Antes essas caíam em `semFerramenta`, que passava a
+   *  impressão errada de "ninguém definiu ferramenta". */
+  outras: number;
   semFerramenta: number;
 };
 
+/**
+ * Uma oportunidade conta UMA vez (as fatias somam o total): RPA+n8n é 'ambos',
+ * um dos dois é o próprio, nenhum dos dois mas alguma ferramenta é 'outras', e
+ * array vazio é 'semFerramenta'. Ler de `ferramentas` (e não do enum legado)
+ * é o que faz {sap} aparecer como ferramenta definida.
+ */
 export function buildToolMix(opps: Opportunity[]): ToolMix {
-  const mix: ToolMix = { rpa: 0, n8n: 0, ambos: 0, semFerramenta: 0 };
+  const mix: ToolMix = { rpa: 0, n8n: 0, ambos: 0, outras: 0, semFerramenta: 0 };
   for (const o of opps) {
-    if (o.ferramenta === 'rpa') mix.rpa++;
-    else if (o.ferramenta === 'n8n') mix.n8n++;
-    else if (o.ferramenta === 'ambos') mix.ambos++;
+    const tools = o.ferramentas ?? [];
+    const temRpa = tools.includes('rpa');
+    const temN8n = tools.includes('n8n');
+    if (temRpa && temN8n) mix.ambos++;
+    else if (temRpa) mix.rpa++;
+    else if (temN8n) mix.n8n++;
+    else if (tools.length > 0) mix.outras++;
     else mix.semFerramenta++;
   }
   return mix;

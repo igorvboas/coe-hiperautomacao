@@ -33,7 +33,9 @@ const OPPORTUNITY_COLUMNS =
   'id, tenant_id, seq_id, source, request_type, ' +
   'solicitante, email, area, subarea, processo, ' +
   'frequencia, volume_medio, tempo_execucao, num_pessoas, ' +
-  'ferramenta, escopo_automacao, beneficios_esperados, ' +
+  // 0055 — `ferramentas` (array) é a seleção real; `ferramenta` fica pelos
+  // consumidores legados (mix do relatório) e é derivada no banco.
+  'ferramenta, ferramentas, escopo_automacao, beneficios_esperados, ' +
   'esforco, complexidade, tempo, objetivo, ' +
   'status, responsavel, notas, observacao, risco, ' +
   // v0.2 (0011) — incluídos por decisão explícita (HARDEN-E-06): consumidos por
@@ -138,7 +140,9 @@ export async function fetchOpportunities(
 
   if (filters.source) q = q.eq('source', filters.source);
   if (filters.area) q = q.eq('area', filters.area);
-  if (filters.ferramenta) q = q.eq('ferramenta', filters.ferramenta);
+  // 0055 — o filtro passou a ser "contém a ferramenta X": uma oportunidade
+  // com {rpa, sap} tem que aparecer tanto no filtro de RPA quanto no de SAP.
+  if (filters.ferramenta) q = q.contains('ferramentas', [filters.ferramenta]);
   if (filters.priority) q = q.eq('priority_level', filters.priority);
   // 0050 — filtro pela tag MANUAL, independente do filtro por faixa de score
   // acima. `sem` recorta as ainda não classificadas.

@@ -49,7 +49,10 @@ export const FIELD_LABEL: Record<string, string> = {
   volume_medio: 'Número de Execuções',
   tempo_execucao: 'Tempo de Execução',
   num_pessoas: 'Pessoas Envolvidas',
-  ferramenta: 'Ferramenta',
+  ferramentas: 'Ferramentas',
+  // 0055 — derivada de `ferramentas` pelo trigger. Aparece no histórico junto
+  // da mudança que a causou; o rótulo distingue as duas linhas.
+  ferramenta: 'Ferramenta (legado)',
   responsavel: 'Responsável',
   criticidade: 'Criticidade',
   azure_boards_codigo: 'Código Azure Boards',

@@ -86,7 +86,8 @@ opportunities(
   id, tenant_id, seq_id, source,           -- 'persona' | 'formulario'
   solicitante, email, area, subarea, processo,
   frequencia, volume_medio, tempo_execucao, num_pessoas,
-  ferramenta,                              -- 'RPA' | 'n8n' | 'ambos'
+  ferramentas (text[]),                    -- 0055: slugs de automation_tools (multi-seleção) — FONTE DA VERDADE
+  ferramenta,                              -- 'rpa'|'n8n'|'ambos' — DERIVADA de ferramentas por trigger, nunca input
   -- fatores de score (colunas flat, compõem opportunity_score):
   esforco, complexidade,                   -- effort_level / complexity_level
   tempo,                                   -- frequency_bucket: diario|semanal|quinzenal|mensal|anual (era duração no v0.1)
@@ -107,6 +108,12 @@ opportunities(
 opportunity_phases(
   id, opportunity_id, phase_key,           -- 'em_analise' | 'planejamento' | ...
   started_at, finished_at
+)
+automation_tools(                           -- NOVO 0055 — catálogo do seletor de ferramentas
+  id, tenant_id nullable,                  -- NULL = catálogo global (seed: rpa, n8n, databricks, sap, uipath);
+                                           -- não-nulo = registrada por um usuário, visível SÓ para o tenant dele.
+                                           -- ÚNICA tabela de domínio com tenant_id nullable (exceção consciente ao §1)
+  slug, nome, icone, ordem, ativo, created_by, created_at, updated_at
 )
 opportunity_risks(                          -- NOVO v0.2 — registro de riscos estruturado
   id, opportunity_id, tenant_id,           -- tenant_id not null + RLS (4 policies)

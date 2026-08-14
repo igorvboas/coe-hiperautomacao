@@ -28,6 +28,7 @@ import {
 } from '@/lib/security/role';
 import { KpiBar } from '@/components/opportunities/kpi-bar';
 import { Toolbar } from '@/components/opportunities/toolbar';
+import { listAutomationTools } from '@/lib/opportunities/tools-actions';
 import { OpportunityTable } from '@/components/opportunities/table';
 import { OpportunityCards } from '@/components/opportunities/cards';
 import { KanbanBoard } from '@/components/opportunities/kanban/Board';
@@ -73,7 +74,7 @@ export default async function OpportunitiesPage({
   const empresaNotFound = !!empresaSlug && !scopedTenantId;
   const listFilters = { ...filters, tenant: scopedTenantId };
 
-  const [opportunities, areas, tenant, fullPortfolio, readOnly] = await Promise.all([
+  const [opportunities, areas, tenant, fullPortfolio, readOnly, tools] = await Promise.all([
     empresaNotFound ? Promise.resolve([] as Opportunity[]) : fetchOpportunities(listFilters),
     fetchAreas(),
     getCurrentTenant(),
@@ -84,6 +85,9 @@ export default async function OpportunitiesPage({
       ? fetchOpportunities(scopedTenantId ? { tenant: scopedTenantId } : {})
       : Promise.resolve([] as Opportunity[]),
     isReadOnlyViewer(),
+    // 0055 — catálogo de ferramentas para o filtro da toolbar. A RLS já limita
+    // ao global + o do tenant do usuário.
+    listAutomationTools(),
   ]);
   const kpis = computeKpis(opportunities);
 
@@ -180,6 +184,7 @@ export default async function OpportunitiesPage({
         readOnly={readOnly}
         companies={companies}
         showCompanyFilter={showCompanyFilter}
+        tools={tools}
       />
 
       {!isReport && !empresaNotFound && <KpiBar kpis={kpis} />}

@@ -24,7 +24,7 @@ import type { Opportunity } from '@/lib/opportunities/types';
 import {
   SourceBadge,
   StatusBadge,
-  ToolBadge,
+  ToolBadges,
   SeqIdDisplay,
 } from './cells';
 import { getInitials, scoreColor } from '@/lib/opportunities/utils';
@@ -217,7 +217,7 @@ function SortableCard({
                 title="Criticidade: Crítica"
               />
             )}
-            <ToolBadge tool={o.ferramenta} />
+            <ToolBadges tools={o.ferramentas} />
           </div>
           <div
             className="w-9 h-9 rounded-full border-[3px] flex flex-col items-center justify-center flex-shrink-0"

@@ -46,6 +46,7 @@ import { TextField, SelectField } from '@/components/opportunities/wizard/steps/
 import { CriteriosStep } from '@/components/opportunities/wizard/steps/CriteriosStep';
 import { BeneficiosStep } from '@/components/opportunities/wizard/steps/BeneficiosStep';
 import { PriorizacaoStep } from '@/components/opportunities/wizard/steps/PriorizacaoStep';
+import { ToolPicker } from '@/components/opportunities/wizard/steps/ToolPicker';
 import { DynamicList } from '@/components/opportunities/wizard/steps/DynamicList';
 
 // D-07/D-08/D-09: conjunto ÚNICO de 8 abas para QUALQUER oportunidade, na ordem
@@ -85,12 +86,6 @@ const FREQUENCY_LABEL: Record<string, string> = {
   mensal: 'Mensal',
   anual: 'Anual',
 };
-// toolEnum lowercase (Pitfall 5 — nunca 'RPA').
-const TOOL_OPTIONS = [
-  { value: 'rpa', label: 'RPA' },
-  { value: 'n8n', label: 'n8n' },
-  { value: 'ambos', label: 'Ambos' },
-];
 // v0.3 — criticidade (separada do Score, input manual). Espelha ProcessoStep.
 const CRITICIDADE_OPTIONS = [
   { value: 'baixa', label: '🟢 Baixa' },
@@ -499,16 +494,14 @@ function renderTab(args: {
     case 'automacao':
       return (
         <div className="px-5 py-4 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <SelectField
-              label="Ferramenta Sugerida"
-              value={form.ferramenta ?? 'n8n'}
-              onChange={(v) =>
-                patch({ ferramenta: v as WizardFormData['ferramenta'] })
-              }
-              options={TOOL_OPTIONS}
-            />
-          </div>
+          {/* 0055 — multi-seleção sobre o catálogo `automation_tools`, no lugar
+              do select único de rpa/n8n/ambos. 'Ambos' saiu: marcar RPA e n8n
+              diz o mesmo sem ambiguidade. */}
+          <ToolPicker
+            value={form.ferramentas ?? []}
+            onChange={(next) => patch({ ferramentas: next })}
+            opportunityId={opp.id}
+          />
 
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">

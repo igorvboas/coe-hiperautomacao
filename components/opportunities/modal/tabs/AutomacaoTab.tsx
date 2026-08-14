@@ -1,5 +1,5 @@
 import type { Opportunity } from '@/lib/opportunities/types';
-import { ToolBadge, StatusBadge } from '@/components/opportunities/cells';
+import { ToolBadges, StatusBadge } from '@/components/opportunities/cells';
 
 type Props = { opportunity: Opportunity };
 
@@ -13,9 +13,11 @@ export function AutomacaoTab({ opportunity: o }: Props) {
 
   return (
     <div className="px-5 py-5">
-      <Section title="Ferramenta Sugerida">
-        <div className="flex items-center gap-2">
-          <ToolBadge tool={o.ferramenta} />
+      {/* 0055 — pode ser mais de uma; `ferramentas` é a fonte, não o enum
+          legado `ferramenta` (que só representa rpa/n8n/ambos). */}
+      <Section title="Ferramentas Sugeridas">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ToolBadges tools={o.ferramentas} />
         </div>
       </Section>
 

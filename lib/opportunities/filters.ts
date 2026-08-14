@@ -1,5 +1,4 @@
 import type {
-  AutomationTool,
   OpportunitySource,
   OpportunityStatus,
   PriorityLevel,
@@ -34,8 +33,12 @@ export type SortKey =
   | 'processo_asc'
   | 'status_asc';
 
-// AutomationTool é nullable na tabela; pra filtro só faz sentido valores reais
-type ToolFilter = NonNullable<AutomationTool>;
+// 0055 — o filtro de ferramenta deixou de ser um enum fechado: o catálogo
+// `automation_tools` cresce em runtime (o usuário registra ferramenta nova), e
+// nenhuma união de tipos consegue acompanhar isso. O que valida a entrada agora
+// é o FORMATO do slug (`pickToolSlug`), não uma lista — mesmo desenho do filtro
+// de `area`, que também é texto vindo do banco.
+type ToolFilter = string;
 // PriorityLevel também pode ser null em alguns edges; restringimos pro filter
 type PriorityFilter = NonNullable<PriorityLevel>;
 
@@ -84,7 +87,6 @@ export type OpportunityFilters = {
 };
 
 const SOURCE_VALUES: OpportunitySource[] = ['persona', 'formulario'];
-const TOOL_VALUES: ToolFilter[] = ['rpa', 'n8n', 'ambos'];
 const PRIORITY_VALUES: PriorityFilter[] = ['alta', 'media', 'baixa'];
 /** 0050 — as 3 tags + `sem` (não classificadas). */
 const PRIORITY_TAG_VALUES: (PriorityFilter | 'sem')[] = [
@@ -142,6 +144,16 @@ function pickEnum<T extends string>(value: string | null, allowed: T[]): T | und
   return (allowed as string[]).includes(value) ? (value as T) : undefined;
 }
 
+/**
+ * Slug de ferramenta (0055) — mesmo formato do CHECK
+ * `automation_tools_slug_chk`. Rejeitar por formato (e não por lista) mantém a
+ * URL sanitizada sem precisar consultar o catálogo aqui.
+ */
+function pickToolSlug(value: string | null): string | undefined {
+  if (!value) return undefined;
+  return /^[a-z0-9][a-z0-9_-]{0,39}$/.test(value) ? value : undefined;
+}
+
 /** Aceita só UUID v4-ish; qualquer outra coisa vira undefined. */
 function pickUuid(value: string | null): string | undefined {
   if (!value) return undefined;
@@ -170,7 +182,7 @@ export function parseFilters(
     q: get('q')?.trim() || undefined,
     source: pickEnum(get('source'), SOURCE_VALUES),
     area: get('area')?.trim() || undefined,
-    ferramenta: pickEnum(get('ferramenta'), TOOL_VALUES),
+    ferramenta: pickToolSlug(get('ferramenta')),
     priority: pickEnum(get('priority'), PRIORITY_VALUES),
     priorityTag: pickEnum(get('priorityTag'), PRIORITY_TAG_VALUES),
     status: pickEnum(get('status'), STATUS_VALUES),

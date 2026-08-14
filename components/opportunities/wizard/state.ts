@@ -163,7 +163,9 @@ export function opportunityToFormData(opp: Opportunity): WizardFormData {
     volume_medio: opp.volume_medio ?? '',
     tempo_execucao: opp.tempo_execucao ?? '',
     num_pessoas: opp.num_pessoas ?? '',
-    ferramenta: opp.ferramenta,
+    // 0055 — a seleção multi-ferramenta. `ferramenta` (enum legado) NÃO é
+    // semeado: é derivado no banco, e mandá-lo de volta no update seria ruído.
+    ferramentas: opp.ferramentas ?? [],
     escopo_automacao:
       opp.escopo_automacao && opp.escopo_automacao.length > 0
         ? opp.escopo_automacao

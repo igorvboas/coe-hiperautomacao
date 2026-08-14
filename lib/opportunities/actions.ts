@@ -15,6 +15,7 @@ import {
   updatePublicFormAttempt,
 } from '@/lib/public-form/log';
 import { enrichOpportunity } from '@/lib/ai/enrichment';
+import { normalizeToolSlugs } from './tools';
 import {
   fetchPublicOpportunities,
   type PublicOpportunityOption,
@@ -550,7 +551,10 @@ export async function createOpportunity(
       volume_medio: data.volume_medio || null,
       tempo_execucao: data.tempo_execucao || null,
       num_pessoas: data.num_pessoas || null,
-      ferramenta: data.ferramenta ?? null,
+      // 0055 — só o array é escrito. A coluna legada `ferramenta` é DERIVADA
+      // pelo trigger `sync_opportunity_ferramentas()`; mandá-la daqui só
+      // criaria duas fontes para o mesmo dado (e o trigger sobrescreveria).
+      ferramentas: normalizeToolSlugs(data.ferramentas ?? []),
       escopo_automacao: data.escopo_automacao,
       beneficios_esperados: data.beneficios_esperados,
       esforco: data.esforco,
@@ -694,7 +698,10 @@ export async function updateOpportunity(
       volume_medio: data.volume_medio || null,
       tempo_execucao: data.tempo_execucao || null,
       num_pessoas: data.num_pessoas || null,
-      ferramenta: data.ferramenta ?? null,
+      // 0055 — só o array é escrito. A coluna legada `ferramenta` é DERIVADA
+      // pelo trigger `sync_opportunity_ferramentas()`; mandá-la daqui só
+      // criaria duas fontes para o mesmo dado (e o trigger sobrescreveria).
+      ferramentas: normalizeToolSlugs(data.ferramentas ?? []),
       escopo_automacao: data.escopo_automacao,
       beneficios_esperados: data.beneficios_esperados,
       esforco: data.esforco,

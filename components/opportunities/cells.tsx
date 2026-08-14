@@ -1,6 +1,11 @@
 import type { Opportunity } from '@/lib/opportunities/types';
 import { rpaTier } from '@/lib/opportunities/cells';
 import { STATUS_META } from '@/lib/opportunities/status';
+import {
+  toolIcon,
+  toolLabel,
+  type AutomationToolOption,
+} from '@/lib/opportunities/tools';
 
 // rpaTier (fn pura, _giba:520-525) vive em lib/opportunities/cells.ts — fonte
 // única importável também pelos specs puros. Reexportado aqui para os consumidores
@@ -32,22 +37,42 @@ export function SourceBadge({ source }: { source: Opportunity['source'] }) {
 }
 
 // =============================================================================
-// ToolBadge — rpa | n8n | ambos
+// ToolBadges — uma pílula por ferramenta de `opportunities.ferramentas` (0055)
+// -----------------------------------------------------------------------------
+// RPA e n8n mantêm as cores de marca do mockup (`--color-rpa`/`--color-n8n`);
+// o resto do catálogo cai numa pílula neutra. O `catalog` é opcional de
+// propósito: sem ele o rótulo vem do fallback de `lib/opportunities/tools.ts`,
+// que cobre o seed e prettifica slug desconhecido — nenhuma tela fica sem o
+// dado só por não ter recebido a lista.
 // =============================================================================
-const TOOL_MAP = {
-  rpa: { label: '🤖 RPA', bg: 'bg-violet-100 dark:bg-violet-900/40', fg: 'text-rpa' },
-  n8n: { label: '⚡ n8n', bg: 'bg-orange-50 dark:bg-orange-950/40', fg: 'text-n8n' },
-  ambos: { label: '🔁 Ambos', bg: 'bg-cyan-50 dark:bg-cyan-950/40', fg: 'text-both' },
-} as const;
+const TOOL_PILL: Record<string, string> = {
+  rpa: 'bg-violet-100 dark:bg-violet-900/40 text-rpa',
+  n8n: 'bg-orange-50 dark:bg-orange-950/40 text-n8n',
+};
+const TOOL_PILL_DEFAULT =
+  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
 
-export function ToolBadge({ tool }: { tool: Opportunity['ferramenta'] }) {
-  if (!tool) return <span className="text-mut text-xs">—</span>;
-  const m = TOOL_MAP[tool];
+export function ToolBadges({
+  tools,
+  catalog,
+}: {
+  tools: Opportunity['ferramentas'] | null;
+  catalog?: AutomationToolOption[];
+}) {
+  const list = tools ?? [];
+  if (list.length === 0) return <span className="text-mut text-xs">—</span>;
   return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${m.bg} ${m.fg}`}
-    >
-      {m.label}
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {list.map((slug) => (
+        <span
+          key={slug}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+            TOOL_PILL[slug] ?? TOOL_PILL_DEFAULT
+          }`}
+        >
+          {toolIcon(slug, catalog)} {toolLabel(slug, catalog)}
+        </span>
+      ))}
     </span>
   );
 }

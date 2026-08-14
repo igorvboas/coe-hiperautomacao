@@ -2,47 +2,27 @@
 
 import type { WizardFormData } from '../state';
 import { DynamicList } from './DynamicList';
+import { ToolPicker } from './ToolPicker';
 
 type Props = {
   data: WizardFormData;
   onChange: (patch: Partial<WizardFormData>) => void;
+  /** Repassado ao `ToolPicker` para registrar ferramenta no tenant certo. */
+  opportunityId?: string;
 };
 
-const TOOLS = [
-  { value: 'rpa', label: '🤖 RPA', desc: 'Automação de tarefas em sistemas legados/desktop' },
-  { value: 'n8n', label: '⚡ n8n', desc: 'Orquestração API-first, integrações modernas' },
-  { value: 'ambos', label: '🔁 Ambos', desc: 'Mix dos dois conforme a etapa' },
-] as const;
-
-export function AutomacaoStep({ data, onChange }: Props) {
+// 0055: os três radios fixos (RPA / n8n / Ambos) viraram checkbox sobre o
+// catálogo `automation_tools`. 'Ambos' deixou de existir como opção — marcar
+// RPA e n8n diz a mesma coisa sem ambiguidade (a coluna legada `ferramenta`
+// continua recebendo 'ambos' por derivação no banco, para quem lê ela).
+export function AutomacaoStep({ data, onChange, opportunityId }: Props) {
   return (
     <div className="px-2 py-2 space-y-5">
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">
-          Ferramenta Recomendada
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {TOOLS.map((t) => {
-            const active = data.ferramenta === t.value;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => onChange({ ferramenta: t.value })}
-                className={
-                  'p-3 text-left rounded-lg border-2 transition-all ' +
-                  (active
-                    ? 'border-pri bg-pri/5'
-                    : 'border-bdr bg-wh hover:border-pril')
-                }
-              >
-                <div className="text-[13px] font-bold mb-0.5">{t.label}</div>
-                <div className="text-[10px] text-mut leading-snug">{t.desc}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <ToolPicker
+        value={data.ferramentas ?? []}
+        onChange={(next) => onChange({ ferramentas: next })}
+        opportunityId={opportunityId}
+      />
 
       <div>
         <div className="text-[10px] font-bold uppercase tracking-wider text-mut mb-2">

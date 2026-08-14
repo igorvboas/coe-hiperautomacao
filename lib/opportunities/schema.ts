@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_TOOLS_PER_OPPORTUNITY } from './tools';
 
 // =============================================================================
 // Mass Assignment defense — Bloco B (Phase 7.5)
@@ -197,7 +198,24 @@ const baseSchema = z.object({
     .max(60, 'Máximo 60 caracteres')
     .optional()
     .or(z.literal('')),
+  // 0055 — coluna DERIVADA no banco (trigger `sync_opportunity_ferramentas`).
+  // Continua aceita no input só para não quebrar chamadas antigas: o que for
+  // enviado aqui é ignorado quando `ferramentas` vem preenchido.
   ferramenta: toolEnum.nullable().optional(),
+  // 0055 — a seleção de verdade: slugs de `automation_tools` (multi-escolha).
+  // Formato espelha `automation_tools_slug_chk`; o teto de 12, o CHECK
+  // `opportunities_ferramentas_chk`.
+  ferramentas: z
+    .array(
+      z
+        .string()
+        .regex(
+          /^[a-z0-9][a-z0-9_-]{0,39}$/,
+          'Ferramenta inválida (use o seletor para escolher ou registrar)',
+        ),
+    )
+    .max(MAX_TOOLS_PER_OPPORTUNITY, `Máximo ${MAX_TOOLS_PER_OPPORTUNITY} ferramentas`)
+    .default([]),
   escopo_automacao: z
     .array(z.string().max(200, 'Item excede 200 caracteres'))
     .max(20, 'Máximo 20 itens')

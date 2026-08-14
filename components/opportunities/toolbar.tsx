@@ -18,6 +18,7 @@ import {
 } from '@/lib/opportunities/assignee-types';
 import { CARGOS, CARGO_LABEL, type Cargo } from '@/lib/security/cargo';
 import type { TenantSummary } from '@/lib/tenants/queries';
+import type { AutomationToolOption } from '@/lib/opportunities/tools';
 
 type Props = {
   counts: { visible: number; total: number };
@@ -40,6 +41,9 @@ type Props = {
   /** Exibe o filtro "Empresa" — flag calculada no servidor a partir do papel
    *  do usuário. Este componente NÃO decide por papel; só lê a flag. */
   showCompanyFilter?: boolean;
+  /** 0055 — catálogo de ferramentas visível ao usuário, para o filtro
+   *  "Ferramenta". Vazio = o dropdown fica só com "Todas as Ferramentas". */
+  tools?: AutomationToolOption[];
 };
 
 type View = 'table' | 'cards' | 'kanban' | 'gantt' | 'relatorio';
@@ -66,6 +70,7 @@ export function Toolbar({
   tenantSlug,
   companies = [],
   showCompanyFilter = false,
+  tools = [],
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -361,21 +366,23 @@ export function Toolbar({
                 ]}
           </select>
         )}
+        {/* 0055 — opções vêm do catálogo `automation_tools` (o seed global +
+            as registradas por este tenant), não mais de uma lista fixa. O
+            filtro casa por "contém" no array `ferramentas`. */}
         <select
           value={filters.ferramenta ?? ''}
           onChange={(e) =>
-            applyChange({
-              ferramenta:
-                (e.target.value as 'rpa' | 'n8n' | 'ambos') || undefined,
-            })
+            applyChange({ ferramenta: e.target.value || undefined })
           }
           className={selectClass}
           aria-label="Filtrar por ferramenta"
         >
           <option value="">Todas as Ferramentas</option>
-          <option value="rpa">RPA</option>
-          <option value="n8n">n8n</option>
-          <option value="ambos">Ambos</option>
+          {tools.map((t) => (
+            <option key={t.slug} value={t.slug}>
+              {t.nome}
+            </option>
+          ))}
         </select>
         {/* Prioridade CALCULADA — faixa do score. Os rótulos dizem a faixa
             justamente para não se confundir com o filtro da tag manual ao

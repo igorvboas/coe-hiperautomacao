@@ -171,12 +171,17 @@ export function Relatorio({ opportunities, phases, risks, sourceLabel }: Props) 
             <ToolSeg count={toolMix.rpa} total={report.totalCount} color="var(--color-rpa)" label="RPA" />
             <ToolSeg count={toolMix.n8n} total={report.totalCount} color="var(--color-n8n)" label="n8n" />
             <ToolSeg count={toolMix.ambos} total={report.totalCount} color="var(--color-both)" label="Ambos" />
+            {/* 0055 — SAP, UiPath e o que o tenant registrar. */}
+            <ToolSeg count={toolMix.outras} total={report.totalCount} color="#64748b" label="Outras" />
             <ToolSeg count={toolMix.semFerramenta} total={report.totalCount} color="#94a3b8" label="—" />
           </div>
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
             <ToolLegend color="var(--color-rpa)" label="🤖 RPA" count={toolMix.rpa} />
             <ToolLegend color="var(--color-n8n)" label="⚡ n8n" count={toolMix.n8n} />
             <ToolLegend color="var(--color-both)" label="🔁 Ambos" count={toolMix.ambos} />
+            {toolMix.outras > 0 && (
+              <ToolLegend color="#64748b" label="🛠️ Outras" count={toolMix.outras} />
+            )}
             {toolMix.semFerramenta > 0 && (
               <ToolLegend color="#94a3b8" label="Não definida" count={toolMix.semFerramenta} />
             )}
