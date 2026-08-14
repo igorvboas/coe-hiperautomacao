@@ -133,7 +133,10 @@ export async function uploadDocumentFile(
     return { ok: false, error: 'Arquivo acima de 8 MB.' };
   }
   if (!DOCUMENT_ALLOWED_MIME.includes(file.type as (typeof DOCUMENT_ALLOWED_MIME)[number])) {
-    return { ok: false, error: 'Tipo de arquivo não permitido (PDF, Word, PPT, Excel, texto).' };
+    return {
+      ok: false,
+      error: 'Tipo de arquivo não permitido (PDF, Word, PPT, Excel, texto, imagem).',
+    };
   }
 
   const nomeRaw = formData.get('nome');
@@ -182,15 +185,19 @@ export async function uploadDocumentFile(
 
 // =============================================================================
 // getDocumentDownloadUrl — signed URL de download (bucket privado, sem login
-// não abre) — chamado sob demanda (não guardado, expira em 60s).
+// não abre) — chamado sob demanda, não guardada. `expiresIn` default 60s
+// (download imediato); a miniatura de imagem colada na Descrição de tarefas
+// (DescriptionField.tsx) pede um TTL maior (3600s) porque a URL fica visível
+// na tela enquanto a pessoa preenche o formulário, não só no instante do clique.
 // =============================================================================
 export async function getDocumentDownloadUrl(
-  storagePath: string
+  storagePath: string,
+  expiresIn = 60
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data, error } = await supabase.storage
     .from('opportunity-documents')
-    .createSignedUrl(storagePath, 60);
+    .createSignedUrl(storagePath, expiresIn);
 
   if (error || !data) {
     return { ok: false, error: 'Não foi possível gerar o link de download.' };

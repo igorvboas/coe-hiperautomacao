@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { OpportunityDocument } from '@/lib/opportunities/types';
 import {
@@ -16,7 +16,16 @@ type Props = {
   readOnly?: boolean;
 };
 
+const IMAGE_URL_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
+
+/** Documento de imagem: arquivo com mime image/* OU link cuja URL "parece" imagem. */
+function isImageDoc(doc: OpportunityDocument): boolean {
+  if (doc.kind === 'arquivo') return Boolean(doc.tipo?.startsWith('image/'));
+  return IMAGE_URL_RE.test(doc.url ?? '');
+}
+
 function docIcon(doc: OpportunityDocument): string {
+  if (isImageDoc(doc)) return '🖼️';
   const t = `${doc.tipo ?? ''} ${doc.nome}`.toLowerCase();
   if (t.includes('pdf')) return '📕';
   if (t.includes('word') || t.includes('.doc')) return '📘';
@@ -41,6 +50,39 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Miniaturas de imagem: arquivo (bucket privado) precisa de signed URL
+  // resolvida sob demanda; link é externo, renderizado direto — com fallback
+  // para a linha "normal" quando a URL não carrega (hotlink bloqueado, etc.).
+  const [imgUrls, setImgUrls] = useState<Record<string, string>>({});
+  const [brokenLinkImgs, setBrokenLinkImgs] = useState<Set<string>>(new Set());
+  const resolvedFor = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const missing = documents.filter(
+      (d) => d.kind === 'arquivo' && isImageDoc(d) && d.storage_path && !resolvedFor.current.has(d.id)
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const d of missing) {
+        const result = await getDocumentDownloadUrl(d.storage_path!, 3600);
+        // Só marca como resolvido DEPOIS do fetch ter sucesso, nunca antes —
+        // o StrictMode do dev roda este efeito 2x na montagem inicial
+        // (cleanup + re-run síncronos); marcar cedo faria a 2ª execução
+        // pular o documento como "já resolvido" enquanto a 1ª tentativa, já
+        // cancelada, descartava o resultado — miniatura presa em loading
+        // pra sempre. Sem marcar cedo, a 2ª execução tenta de novo e conclui.
+        if (!cancelled && result.ok) {
+          resolvedFor.current.add(d.id);
+          setImgUrls((prev) => ({ ...prev, [d.id]: result.url }));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [documents]);
 
   function submitLink() {
     setError(null);
@@ -137,7 +179,7 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp"
               className="hidden"
               onChange={submitFile}
             />
@@ -147,7 +189,7 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
               disabled={pending}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg disabled:opacity-50"
             >
-              ⬆️ Enviar arquivo (PDF/Word/PPT/Excel, até 8 MB)
+              ⬆️ Enviar arquivo (PDF/Word/PPT/Excel/Imagem, até 8 MB)
             </button>
           </div>
           {error && <div className="text-[11px] text-red-700 dark:text-red-300">{error}</div>}
@@ -159,20 +201,50 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
       ) : (
         <table className="w-full text-[12px]">
           <tbody>
-            {documents.map((doc) => (
+            {documents.map((doc) => {
+              const thumbSrc =
+                doc.kind === 'arquivo'
+                  ? imgUrls[doc.id]
+                  : isImageDoc(doc) && !brokenLinkImgs.has(doc.id)
+                    ? doc.url
+                    : undefined;
+              return (
               <tr key={doc.id} className="border-b border-bdr last:border-b-0">
                 <td className="py-2 pr-2">
-                  <button
-                    type="button"
-                    onClick={() => onDownload(doc)}
-                    className="text-acc font-semibold hover:underline text-left"
-                  >
-                    {docIcon(doc)} {doc.nome}
-                  </button>
-                  <div className="text-[10px] text-mut">
-                    {doc.kind === 'arquivo'
-                      ? `${doc.tipo ?? 'arquivo'}${doc.size_bytes ? ` · ${fmtSize(doc.size_bytes)}` : ''} · 🔒 requer login`
-                      : doc.url}
+                  <div className="flex items-center gap-2">
+                    {thumbSrc && (
+                      <button
+                        type="button"
+                        onClick={() => onDownload(doc)}
+                        title={`Abrir ${doc.nome}`}
+                        className="flex-shrink-0"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- URL externa/assinada, sem domínio fixo para next/image */}
+                        <img
+                          src={thumbSrc}
+                          alt={doc.nome}
+                          className="w-10 h-10 object-cover rounded border border-bdr"
+                          onError={() =>
+                            doc.kind === 'link' &&
+                            setBrokenLinkImgs((prev) => new Set(prev).add(doc.id))
+                          }
+                        />
+                      </button>
+                    )}
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => onDownload(doc)}
+                        className="text-acc font-semibold hover:underline text-left"
+                      >
+                        {docIcon(doc)} {doc.nome}
+                      </button>
+                      <div className="text-[10px] text-mut">
+                        {doc.kind === 'arquivo'
+                          ? `${doc.tipo ?? 'arquivo'}${doc.size_bytes ? ` · ${fmtSize(doc.size_bytes)}` : ''} · 🔒 requer login`
+                          : doc.url}
+                      </div>
+                    </div>
                   </div>
                 </td>
                 {!readOnly && (
@@ -188,7 +260,8 @@ export function DocumentosTab({ opportunityId, documents, readOnly = false }: Pr
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}
