@@ -6,6 +6,7 @@ import { after } from 'next/server';
 import { createClient, serviceRoleClient } from '@/lib/supabase/server';
 import type { OpportunityStatus } from './types';
 import { opportunityInputSchema } from './schema';
+import { describeValidationError } from './validation-errors';
 import { verifyTurnstileToken } from '@/lib/security/turnstile';
 import { getClientIp } from '@/lib/security/client-ip';
 import { hashIp } from '@/lib/security/hash-ip';
@@ -499,7 +500,7 @@ export async function createOpportunity(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }
@@ -661,7 +662,7 @@ export async function updateOpportunity(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }

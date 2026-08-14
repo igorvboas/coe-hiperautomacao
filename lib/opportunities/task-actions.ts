@@ -38,6 +38,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { taskInputSchema } from './task-schema';
+import { describeValidationError } from './validation-errors';
 import {
   requireEditorRole,
   getCurrentProfile,
@@ -70,7 +71,7 @@ export async function createTask(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }
@@ -148,7 +149,7 @@ export async function updateTask(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }

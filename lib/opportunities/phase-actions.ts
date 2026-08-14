@@ -28,6 +28,7 @@ import {
   WRITE_SCOPE_DENIED_MESSAGE,
 } from '@/lib/security/role';
 import { phasePlanInputSchema } from './phase-schema';
+import { describeValidationError } from './validation-errors';
 
 export type PhasePlanResult =
   | { ok: true }
@@ -45,7 +46,7 @@ export async function savePhasePlan(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: flat.formErrors[0] ?? 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }

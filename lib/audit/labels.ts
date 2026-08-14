@@ -91,6 +91,18 @@ export const FIELD_LABEL: Record<string, string> = {
   data_fim: 'Data de término',
   motivo_bloqueio: 'Motivo do bloqueio',
   ordem: 'Ordem',
+  // task-schema.ts usa nomes de campo em inglês (convenção de código) — o
+  // audit_trigger grava as colunas em pt-BR acima; estes cobrem os erros de
+  // validação do INPUT (validation-errors.ts), que vêm antes do insert/update.
+  title: 'Título',
+  description: 'Descrição',
+  start_date: 'Data de início',
+  due_date: 'Data de término',
+  blocked_reason: 'Motivo do bloqueio',
+  // phase-schema.ts (estimativa de fase, 0048) — datas PLANEJADAS, distintas
+  // das datas REALIZADAS acima (started_at/finished_at, geridas por trigger).
+  planned_start_at: 'Início estimado',
+  planned_end_at: 'Fim estimado',
 
   // opportunity_risks
   descricao: 'Descrição',

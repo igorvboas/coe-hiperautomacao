@@ -24,6 +24,7 @@ import {
   WRITE_SCOPE_DENIED_MESSAGE,
 } from '@/lib/security/role';
 import { noteInputSchema } from './note-schema';
+import { describeValidationError } from './validation-errors';
 
 export type NoteActionResult =
   | { ok: true; id: string }
@@ -43,7 +44,7 @@ export async function createNote(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }

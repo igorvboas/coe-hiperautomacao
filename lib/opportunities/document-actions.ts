@@ -40,6 +40,7 @@ import {
   DOCUMENT_MAX_SIZE_BYTES,
   DOCUMENT_ALLOWED_MIME,
 } from './document-schema';
+import { describeValidationError } from './validation-errors';
 
 export type DocumentActionResult =
   | { ok: true; id: string }
@@ -80,7 +81,7 @@ export async function addDocumentLink(
     const flat = parsed.error.flatten();
     return {
       ok: false,
-      error: 'Dados inválidos.',
+      error: describeValidationError(flat),
       fieldErrors: flat.fieldErrors as Record<string, string[]>,
     };
   }
