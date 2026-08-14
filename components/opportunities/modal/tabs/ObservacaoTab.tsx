@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Opportunity, OpportunityNote } from '@/lib/opportunities/types';
 import { createNote, deleteNote } from '@/lib/opportunities/note-actions';
+import { stripDescriptionImages } from '@/lib/opportunities/description-images';
+import { DescriptionImageField } from '../../DescriptionImageField';
+import { InlineImageThumbs } from '../../InlineImageThumbs';
 
 type Props = {
   opportunity: Opportunity;
@@ -58,9 +61,10 @@ export function ObservacaoTab({ opportunity: o, notes, readOnly = false }: Props
 
         {!readOnly && (
           <div className="mb-3">
-            <textarea
+            <DescriptionImageField
+              opportunityId={o.id}
               value={texto}
-              onChange={(e) => setTexto(e.target.value)}
+              onChange={setTexto}
               rows={2}
               placeholder="Escreva uma anotação..."
               className="w-full px-2.5 py-1.5 border border-bdr rounded-lg text-[12px] bg-bg"
@@ -87,7 +91,10 @@ export function ObservacaoTab({ opportunity: o, notes, readOnly = false }: Props
                   <td className="py-2 pr-2 w-20 text-[10px] text-mut whitespace-nowrap">
                     {fmtData(n.created_at)}
                   </td>
-                  <td className="py-2 whitespace-pre-wrap">{n.texto}</td>
+                  <td className="py-2 whitespace-pre-wrap">
+                    {stripDescriptionImages(n.texto)}
+                    <InlineImageThumbs text={n.texto} />
+                  </td>
                   {!readOnly && (
                     <td className="py-2 text-right w-10">
                       <button

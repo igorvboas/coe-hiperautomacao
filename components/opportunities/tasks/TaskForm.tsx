@@ -16,6 +16,7 @@ import type {
   TaskStatus,
   TaskPriority,
 } from '@/lib/opportunities/types';
+import { DescriptionImageField } from '../DescriptionImageField';
 
 type Props = {
   opportunityId: string;
@@ -163,10 +164,11 @@ export function TaskForm({
         <label className={labelCls} htmlFor="tf-desc">
           Descrição
         </label>
-        <textarea
+        <DescriptionImageField
           id="tf-desc"
+          opportunityId={opportunityId}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           rows={3}
           className={`${inputCls} resize-y`}
         />
