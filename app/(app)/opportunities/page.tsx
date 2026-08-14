@@ -185,6 +185,7 @@ export default async function OpportunitiesPage({
         companies={companies}
         showCompanyFilter={showCompanyFilter}
         tools={tools}
+        companyScope={empresaSlug ?? ''}
       />
 
       {!isReport && !empresaNotFound && <KpiBar kpis={kpis} />}

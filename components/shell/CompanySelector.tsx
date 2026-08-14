@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './icons';
+import { getListUrlForCompany } from '@/lib/opportunities/filters-storage';
 
 type Tenant = { slug: string; name: string };
 
@@ -31,6 +32,22 @@ export function CompanySelector({
     document.cookie = value
       ? `coe_empresa=${encodeURIComponent(value)}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`
       : 'coe_empresa=; path=/; max-age=0; samesite=lax';
+
+    // Trocar de empresa dentro de Oportunidades (lista OU detalhe) restaura os
+    // FILTROS PRÓPRIOS daquela empresa (memória isolada por empresa em
+    // filters-storage.ts) em vez de herdar os filtros da empresa anterior —
+    // staff PSW reclamou que via os filtros "vazarem" de uma empresa pra
+    // outra. Nas demais páginas (Admin, Configurações...) o comportamento
+    // continua o de sempre: só troca `?empresa=` mantendo o resto da URL.
+    if (pathname.startsWith('/opportunities')) {
+      const stored = getListUrlForCompany(value);
+      const target =
+        stored ?? (value ? `/opportunities?empresa=${encodeURIComponent(value)}` : '/opportunities');
+      router.push(target);
+      router.refresh();
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set('empresa', value);
     else params.delete('empresa');

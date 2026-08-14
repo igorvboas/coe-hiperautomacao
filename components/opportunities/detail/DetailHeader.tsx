@@ -8,6 +8,7 @@ import { getInitials, scoreColor } from '@/lib/opportunities/utils';
 import { StatusSelector } from '@/components/opportunities/modal/StatusSelector';
 import { DeleteButton } from '@/components/opportunities/modal/DeleteButton';
 import { AiEnrichmentBadge } from '@/components/opportunities/modal/AiEnrichmentBadge';
+import { getLastListUrl } from '@/lib/opportunities/filters-storage';
 import { AssigneesStack } from './AssigneesStack';
 
 type Props = {
@@ -68,6 +69,15 @@ export function DetailHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Breadcrumb "Oportunidades" volta pra ONDE a pessoa estava (view + filtros),
+  // não pra lista crua — lido do sessionStorage só depois do mount (evita
+  // mismatch de hidratação; servidor não tem acesso a isso).
+  const [listHref, setListHref] = useState('/opportunities');
+  useEffect(() => {
+    const stored = getLastListUrl();
+    if (stored) setListHref(stored);
+  }, []);
+
   // Clique fora fecha o menu "⋮" (mesma mecânica de click-outside dos diálogos).
   useEffect(() => {
     if (!menuOpen) return;
@@ -97,7 +107,7 @@ export function DetailHeader({
         aria-label="Trilha de navegação"
         className="flex items-center gap-1.5 text-[11px] mb-3"
       >
-        <Link href="/opportunities" className="font-semibold text-pri hover:text-pril">
+        <Link href={listHref} className="font-semibold text-pri hover:text-pril">
           Oportunidades
         </Link>
         <span className="text-mut" aria-hidden="true">

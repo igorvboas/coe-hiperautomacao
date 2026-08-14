@@ -3,10 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './icons';
 import { CompanySelector } from './CompanySelector';
 import { ThemeToggle } from './ThemeToggle';
+import { getLastListUrl } from '@/lib/opportunities/filters-storage';
 import type { TenantRole } from '@/lib/database.types';
 
 const RAIL_WIDTH = 'w-16'; // recolhida — só ícones
@@ -169,6 +170,7 @@ export function Sidebar({
   /** Logo da empresa (/configuracoes). null → identidade PSW padrão. */
   logoUrl?: string | null;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = searchParams.get('view');
@@ -196,10 +198,23 @@ export function Sidebar({
       empresa && item.href.startsWith('/admin')
         ? `${item.href}?empresa=${encodeURIComponent(empresa)}`
         : item.href;
+    // "Oportunidades" (só este item — "Relatórios" tem href próprio) volta pra
+    // onde a pessoa deixou a lista (view + filtros), não pra `/opportunities`
+    // crua. Memória lida do sessionStorage (filters-storage.ts), gravada pelo
+    // Toolbar a cada mudança de filtro/view.
+    function onClick(e: React.MouseEvent<HTMLAnchorElement>) {
+      if (item.href !== '/opportunities') return;
+      const stored = getLastListUrl();
+      if (stored && stored !== '/opportunities') {
+        e.preventDefault();
+        router.push(stored);
+      }
+    }
     return (
       <Link
         key={item.label}
         href={href}
+        onClick={onClick}
         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-colors ${
           active
             ? 'bg-nav-active text-white font-semibold'

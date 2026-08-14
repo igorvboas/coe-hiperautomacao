@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   buildQuery,
   parseFilters,
@@ -10,6 +10,7 @@ import {
   type OpportunityFilters,
   type SortKey,
 } from '@/lib/opportunities/filters';
+import { saveListState } from '@/lib/opportunities/filters-storage';
 import { STATUS_OPTIONS } from '@/lib/opportunities/status';
 import { PRIORITY_OPTIONS } from '@/lib/opportunities/priority-labels';
 import {
@@ -44,6 +45,10 @@ type Props = {
   /** 0055 — catálogo de ferramentas visível ao usuário, para o filtro
    *  "Ferramenta". Vazio = o dropdown fica só com "Todas as Ferramentas". */
   tools?: AutomationToolOption[];
+  /** Empresa em foco — slug já resolvido no servidor (URL ou cookie), '' para
+   *  "Todas as empresas"/usuário sem seletor. Só chave a memória de filtros
+   *  por empresa (filters-storage.ts); não afeta o que é buscado/exibido. */
+  companyScope?: string;
 };
 
 type View = 'table' | 'cards' | 'kanban' | 'gantt' | 'relatorio';
@@ -71,6 +76,7 @@ export function Toolbar({
   companies = [],
   showCompanyFilter = false,
   tools = [],
+  companyScope = '',
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -98,6 +104,26 @@ export function Toolbar({
     return qs ? `/opportunities/export?${qs}` : '/opportunities/export';
   })();
   const sortValue: SortKey = filters.sort ?? 'score_desc';
+
+  // ===========================================================================
+  // Memória de filtros (view+filtros sobrevivem a "abrir oportunidade → voltar")
+  // ===========================================================================
+  // Não grava na PRIMEIRA execução se a URL já chegou "crua" (sem querystring):
+  // isso normalmente vem de um link de OUTRA página (Equipe, Configurações,
+  // Admin...) que aponta para `/opportunities` puro de propósito — gravar
+  // apagaria a memória de filtros de quem só estava de passagem por lá. Depois
+  // do mount, toda mudança (incl. "Limpar", que também é crua) grava normal.
+  const hasMounted = useRef(false);
+  useEffect(() => {
+    const qs = params.toString();
+    const isBare = !qs;
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (isBare) return;
+    }
+    saveListState(companyScope, isBare ? '/opportunities' : `/opportunities?${qs}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, companyScope]);
 
   // ===========================================================================
   // Busca livre com debounce 200ms
