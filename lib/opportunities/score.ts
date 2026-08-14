@@ -11,7 +11,7 @@
 // nunca divergem.
 //
 // Pesos (_giba:483-490):
-//   ef = {baixo:8, medio:14, alto:20}                              fallback 14
+//   ef = {baixo:20, medio:14, alto:8}      (INVERTIDO 2026-08-14)  fallback 14
 //   cx = {baixo:20, medio:13, alto:6}      (INVERTIDO)             fallback 13
 //   tm = {diario:20, semanal:16, quinzenal:12, mensal:8, anual:2}  fallback 16
 //   ob = objetivo*4 (1→4 .. 5→20)                                  fallback 12
@@ -30,7 +30,9 @@ export interface Prioridade {
 
 /** Replica LITERAL de calcScore (_giba:483-490), com os mesmos fallbacks. */
 export function calcScore(p: Prioridade): number {
-  const ef: Record<string, number> = { baixo: 8, medio: 14, alto: 20 };
+  // Esforço é INVERTIDO (2026-08-14): menor esforço de implementação pontua
+  // mais — mesma lógica já aplicada à complexidade (cx) abaixo.
+  const ef: Record<string, number> = { baixo: 20, medio: 14, alto: 8 };
   const cx: Record<string, number> = { baixo: 20, medio: 13, alto: 6 };
   const tm: Record<string, number> = { diario: 20, semanal: 16, quinzenal: 12, mensal: 8, anual: 2 };
   const ob: Record<number, number> = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20 };

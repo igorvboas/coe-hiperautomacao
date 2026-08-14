@@ -12,7 +12,8 @@ import { PriorityPill } from '@/components/opportunities/cells';
 // 30% + Critérios 20%). O TOTAL prefere `o.score` da view (DB-authoritative);
 // calcPriorityScore replica o blend (parity-tested vs opportunity_score() 0027).
 // Os 5 fatores continuam detalhados abaixo — eles compõem o bloco Fatores.
-const EFFORT_VALUES: Record<string, number> = { baixo: 8, medio: 14, alto: 20 };
+// INVERTIDO (2026-08-14): menor esforço pontua mais — idem complexidade.
+const EFFORT_VALUES: Record<string, number> = { baixo: 20, medio: 14, alto: 8 };
 const COMPLEX_VALUES: Record<string, number> = { baixo: 20, medio: 13, alto: 6 }; // INVERTIDO
 const TIME_VALUES: Record<string, number> = { diario: 20, semanal: 16, quinzenal: 12, mensal: 8, anual: 2 };
 const OBJ_VALUES: Record<number, number> = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20 };

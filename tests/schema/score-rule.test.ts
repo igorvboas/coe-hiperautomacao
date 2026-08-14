@@ -9,7 +9,7 @@
 // preview do cliente com a função SQL `opportunity_score()` do backend).
 //
 // Pesos (_giba:483-490):
-//   ef={baixo:8,medio:14,alto:20}|14
+//   ef={baixo:20,medio:14,alto:8}|14   ← INVERTIDO (2026-08-14): menos esforço pontua mais
 //   cx={baixo:20,medio:13,alto:6}|13   ← INVERTIDO: menos complexo pontua mais
 //   tm={diario:20,semanal:16,quinzenal:12,mensal:8,anual:2}|16
 //   ob={1:4,2:8,3:12,4:16,5:20}|12     (objetivo*4)
@@ -33,7 +33,7 @@ export interface Prioridade {
 
 /** Replica LITERAL de calcScore (_giba:483-490), com os mesmos fallbacks. */
 export function calcScore(p: Prioridade): number {
-  const ef: Record<string, number> = { baixo: 8, medio: 14, alto: 20 };
+  const ef: Record<string, number> = { baixo: 20, medio: 14, alto: 8 };
   const cx: Record<string, number> = { baixo: 20, medio: 13, alto: 6 };
   const tm: Record<string, number> = { diario: 20, semanal: 16, quinzenal: 12, mensal: 8, anual: 2 };
   const ob: Record<number, number> = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20 };
@@ -53,20 +53,19 @@ export function priorityLevel(score: number): 'alta' | 'media' | 'baixa' {
 }
 
 describe('opportunity_score — fórmula 5 fatores (_giba:483-490)', () => {
-  it('caso máximo: (alto,baixo,diario,5,muito_alto) === 100 — alinhado ao smoke do 09-01', () => {
-    // ef alto=20 + cx baixo=20 + tm diario=20 + ob 5=20 + ft muito_alto=20 = 100
-    expect(calcScore({ esforco: 'alto', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' })).toBe(100);
+  it('caso máximo: (baixo,baixo,diario,5,muito_alto) === 100 — esforço BAIXO é o que vale 20 (invertido 2026-08-14)', () => {
+    // ef baixo=20 + cx baixo=20 + tm diario=20 + ob 5=20 + ft muito_alto=20 = 100
+    expect(calcScore({ esforco: 'baixo', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' })).toBe(100);
   });
 
-  it('ATENÇÃO: (baixo,baixo,diario,5,muito_alto) === 88, NÃO 100 (esforço alto é o que vale 20)', () => {
-    // ef baixo=8 + cx baixo=20 + tm diario=20 + ob 5=20 + ft muito_alto=20 = 88
-    // Este é exatamente o erro corrigido no smoke do 09-01 (era esperado 100).
-    expect(calcScore({ esforco: 'baixo', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' })).toBe(88);
+  it('ATENÇÃO: (alto,baixo,diario,5,muito_alto) === 88, NÃO 100 (esforço alto vale só 8, menor pontuação)', () => {
+    // ef alto=8 + cx baixo=20 + tm diario=20 + ob 5=20 + ft muito_alto=20 = 88
+    expect(calcScore({ esforco: 'alto', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' })).toBe(88);
   });
 
-  it('caso mínimo-ish: (alto,alto,anual,1,muito_baixo) === 36', () => {
-    // ef alto=20 + cx alto=6 + tm anual=2 + ob 1=4 + ft muito_baixo=4 = 36
-    expect(calcScore({ esforco: 'alto', complexidade: 'alto', tempo: 'anual', objetivo: 1, fte: 'muito_baixo' })).toBe(36);
+  it('caso mínimo: (alto,alto,anual,1,muito_baixo) === 24 — todos os fatores no piso', () => {
+    // ef alto=8 + cx alto=6 + tm anual=2 + ob 1=4 + ft muito_baixo=4 = 24
+    expect(calcScore({ esforco: 'alto', complexidade: 'alto', tempo: 'anual', objetivo: 1, fte: 'muito_baixo' })).toBe(24);
   });
 
   it('caso intermediário: (medio,medio,mensal,3,medio) === 59', () => {
@@ -142,7 +141,7 @@ describe('score v0.4 — sub-scores', () => {
 });
 
 describe('score v0.4 — blend ponderado 50/30/20', () => {
-  const MAX_FAT = { esforco: 'alto', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' }; // 100
+  const MAX_FAT = { esforco: 'baixo', complexidade: 'baixo', tempo: 'diario', objetivo: 5, fte: 'muito_alto' }; // 100
 
   it('todos os blocos no máximo → 100', () => {
     expect(

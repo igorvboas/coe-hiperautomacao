@@ -20,10 +20,11 @@ type Props = {
 };
 
 // Pesos alinhados à fórmula de 5 fatores (lib/opportunities/score.ts / _giba:483-490).
+// Esforço é INVERTIDO (2026-08-14): menos esforço de implementação pontua mais.
 const EFFORT_OPTIONS = [
-  { value: 'baixo', label: 'Baixo (+8)' },
+  { value: 'baixo', label: 'Baixo (+20)' },
   { value: 'medio', label: 'Médio (+14)' },
-  { value: 'alto', label: 'Alto (+20)' },
+  { value: 'alto', label: 'Alto (+8)' },
 ];
 
 // Complexidade é INVERTIDA: menos complexo pontua mais.
