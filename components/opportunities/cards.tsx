@@ -110,6 +110,7 @@ export function OpportunityCards({ opportunities, readOnly = false }: Props) {
         </p>
       )}
       <DndContext
+        id="opportunities-cards-dnd"
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={onDragEnd}

@@ -575,6 +575,7 @@ export function TaskList({
         {roots.length > 0 && (
           <div className="overflow-x-auto">
             <DndContext
+              id="task-list-dnd"
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={onDragEnd}

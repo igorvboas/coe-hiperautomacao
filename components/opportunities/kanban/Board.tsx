@@ -143,7 +143,7 @@ export function KanbanBoard({ opportunities, readOnly = false }: Props) {
           {error}
         </div>
       )}
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext id="opportunities-kanban-dnd" sensors={sensors} onDragEnd={onDragEnd}>
         <div className="overflow-x-auto pb-3">
           <div className="flex gap-3 min-w-max items-start">
             {COLUMNS.map((col) => {

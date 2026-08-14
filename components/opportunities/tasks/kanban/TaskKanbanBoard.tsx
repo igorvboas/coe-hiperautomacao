@@ -150,7 +150,7 @@ export function TaskKanbanBoard({ tasks, assignableProfiles, readOnly = false }:
           {error}
         </div>
       )}
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext id="task-kanban-dnd" sensors={sensors} onDragEnd={onDragEnd}>
         <div className="overflow-x-auto pb-3">
           <div className="flex gap-3 min-w-max items-start">
             {TASK_STATUS_ORDER.map((status) => (

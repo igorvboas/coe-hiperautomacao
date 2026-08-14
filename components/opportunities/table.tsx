@@ -215,6 +215,7 @@ export function OpportunityTable({
             condicionais, e `useSortable` exige o provider acima); quem decide
             se arrasta é o `disabled` de cada linha. */}
         <DndContext
+          id="opportunities-table-dnd"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={onDragEnd}
