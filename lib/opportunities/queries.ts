@@ -251,16 +251,23 @@ export async function fetchOpportunities(
 
 /**
  * Retorna lista DISTINCT de áreas para popular dropdown de filtro.
+ *
+ * `tenantId` (Phase 17, mesmo padrão de `fetchOpportunities`/`filters.tenant`)
+ * — sem ele, staff PSW/platform_admin (RLS cross-tenant, 0021) via áreas de
+ * TODAS as empresas misturadas no dropdown, mesmo com uma empresa específica
+ * selecionada. Passar o tenant resolvido pela page recorta certo; para os
+ * demais papéis é no-op (a RLS já os restringe ao próprio tenant).
  */
-export async function fetchAreas(): Promise<string[]> {
+export async function fetchAreas(tenantId?: string): Promise<string[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let q = supabase
     .from('opportunities')
     .select('area')
     // 0030 — não oferecer no filtro uma área que só existe em item oculto
     // (selecioná-la devolveria zero resultados).
-    .eq('visivel', true)
-    .order('area', { ascending: true });
+    .eq('visivel', true);
+  if (tenantId) q = q.eq('tenant_id', tenantId);
+  const { data, error } = await q.order('area', { ascending: true });
 
   if (error) {
     throw new Error(`Erro ao buscar áreas: ${error.message}`);

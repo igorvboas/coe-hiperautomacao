@@ -76,7 +76,7 @@ export default async function OpportunitiesPage({
 
   const [opportunities, areas, tenant, fullPortfolio, readOnly, tools] = await Promise.all([
     empresaNotFound ? Promise.resolve([] as Opportunity[]) : fetchOpportunities(listFilters),
-    fetchAreas(),
+    fetchAreas(scopedTenantId),
     getCurrentTenant(),
     // D-01a: o Relatório agrega o portfólio INTEIRO do tenant (ou da empresa
     // selecionada pelo admin), não a lista filtrada — preserva o recorte de
