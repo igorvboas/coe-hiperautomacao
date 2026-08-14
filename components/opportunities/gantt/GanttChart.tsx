@@ -331,9 +331,11 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
         <div style={{ minWidth: 32 + 240 + trackPx + 12 }}>
           {/* Eixo de datas */}
           <div className="flex border-b border-bdr bg-bg">
-            <div className="w-8 shrink-0" aria-hidden="true" />
-            <div className="w-[240px] shrink-0 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
-              Oportunidade
+            <div className="flex shrink-0 sticky left-0 z-20 bg-bg">
+              <div className="w-8 shrink-0" aria-hidden="true" />
+              <div className="w-[240px] shrink-0 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-mut">
+                Oportunidade
+              </div>
             </div>
             <div className="relative h-8 shrink-0" style={{ width: trackPx }}>
               {ticks.map((t, i) => (
@@ -363,35 +365,37 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
 
             return (
               <Fragment key={o.id}>
-                <div className="flex border-b border-bdr hover:bg-blue-50/40 dark:hover:bg-blue-950/30">
-                  <div className="w-8 shrink-0 flex items-start justify-center pt-2.5">
-                    {hasTasks ? (
-                      <button
-                        type="button"
-                        onClick={() => toggle(setExpandedOpps, o.id)}
-                        aria-expanded={oppExpanded}
-                        aria-label={
-                          oppExpanded
-                            ? `Ocultar tarefas de ${o.processo}`
-                            : `Mostrar tarefas de ${o.processo}`
-                        }
-                        title={`${roots.length} tarefa${roots.length > 1 ? 's' : ''}`}
-                        className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-mut hover:bg-bdr/60 hover:text-txt"
-                      >
-                        {oppExpanded ? '▼' : '▶'}
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="w-[240px] shrink-0 px-4 py-2.5 min-w-0">
-                    <div
-                      className="text-[12px] font-semibold text-txt truncate"
-                      title={o.processo}
-                    >
-                      #{String(o.seq_id).padStart(4, '0')} · {o.processo}
+                <div className="flex border-b border-bdr group hover:bg-blue-50/40 dark:hover:bg-blue-950/30">
+                  <div className="flex shrink-0 sticky left-0 z-10 bg-wh group-hover:bg-blue-50/40 dark:group-hover:bg-blue-950/30">
+                    <div className="w-8 shrink-0 flex items-start justify-center pt-2.5">
+                      {hasTasks ? (
+                        <button
+                          type="button"
+                          onClick={() => toggle(setExpandedOpps, o.id)}
+                          aria-expanded={oppExpanded}
+                          aria-label={
+                            oppExpanded
+                              ? `Ocultar tarefas de ${o.processo}`
+                              : `Mostrar tarefas de ${o.processo}`
+                          }
+                          title={`${roots.length} tarefa${roots.length > 1 ? 's' : ''}`}
+                          className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-mut hover:bg-bdr/60 hover:text-txt"
+                        >
+                          {oppExpanded ? '▼' : '▶'}
+                        </button>
+                      ) : null}
                     </div>
-                    <div className="text-[10px] text-mut truncate">
-                      {o.solicitante}
-                      {hasTasks ? ` · ${roots.length} tarefa${roots.length > 1 ? 's' : ''}` : ''}
+                    <div className="w-[240px] shrink-0 px-4 py-2.5 min-w-0">
+                      <div
+                        className="text-[12px] font-semibold text-txt truncate"
+                        title={o.processo}
+                      >
+                        #{String(o.seq_id).padStart(4, '0')} · {o.processo}
+                      </div>
+                      <div className="text-[10px] text-mut truncate">
+                        {o.solicitante}
+                        {hasTasks ? ` · ${roots.length} tarefa${roots.length > 1 ? 's' : ''}` : ''}
+                      </div>
                     </div>
                   </div>
                   <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
@@ -442,38 +446,40 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
                     return (
                       <Fragment key={root.id}>
                         <div className="flex border-b border-bdr/60 bg-bg/40">
-                          <div className="w-8 shrink-0 flex items-start justify-end pt-2.5 pr-0.5">
-                            {hasChildren ? (
-                              <button
-                                type="button"
-                                onClick={() => toggle(setExpandedTasks, root.id)}
-                                aria-expanded={taskExpanded}
-                                aria-label={
-                                  taskExpanded
-                                    ? `Ocultar subtarefas de ${root.title}`
-                                    : `Mostrar subtarefas de ${root.title}`
-                                }
-                                className="w-4 h-4 rounded flex items-center justify-center text-[9px] text-mut hover:bg-bdr/60 hover:text-txt"
+                          <div className="flex shrink-0 sticky left-0 z-10 bg-bg">
+                            <div className="w-8 shrink-0 flex items-start justify-end pt-2.5 pr-0.5">
+                              {hasChildren ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggle(setExpandedTasks, root.id)}
+                                  aria-expanded={taskExpanded}
+                                  aria-label={
+                                    taskExpanded
+                                      ? `Ocultar subtarefas de ${root.title}`
+                                      : `Mostrar subtarefas de ${root.title}`
+                                  }
+                                  className="w-4 h-4 rounded flex items-center justify-center text-[9px] text-mut hover:bg-bdr/60 hover:text-txt"
+                                >
+                                  {taskExpanded ? '▼' : '▶'}
+                                </button>
+                              ) : null}
+                            </div>
+                            <div className="w-[240px] shrink-0 px-4 py-2.5 pl-6 min-w-0">
+                              <div className="text-[11px] font-semibold text-pri">
+                                {rootTid}
+                              </div>
+                              <div
+                                className="text-[12px] font-medium text-txt truncate"
+                                title={root.title}
                               >
-                                {taskExpanded ? '▼' : '▶'}
-                              </button>
-                            ) : null}
-                          </div>
-                          <div className="w-[240px] shrink-0 px-4 py-2.5 pl-6 min-w-0">
-                            <div className="text-[11px] font-semibold text-pri">
-                              {rootTid}
-                            </div>
-                            <div
-                              className="text-[12px] font-medium text-txt truncate"
-                              title={root.title}
-                            >
-                              {root.title}
-                            </div>
-                            <div className="text-[10px] whitespace-nowrap" style={{ color: meta.color }}>
-                              {meta.icon} {meta.label}
-                              {hasChildren
-                                ? ` · ${rollup!.completedChildren}/${rollup!.totalChildren}`
-                                : ''}
+                                {root.title}
+                              </div>
+                              <div className="text-[10px] whitespace-nowrap" style={{ color: meta.color }}>
+                                {meta.icon} {meta.label}
+                                {hasChildren
+                                  ? ` · ${rollup!.completedChildren}/${rollup!.totalChildren}`
+                                  : ''}
+                              </div>
                             </div>
                           </div>
                           <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
@@ -529,22 +535,24 @@ export function GanttChart({ opportunities, phases, tasks = [] }: Props) {
                                 key={child.id}
                                 className="flex border-b border-bdr/60 bg-bg/60"
                               >
-                                <div className="w-8 shrink-0" aria-hidden="true" />
-                                <div className="w-[240px] shrink-0 px-4 py-2 pl-11 min-w-0">
-                                  <div className="text-[11px] font-semibold text-pri">
-                                    {`${rootTid}.${j + 1}`}
-                                  </div>
-                                  <div
-                                    className="text-[12px] text-txt truncate"
-                                    title={child.title}
-                                  >
-                                    {child.title}
-                                  </div>
-                                  <div
-                                    className="text-[10px] whitespace-nowrap"
-                                    style={{ color: childMeta.color }}
-                                  >
-                                    {childMeta.icon} {childMeta.label}
+                                <div className="flex shrink-0 sticky left-0 z-10 bg-bg">
+                                  <div className="w-8 shrink-0" aria-hidden="true" />
+                                  <div className="w-[240px] shrink-0 px-4 py-2 pl-11 min-w-0">
+                                    <div className="text-[11px] font-semibold text-pri">
+                                      {`${rootTid}.${j + 1}`}
+                                    </div>
+                                    <div
+                                      className="text-[12px] text-txt truncate"
+                                      title={child.title}
+                                    >
+                                      {child.title}
+                                    </div>
+                                    <div
+                                      className="text-[10px] whitespace-nowrap"
+                                      style={{ color: childMeta.color }}
+                                    >
+                                      {childMeta.icon} {childMeta.label}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="relative my-2 shrink-0" style={{ width: trackPx }}>
